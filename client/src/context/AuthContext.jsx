@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api, getAuthToken, setAuthToken } from '../services/api';
+import { api, getAuthToken, getRefreshToken, setAuthToken, setTokens } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -18,13 +18,29 @@ export function AuthProvider({ children }) {
 
   const loadSession = useCallback(async () => {
     const token = getAuthToken();
-    if (!token) {
+    const refToken = getRefreshToken();
+    if (!token && !refToken) {
       setUser(null);
       setLoading(false);
       return;
     }
     try {
-      const session = await api.getSession();
+      let session;
+      try {
+        session = await api.getSession();
+      } catch (err) {
+        if ((err.status === 401 || err.message === 'TOKEN_EXPIRED') && refToken) {
+          const refreshRes = await api.refreshToken();
+          if (refreshRes && refreshRes.user) {
+            session = { user: refreshRes.user };
+          } else {
+            session = await api.getSession();
+          }
+        } else {
+          throw err;
+        }
+      }
+
       if (session && session.user) {
         setUser(session.user);
         if (session.user.schoolMode) {
@@ -35,7 +51,7 @@ export function AuthProvider({ children }) {
         setAuthToken(null);
       }
     } catch (err) {
-      console.warn('Failed to load session:', err);
+      console.warn('Failed to load session:', err.message || err);
       setUser(null);
       setAuthToken(null);
     } finally {
@@ -98,10 +114,11 @@ export function AuthProvider({ children }) {
 
   const googleLogin = async (credential) => {
     try {
-      // Direct fetch to our new backend route
+      // Direct fetch to our backend route
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ credential }),
       });
       const res = await response.json();
@@ -109,7 +126,9 @@ export function AuthProvider({ children }) {
       if (!response.ok) throw new Error(res.message || 'Google Auth failed');
       
       if (res.user) {
-        setAuthToken(res.token);
+        const accessToken = res.accessToken || res.token;
+        const refreshToken = res.refreshToken;
+        setTokens({ accessToken, refreshToken });
         setUser(res.user);
         if (res.user.schoolMode) setSchoolMode(res.user.schoolMode);
         showToast(`Welcome back, ${res.user.name}!`, 'success');

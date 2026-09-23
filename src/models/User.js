@@ -20,7 +20,8 @@ const UserSchema = new mongoose.Schema({
   status: { type: String, default: 'ACTIVE', enum: ['ACTIVE', 'PENDING_APPROVAL', 'SUSPENDED'] },
   failedLoginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date },
-  emailVerified: { type: Boolean, default: true }
+  emailVerified: { type: Boolean, default: true },
+  tokenVersion: { type: Number, default: 0 }
 }, { timestamps: true });
 
 export const User = mongoose.models.User || mongoose.model('User', UserSchema);

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
 import { Faculty } from '../models/Faculty.js';
@@ -32,8 +33,17 @@ export class AuthService {
     });
   }
 
-  static generateRefreshToken() {
-    return crypto.randomBytes(40).toString('hex');
+  static generateRefreshToken(user) {
+    const payload = {
+      sub: user.auth0Sub || `auth0|${user.email.replace(/[@.]/g, '_')}`,
+      userId: user._id ? user._id.toString() : user.id,
+      email: user.email,
+      tokenVersion: user.tokenVersion || 0,
+      type: 'refresh'
+    };
+    return jwt.sign(payload, ENV.JWT_REFRESH_SECRET, {
+      expiresIn: ENV.JWT_REFRESH_EXPIRES_IN || '30d'
+    });
   }
 
   static async login(email, password, ipAddress, userAgent) {
@@ -173,7 +183,7 @@ export class AuthService {
     await user.save();
 
     const accessToken = this.generateAccessToken(user);
-    const rawRefreshToken = this.generateRefreshToken();
+    const rawRefreshToken = this.generateRefreshToken(user);
 
     // Strip sensitive fields
     const safeUser = user.toObject();
@@ -206,6 +216,78 @@ export class AuthService {
       token: accessToken,
       auth0Token: accessToken,
       refreshToken: rawRefreshToken
+    };
+  }
+
+  static async refresh(rawToken) {
+    if (!rawToken) {
+      throw { statusCode: 401, code: 'REFRESH_TOKEN_REQUIRED', message: 'Refresh token is required.' };
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(rawToken, ENV.JWT_REFRESH_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        throw { statusCode: 401, code: 'REFRESH_TOKEN_EXPIRED', message: 'Refresh token has expired. Please sign in again.' };
+      }
+      throw { statusCode: 401, code: 'INVALID_REFRESH_TOKEN', message: 'Invalid or malformed refresh token.' };
+    }
+
+    const query = [];
+    if (decoded.userId) query.push({ _id: decoded.userId });
+    if (decoded.email) query.push({ email: decoded.email.toLowerCase().trim() });
+    if (decoded.sub) query.push({ auth0Sub: decoded.sub });
+
+    if (query.length === 0) {
+      throw { statusCode: 401, code: 'INVALID_REFRESH_TOKEN', message: 'Refresh token missing user identity.' };
+    }
+
+    const user = await User.findOne({ $or: query });
+    if (!user) {
+      throw { statusCode: 401, code: 'USER_NOT_FOUND', message: 'User associated with refresh token was not found.' };
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw { statusCode: 403, code: 'ACCOUNT_INACTIVE', message: `Account is ${user.status}. Contact institution administration.` };
+    }
+
+    if (decoded.tokenVersion !== undefined && user.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
+      throw { statusCode: 401, code: 'TOKEN_REVOKED', message: 'Session has been invalidated. Please sign in again.' };
+    }
+
+    const accessToken = this.generateAccessToken(user);
+    const newRefreshToken = this.generateRefreshToken(user);
+
+    const roleMapping = {
+      'PRINCIPAL': 'principal',
+      'VICE_PRINCIPAL': 'vice_principal',
+      'HOD': 'hod',
+      'CLASS_TEACHER': 'class_teacher',
+      'TEACHER': 'faculty',
+      'FACULTY': 'faculty',
+      'ADMIN_OFFICER': 'admissions_officer',
+      'ACCOUNTANT': 'accountant',
+      'COUNSELLOR': 'counsellor',
+      'PARENT': 'parent',
+      'STUDENT': 'student',
+      'SCHOOL_MGMT': 'school_mgmt',
+      'SUPER_ADMIN': 'principal',
+      'INSTITUTION_ADMIN': 'principal'
+    };
+
+    const safeUser = user.toObject();
+    delete safeUser.passwordHash;
+    safeUser.id = safeUser._id ? safeUser._id.toString() : user.id;
+    safeUser.name = safeUser.fullName || safeUser.name;
+    safeUser.role = roleMapping[safeUser.roleCode] || (safeUser.roleCode ? safeUser.roleCode.toLowerCase() : 'principal');
+
+    return {
+      user: safeUser,
+      accessToken,
+      token: accessToken,
+      auth0Token: accessToken,
+      refreshToken: newRefreshToken
     };
   }
 

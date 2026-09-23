@@ -13,6 +13,13 @@ export async function runAuthTests() {
   assert.strictEqual(loginRes.user.passwordHash, undefined, 'Password hash must never leak in response');
   console.log('✅ PASS: Valid login issues Auth0 JWT access token and refresh token.');
 
+  // Test 1b: Token Refresh
+  const refreshRes = await AuthService.refresh(loginRes.refreshToken);
+  assert(refreshRes.accessToken, 'Access token should be issued on refresh');
+  assert(refreshRes.refreshToken, 'New refresh token should be issued on refresh');
+  assert.strictEqual(refreshRes.user.email, 'principal@campusnoa.edu');
+  console.log('✅ PASS: Refresh token successfully verified and refreshed new session tokens.');
+
   // Test 2: Invalid Password
   try {
     await AuthService.login('principal@campusnoa.edu', 'WrongPassword123!', '127.0.0.1', 'TestRunner');

@@ -26,14 +26,14 @@ router.post('/login', loginRateLimiter, auditLogger('USER_LOGIN', 'AUTH'), async
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000 // 15 mins
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
     res.cookie('campusnoa_refresh_token', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     res.json({
@@ -84,20 +84,21 @@ router.post('/google', async (req, res, next) => {
     }
 
     // Issue standard tokens using AuthService logic
-    const { mintAuth0Token } = await import('../middlewares/auth0.js');
-    const accessToken = mintAuth0Token({
-      sub: user.auth0Sub || `auth0|${user.email.replace(/[@.]/g, '_')}`,
-      email: user.email,
-      fullName: user.fullName,
-      roleCode: user.roleCode,
-      institutionId: user.institutionId || 'NOA_INST_01'
-    });
+    const accessToken = AuthService.generateAccessToken(user);
+    const refreshToken = AuthService.generateRefreshToken(user);
 
     res.cookie('campusnoa_access_token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
+    res.cookie('campusnoa_refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     const safeUser = user.toObject();
@@ -107,7 +108,8 @@ router.post('/google', async (req, res, next) => {
       success: true,
       user: safeUser,
       accessToken,
-      token: accessToken
+      token: accessToken,
+      refreshToken
     });
   } catch (err) {
     console.error('Google Auth Error:', err);
@@ -135,14 +137,14 @@ router.post('/refresh-token', async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
     res.cookie('campusnoa_refresh_token', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     res.json({ success: true, ...result });
