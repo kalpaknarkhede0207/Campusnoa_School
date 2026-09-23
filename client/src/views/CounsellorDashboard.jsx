@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   HeartHandshake, ShieldAlert, CheckCircle2, 
   MessageSquare, User, Clock, Plus, Lock 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 export default function CounsellorDashboard() {
   const { showToast } = useAuth();
-  const [cases, setCases] = useState([
-    { id: 'c-01', studentName: 'Rohan Joshi', grade: 'Grade 9-A', reason: 'Chronic absenteeism and exam stress anxiety', severity: 'HIGH', status: 'ACTIVE_INTERVENTION', lastSession: '2026-03-18', notes: 'Scheduled 1-on-1 session with parents regarding study environment.' },
-    { id: 'c-02', studentName: 'Aditya Patel', grade: 'Grade 9-A', reason: 'Peer conflict resolution and emotional regulation', severity: 'MEDIUM', status: 'MONITORING', lastSession: '2026-03-15', notes: 'Showed significant improvement in team sports and group study.' },
-    { id: 'c-03', studentName: 'Kavya Nair', grade: 'Grade 9-A', reason: 'Career pathway guidance and aptitude assessment', severity: 'LOW', status: 'RESOLVED', lastSession: '2026-03-10', notes: 'Aptitude profile shared; interested in Computer Science and Design.' },
-  ]);
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCase, setNewCase] = useState({
@@ -21,6 +19,33 @@ export default function CounsellorDashboard() {
     severity: 'MEDIUM',
     notes: '',
   });
+
+  useEffect(() => {
+    async function loadCases() {
+      try {
+        const res = await api.getCounsellingCases().catch(() => ({ cases: [] }));
+        if (res?.cases && Array.isArray(res.cases)) {
+          setCases(res.cases.map(c => ({
+            id: c.caseId || c.id || `c-${Math.random()}`,
+            studentName: c.studentName || c.name || 'Student',
+            grade: c.gradeSection || c.grade || 'Grade 9-A',
+            reason: c.category || c.reason || 'Wellbeing Referral',
+            severity: c.severity || 'MEDIUM',
+            status: c.status || 'ACTIVE_INTERVENTION',
+            lastSession: c.sessionDate || c.date || new Date().toISOString().split('T')[0],
+            notes: c.confidentialNotes || c.notes || 'Confidential session logged.'
+          })));
+        } else {
+          setCases([]);
+        }
+      } catch (err) {
+        setCases([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCases();
+  }, []);
 
   const handleCreateCase = (e) => {
     e.preventDefault();
@@ -65,54 +90,64 @@ export default function CounsellorDashboard() {
       </div>
 
       {/* Cases Grid */}
-      <div className="space-y-4">
-        {cases.map((c) => (
-          <div key={c.id} className="card-clean p-5 hover:border-slate-300">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                  c.severity === 'HIGH' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {c.studentName[0]}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-900">{c.studentName}</h3>
-                    <span className="text-xs text-slate-500 font-medium">({c.grade})</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      c.severity === 'HIGH' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                      {c.severity} PRIORITY
-                    </span>
+      {cases.length === 0 ? (
+        <div className="card-clean p-12 text-center">
+          <HeartHandshake className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h4 className="font-bold text-slate-800 text-sm">No Confidential Counselling Cases</h4>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            The wellness and pastoral care vault is live and clean. Click 'Open New Case File' to log a student consultation or wellness observation.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {cases.map((c) => (
+            <div key={c.id} className="card-clean p-5 hover:border-slate-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                    c.severity === 'HIGH' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {c.studentName[0]}
                   </div>
-                  <p className="text-xs text-slate-600 mt-0.5">{c.reason}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900">{c.studentName}</h3>
+                      <span className="text-xs text-slate-500 font-medium">({c.grade})</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        c.severity === 'HIGH' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {c.severity} PRIORITY
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">{c.reason}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                    c.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'
+                  }`}>
+                    {c.status.replace('_', ' ')}
+                  </span>
+                  {c.status !== 'RESOLVED' && (
+                    <button
+                      onClick={() => handleResolveCase(c.id)}
+                      className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    >
+                      Mark Resolved
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                  c.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'
-                }`}>
-                  {c.status.replace('_', ' ')}
-                </span>
-                {c.status !== 'RESOLVED' && (
-                  <button
-                    onClick={() => handleResolveCase(c.id)}
-                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
-                  >
-                    Mark Resolved
-                  </button>
-                )}
+              <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600 bg-slate-50 p-3 rounded-lg">
+                <span className="font-bold text-slate-800">Counsellor Clinical Notes:</span> {c.notes}
+                <div className="mt-1 text-[11px] text-slate-400">Last Session Date: {c.lastSession}</div>
               </div>
             </div>
-
-            <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600 bg-slate-50 p-3 rounded-lg">
-              <span className="font-bold text-slate-800">Counsellor Clinical Notes:</span> {c.notes}
-              <div className="mt-1 text-[11px] text-slate-400">Last Session Date: {c.lastSession}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
@@ -129,7 +164,7 @@ export default function CounsellorDashboard() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Diya Kulkarni"
+                  placeholder="e.g. Student Full Name"
                   value={newCase.studentName}
                   onChange={(e) => setNewCase({ ...newCase, studentName: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"

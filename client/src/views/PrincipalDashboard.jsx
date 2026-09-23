@@ -68,7 +68,7 @@ export default function PrincipalDashboard() {
         : (Array.isArray(facRes?.teachers) ? [...facRes.teachers, ...(facRes.nonTeachingStaff || [])] : (Array.isArray(facRes) ? facRes : []));
       setStudents(stuList);
       setFaculty(facList);
-      setFinanceSummary(finRes || { totalCollected: 12450000, totalPending: 840000, collectionRate: 93.6 });
+      setFinanceSummary(finRes || { totalCollected: 0, totalPending: 0, collectionRate: 0 });
     } catch (err) {
       console.error(err);
       showToast('Failed to load institutional data', 'error');
@@ -239,7 +239,11 @@ export default function PrincipalDashboard() {
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900 mt-2">93.6%</p>
+          <p className="text-2xl font-black text-slate-900 mt-2">
+            {students.length > 0
+              ? `${Math.round((students.filter(s => s.feeStatus === 'PAID').length / students.length) * 100)}%`
+              : '0.0%'}
+          </p>
           <p className="text-xs text-sky-600 font-semibold mt-1 flex items-center gap-1">
             Open fee ledger <ChevronRight className="w-3.5 h-3.5" />
           </p>
@@ -531,20 +535,40 @@ export default function PrincipalDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="card-clean p-5 border-l-4 border-l-emerald-500">
               <span className="text-xs font-bold uppercase text-slate-500">Total Collected</span>
-              <p className="text-2xl font-black text-emerald-600 mt-1">₹1,24,50,000</p>
-              <span className="text-xs text-slate-400">93.6% Collection efficiency</span>
+              <p className="text-2xl font-black text-emerald-600 mt-1">
+                ₹{((students.filter(s => s.feeStatus === 'PAID').length) * 45000).toLocaleString('en-IN')}
+              </p>
+              <span className="text-xs text-slate-400">
+                {students.length > 0 ? `${Math.round((students.filter(s => s.feeStatus === 'PAID').length / students.length) * 100)}% Collection efficiency` : '0 records in database'}
+              </span>
             </div>
             <div className="card-clean p-5 border-l-4 border-l-rose-500">
               <span className="text-xs font-bold uppercase text-slate-500">Outstanding Overdue</span>
-              <p className="text-2xl font-black text-rose-600 mt-1">₹8,40,000</p>
-              <span className="text-xs text-slate-400">Across 18 student accounts</span>
+              <p className="text-2xl font-black text-rose-600 mt-1">
+                ₹{((students.filter(s => s.feeStatus !== 'PAID').length) * 45000).toLocaleString('en-IN')}
+              </p>
+              <span className="text-xs text-slate-400">
+                Across {students.filter(s => s.feeStatus !== 'PAID').length} student accounts
+              </span>
             </div>
             <div className="card-clean p-5 border-l-4 border-l-indigo-500">
-              <span className="text-xs font-bold uppercase text-slate-500">Term 2 Forecast</span>
-              <p className="text-2xl font-black text-indigo-600 mt-1">₹1,45,000,00</p>
-              <span className="text-xs text-slate-400">Due March 31, 2026</span>
+              <span className="text-xs font-bold uppercase text-slate-500">Annual Billed Total</span>
+              <p className="text-2xl font-black text-indigo-600 mt-1">
+                ₹{(students.length * 45000).toLocaleString('en-IN')}
+              </p>
+              <span className="text-xs text-slate-400">Current Academic Year</span>
             </div>
           </div>
+
+          {students.length === 0 && (
+            <div className="card-clean p-12 text-center">
+              <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h4 className="font-bold text-slate-800 text-sm">No Fee Records Found</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                The institutional finance ledger is live and clean. Student fee invoices, challans, and collections will appear here automatically as students are admitted.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

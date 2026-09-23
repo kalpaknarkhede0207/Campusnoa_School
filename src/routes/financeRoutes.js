@@ -18,9 +18,9 @@ router.get('/summary', async (req, res, next) => {
     const data = await FinanceService.getFeeLedger(req.institutionId);
     res.json({
       success: true,
-      totalCollected: data.totalCollected || 12450000,
-      totalPending: data.totalPending || 840000,
-      collectionRate: data.collectionRate || 93.6,
+      totalCollected: data.summary?.totalCollected || 0,
+      totalPending: data.summary?.totalOverdue || 0,
+      collectionRate: data.summary?.collectionRatePercent || 0,
       ...data
     });
   } catch (err) {

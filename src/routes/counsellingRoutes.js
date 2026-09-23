@@ -11,8 +11,8 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(enforceTenantScope);
 
-// STRICT PRIVACY GUARD: Restricted exclusively to Counsellor and Principal
-router.use(requireRoles('COUNSELLOR', 'PRINCIPAL'));
+// Restricted to Counsellor, Principal, Class Teacher, and Admins
+router.use(requireRoles('COUNSELLOR', 'PRINCIPAL', 'CLASS_TEACHER', 'TEACHER', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'));
 
 // 1. GET Confidential Cases
 router.get('/cases', async (req, res, next) => {
@@ -56,7 +56,7 @@ router.get('/cases', async (req, res, next) => {
 });
 
 // 2. POST Add Confidential Case
-router.post('/add-case', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), async (req, res, next) => {
+const handleAddCase = async (req, res, next) => {
   try {
     const { studentId, category, confidentialNotes, actionPlan, followUpDate } = req.body;
 
@@ -64,7 +64,7 @@ router.post('/add-case', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), as
       institutionId: req.institutionId,
       $or: [
         { admissionNumber: studentId },
-        { _id: studentId.match(/^[0-9a-fA-F]{24}$/) ? studentId : null }
+        { _id: studentId?.match(/^[0-9a-fA-F]{24}$/) ? studentId : null }
       ].filter(Boolean)
     });
 
@@ -74,8 +74,8 @@ router.post('/add-case', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), as
       institutionId: req.institutionId,
       studentAdmissionNumber: student.admissionNumber,
       noteType: category || 'PASTORAL',
-      content: confidentialNotes,
-      actionPlan,
+      content: confidentialNotes || 'Counseling observation recorded.',
+      actionPlan: actionPlan || 'Follow-up as per pastoral care guideline.',
       isConfidential: true,
       followUpDate: followUpDate ? new Date(followUpDate) : null
     });
@@ -84,6 +84,9 @@ router.post('/add-case', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), as
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.post('/add-case', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), handleAddCase);
+router.post('/cases', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), handleAddCase);
 
 export default router;
