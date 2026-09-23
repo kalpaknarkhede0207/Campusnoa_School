@@ -84,8 +84,9 @@ export default function ClassTeacherDashboard() {
 
       await api.submitHomeroomAttendance(records);
       showToast('Daily attendance saved successfully to institutional database!', 'success');
+      loadData();
     } catch (err) {
-      showToast('Attendance recorded and synchronized with parents.', 'success');
+      showToast(err.message || 'Failed to save attendance record', 'error');
     } finally {
       setSavingAttendance(false);
     }

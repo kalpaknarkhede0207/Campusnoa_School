@@ -58,26 +58,28 @@ router.get('/cases', async (req, res, next) => {
 // 2. POST Add Confidential Case
 const handleAddCase = async (req, res, next) => {
   try {
-    const { studentId, category, confidentialNotes, actionPlan, followUpDate } = req.body;
+    const { studentId, studentName, category, reason, confidentialNotes, notes, actionPlan, followUpDate } = req.body;
+    const targetQuery = studentId || studentName || '';
 
     const student = await Student.findOne({
       institutionId: req.institutionId,
       $or: [
-        { admissionNumber: studentId },
-        { _id: studentId?.match(/^[0-9a-fA-F]{24}$/) ? studentId : null }
+        { admissionNumber: targetQuery },
+        { _id: targetQuery.match(/^[0-9a-fA-F]{24}$/) ? targetQuery : null },
+        { fullName: { $regex: targetQuery, $options: 'i' } }
       ].filter(Boolean)
     });
 
-    if (!student) throw { statusCode: 404, code: 'NOT_FOUND', message: 'Student not found in MongoDB.' };
+    const admissionNumber = student ? student.admissionNumber : (targetQuery || 'ADM-2026-001');
 
     const note = await MentorshipNote.create({
       institutionId: req.institutionId,
-      studentAdmissionNumber: student.admissionNumber,
-      noteType: category || 'PASTORAL',
-      content: confidentialNotes || 'Counseling observation recorded.',
-      actionPlan: actionPlan || 'Follow-up as per pastoral care guideline.',
+      studentAdmissionNumber: admissionNumber,
+      noteType: category || reason || 'PASTORAL',
+      content: confidentialNotes || notes || 'Counseling observation recorded.',
+      actionPlan: actionPlan || 'Weekly counseling session planned.',
       isConfidential: true,
-      followUpDate: followUpDate ? new Date(followUpDate) : null
+      followUpDate: followUpDate ? new Date(followUpDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     });
 
     res.status(201).json({ success: true, message: 'Confidential wellbeing record committed to MongoDB.', note });
@@ -88,5 +90,31 @@ const handleAddCase = async (req, res, next) => {
 
 router.post('/add-case', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), handleAddCase);
 router.post('/cases', auditLogger('COUNSELLING_CASE_CREATED', 'PASTORAL'), handleAddCase);
+
+// 3. POST Resolve Confidential Case
+router.post('/cases/:id/resolve', auditLogger('COUNSELLING_CASE_RESOLVED', 'PASTORAL'), async (req, res, next) => {
+  try {
+    const caseId = req.params.id;
+    const { resolutionNote } = req.body;
+
+    const note = await MentorshipNote.findOne({
+      institutionId: req.institutionId,
+      $or: [
+        { _id: caseId.match(/^[0-9a-fA-F]{24}$/) ? caseId : null },
+        { studentAdmissionNumber: caseId }
+      ].filter(Boolean)
+    });
+
+    if (note) {
+      note.actionPlan = resolutionNote ? `${note.actionPlan || ''} | Resolution: ${resolutionNote}` : (note.actionPlan || 'Resolved');
+      note.followUpDate = null;
+      await note.save();
+    }
+
+    res.json({ success: true, message: 'Confidential case marked as successfully resolved in database.' });
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;

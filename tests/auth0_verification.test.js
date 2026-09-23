@@ -8,7 +8,7 @@ export async function runAuth0Tests(serverUrl) {
   // Test 1: Mint Auth0-compliant Token locally
   const token = mintAuth0Token({
     sub: 'auth0|principal_delhi_test',
-    email: 'principal@school.edu',
+    email: 'principal@campusnoa.edu',
     fullName: 'Dr. APJ Abdul Kalam',
     roleCode: 'PRINCIPAL',
     institutionId: 'INST-001'
@@ -20,7 +20,7 @@ export async function runAuth0Tests(serverUrl) {
   // Test 2: Verify Auth0 Token
   const verifiedClaims = await verifyAuth0Token(token);
   assert.strictEqual(verifiedClaims.sub, 'auth0|principal_delhi_test');
-  assert.strictEqual(verifiedClaims.email, 'principal@school.edu');
+  assert.strictEqual(verifiedClaims.email, 'principal@campusnoa.edu');
   assert.strictEqual(verifiedClaims['https://campusnoa.edu/role'], 'PRINCIPAL');
   assert.strictEqual(verifiedClaims['https://campusnoa.edu/institutionId'], 'INST-001');
   console.log('✅ PASS: Auth0 token cryptographic verification passed and custom namespace claims validated.');
@@ -45,7 +45,7 @@ export async function runAuth0Tests(serverUrl) {
     assert.strictEqual(res.status, 200, 'Authenticated request to /api/auth/me should succeed');
     const body = await res.json();
     assert.strictEqual(body.success, true);
-    assert.strictEqual(body.user.email, 'principal@school.edu');
+    assert.strictEqual(body.user.email, 'principal@campusnoa.edu');
     assert.strictEqual(body.user.roleCode, 'PRINCIPAL');
     console.log('✅ PASS: Backend successfully resolved MongoDB User profile via Auth0 Bearer token.');
 
@@ -53,7 +53,7 @@ export async function runAuth0Tests(serverUrl) {
     const mintRes = await fetch(`${serverUrl}/api/auth/auth0/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 's.roy@school.edu' })
+      body: JSON.stringify({ email: 'teacher@campusnoa.edu' })
     });
     assert.strictEqual(mintRes.status, 200);
     const mintData = await mintRes.json();

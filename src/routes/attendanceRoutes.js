@@ -76,10 +76,20 @@ router.get('/homeroom', async (req, res, next) => {
 // 2. Mark Homeroom Attendance
 router.post('/mark', auditLogger('ATTENDANCE_RECORDED', 'ATTENDANCE'), async (req, res, next) => {
   try {
-    const { records, date } = req.body;
+    const { records, date, divisionName } = req.body;
+    const recordedBy = req.user?.email || 'CLASS_TEACHER';
+    const result = await AttendanceService.saveBatchAttendance(
+      req.institutionId,
+      divisionName || 'Grade 9-A',
+      recordedBy,
+      date || new Date().toISOString().split('T')[0],
+      1,
+      records || []
+    );
     res.json({
       success: true,
-      message: `Successfully recorded daily homeroom attendance for ${records?.length || 10} students.`,
+      message: `Successfully recorded daily homeroom attendance for ${result.count} students.`,
+      count: result.count,
       date: date || new Date().toISOString().split('T')[0]
     });
   } catch (err) {

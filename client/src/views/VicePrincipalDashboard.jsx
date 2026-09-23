@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Award, Calendar, UserCheck, AlertTriangle, 
   CheckCircle2, Clock, Users, ArrowRight, PlusCircle 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 export default function VicePrincipalDashboard() {
   const { showToast } = useAuth();
@@ -16,29 +17,54 @@ export default function VicePrincipalDashboard() {
     substitute: ''
   });
 
+  const loadData = async () => {
+    try {
+      const facRes = await api.getFaculty().catch(() => ({}));
+      const leaves = facRes?.leaves || [];
+      const loadedSubs = leaves.map(l => ({
+        id: l.id,
+        absentTeacher: l.teacherName,
+        section: 'Grade 9-A',
+        period: 'Period 1 (08:30 AM)',
+        substitute: l.delegatedToName !== 'Unassigned' ? l.delegatedToName : 'Unassigned',
+        status: l.delegationStatus === 'ACCEPTED' ? 'ASSIGNED' : 'PENDING'
+      }));
+      setSubstitutes(loadedSubs);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const handleAssign = (id) => {
     setSubstitutes(substitutes.map(s => s.id === id ? { ...s, substitute: 'Assigned Proxy Teacher', status: 'ASSIGNED' } : s));
     showToast('Substitute teacher allocated and notified via SMS/Push', 'success');
   };
 
-  const handleAddProxy = (e) => {
+  const handleAddProxy = async (e) => {
     e.preventDefault();
     if (!formData.absentTeacher) {
       showToast('Please specify the absent faculty name', 'error');
       return;
     }
-    const newSub = {
-      id: `sub-${Date.now()}`,
-      absentTeacher: formData.absentTeacher,
-      section: formData.section,
-      period: formData.period,
-      substitute: formData.substitute || 'Unassigned',
-      status: formData.substitute ? 'ASSIGNED' : 'PENDING'
-    };
-    setSubstitutes([newSub, ...substitutes]);
-    setShowAddModal(false);
-    setFormData({ absentTeacher: '', section: 'Grade 9-A', period: 'Period 1 (08:30 AM)', substitute: '' });
-    showToast('New proxy allocation logged successfully!', 'success');
+    try {
+      await api.assignProxy({
+        absentTeacherName: formData.absentTeacher,
+        divisionName: formData.section,
+        timeSlot: formData.period,
+        assignedEmployeeCode: formData.substitute || 'T-102',
+        lessonHandover: 'Supervised lesson plan and practice'
+      });
+      setShowAddModal(false);
+      setFormData({ absentTeacher: '', section: 'Grade 9-A', period: 'Period 1 (08:30 AM)', substitute: '' });
+      showToast('New proxy allocation logged and committed to database!', 'success');
+      await loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to assign proxy', 'error');
+    }
   };
 
   const pendingCount = substitutes.filter(s => s.status === 'PENDING').length;

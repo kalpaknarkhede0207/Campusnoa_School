@@ -47,7 +47,9 @@ export default function PrincipalDashboard() {
   const [students, setStudents] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [financeSummary, setFinanceSummary] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Selected modals
@@ -57,10 +59,11 @@ export default function PrincipalDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [stuRes, facRes, finRes] = await Promise.all([
+      const [stuRes, facRes, finRes, annRes] = await Promise.all([
         api.getStudents({ limit: 100 }),
         api.getFaculty({ limit: 100 }),
         api.getFinanceSummary().catch(() => null),
+        api.getAnnouncements().catch(() => null),
       ]);
       const stuList = Array.isArray(stuRes?.students) ? stuRes.students : (Array.isArray(stuRes) ? stuRes : []);
       const facList = Array.isArray(facRes?.faculty) 
@@ -69,11 +72,42 @@ export default function PrincipalDashboard() {
       setStudents(stuList);
       setFaculty(facList);
       setFinanceSummary(finRes || { totalCollected: 0, totalPending: 0, collectionRate: 0 });
+      if (annRes?.announcements) {
+        setAnnouncements(annRes.announcements);
+      }
     } catch (err) {
       console.error(err);
       showToast('Failed to load institutional data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBroadcast = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const title = form.title.value;
+    const message = form.message.value;
+    const audience = form.audience.value;
+    const isUrgent = form.urgent?.checked;
+
+    try {
+      setBroadcastLoading(true);
+      const res = await api.broadcastAnnouncement({
+        title: isUrgent ? `[URGENT] ${title}` : title,
+        message: `${message} (Audience: ${audience})`
+      });
+      showToast(res?.message || 'Announcement broadcasted in real-time!', 'success');
+      form.reset();
+      const annRes = await api.getAnnouncements().catch(() => null);
+      if (annRes?.announcements) {
+        setAnnouncements(annRes.announcements);
+      }
+    } catch (err) {
+      console.error('Broadcast failed:', err);
+      showToast(err.message || 'Failed to broadcast announcement', 'error');
+    } finally {
+      setBroadcastLoading(false);
     }
   };
 
@@ -604,37 +638,30 @@ export default function PrincipalDashboard() {
               <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-indigo-600" /> New Broadcast Announcement
               </h3>
-              <form 
-                onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  showToast('Announcement broadcasted to selected groups!', 'success');
-                  e.target.reset();
-                }}
-                className="space-y-4"
-              >
+              <form onSubmit={handleBroadcast} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Target Audience</label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option>All Staff & Students</option>
-                    <option>Teaching Faculty Only</option>
-                    <option>Parents & Guardians Only</option>
-                    <option>School Board Only</option>
+                  <select name="audience" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="All Staff & Students">All Staff & Students</option>
+                    <option value="Teaching Faculty Only">Teaching Faculty Only</option>
+                    <option value="Parents & Guardians Only">Parents & Guardians Only</option>
+                    <option value="School Board Only">School Board Only</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Message Subject</label>
-                  <input required type="text" placeholder="e.g. Urgent: Tomorrow's Holiday" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input name="title" required type="text" placeholder="e.g. Urgent: Tomorrow's Holiday" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Message Body</label>
-                  <textarea required rows="4" placeholder="Type your announcement here..." className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                  <textarea name="message" required rows="4" placeholder="Type your announcement here..." className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="urgent" className="rounded text-rose-500 focus:ring-rose-500" />
-                  <label htmlFor="urgent" className="text-xs font-bold text-rose-600">Mark as High Priority (SMS/Push Notification)</label>
+                  <input name="urgent" type="checkbox" id="urgent" className="rounded text-rose-500 focus:ring-rose-500" />
+                  <label htmlFor="urgent" className="text-xs font-bold text-rose-600">Mark as High Priority (Real-Time SSE Alert)</label>
                 </div>
-                <button type="submit" className="w-full bg-indigo-600 text-white font-bold text-sm py-2.5 rounded-lg hover:bg-indigo-500 transition shadow-md flex items-center justify-center gap-2">
-                  <Send className="w-4 h-4" /> Broadcast Message
+                <button type="submit" disabled={broadcastLoading} className="w-full bg-indigo-600 text-white font-bold text-sm py-2.5 rounded-lg hover:bg-indigo-500 transition shadow-md flex items-center justify-center gap-2">
+                  <Send className={`w-4 h-4 ${broadcastLoading ? 'animate-spin' : ''}`} /> {broadcastLoading ? 'Broadcasting...' : 'Broadcast Message'}
                 </button>
               </form>
             </div>
@@ -643,27 +670,30 @@ export default function PrincipalDashboard() {
               <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-slate-500" /> Recent Broadcasts
               </h3>
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl border border-rose-200 bg-rose-50">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-200 text-rose-800">High Priority</span>
-                    <span className="text-xs text-slate-500 font-medium">2 hours ago</span>
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">Heavy Rain Warning - School Closure</h4>
-                  <p className="text-xs text-slate-600 mt-1">Due to severe weather warnings, the school will remain closed tomorrow for all grades.</p>
-                  <p className="text-[10px] text-slate-500 mt-2 font-medium">Delivered to: All Staff & Parents (98% Read)</p>
+              {announcements.length === 0 ? (
+                <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl">
+                  <Megaphone className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-600">No broadcasts sent yet</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Campus announcements dispatched above will appear here and reach subscribed users via SSE.</p>
                 </div>
-                
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-200 text-slate-700">Normal</span>
-                    <span className="text-xs text-slate-500 font-medium">Yesterday</span>
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">Term 1 Grades Submission Deadline</h4>
-                  <p className="text-xs text-slate-600 mt-1">All subject teachers must submit their final grades into the portal by 5 PM Friday.</p>
-                  <p className="text-[10px] text-slate-500 mt-2 font-medium">Delivered to: Teaching Faculty Only</p>
+              ) : (
+                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                  {announcements.map((a) => (
+                    <div key={a.id || a.title} className={`p-4 rounded-xl border ${a.priority === 'HIGH' ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.priority === 'HIGH' ? 'bg-rose-200 text-rose-800' : 'bg-slate-200 text-slate-700'}`}>
+                          {a.priority === 'HIGH' ? 'High Priority' : 'Normal'}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {a.createdAt ? new Date(a.createdAt).toLocaleDateString() : 'Just now'}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-sm">{a.title}</h4>
+                      <p className="text-xs text-slate-600 mt-1">{a.message}</p>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

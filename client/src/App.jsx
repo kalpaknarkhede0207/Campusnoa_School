@@ -27,8 +27,11 @@ export default function App() {
 
     const unsubscribe = api.subscribeSSE(
       (evt) => {
-        if (evt && evt.type && evt.message) {
-          showToast(`[Live] ${evt.message}`, 'info');
+        if (evt) {
+          const text = evt.message || evt.data?.message || (evt.data?.title ? `${evt.data.title}: ${evt.data?.message || ''}` : null);
+          if (text) {
+            showToast(`[Live] ${text}`, 'info');
+          }
         }
       },
       (err) => {

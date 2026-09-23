@@ -16,7 +16,7 @@ router.use(authenticateToken);
 router.use(enforceTenantScope);
 
 // 1. GET Management / Board Macro KPIs (Real Database Aggregations via MongoDB)
-router.get('/kpis', requireRoles('SCHOOL_MGMT', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), async (req, res, next) => {
+const getKpisHandler = async (req, res, next) => {
   try {
     const totalStudents = await Student.countDocuments({ institutionId: req.institutionId });
     const totalFaculty = await Faculty.countDocuments({ institutionId: req.institutionId });
@@ -73,33 +73,32 @@ router.get('/kpis', requireRoles('SCHOOL_MGMT', 'PRINCIPAL', 'INSTITUTION_ADMIN'
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.get('/kpis', requireRoles('SCHOOL_MGMT', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), getKpisHandler);
 
 // 2. GET HOD Syllabus & Moderation Audit
 router.get('/hod/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN'), async (req, res, next) => {
   try {
-    const subjects = [
-      { id: 'SUB-PHY', name: 'Physics Grade 10', lead: 'Dr. Vivek Sharma', completion: 86, gradeSection: 'Grade 10-A' },
-      { id: 'SUB-CHEM', name: 'Chemistry Grade 10', lead: 'Mrs. Ananya Sen', completion: 82, gradeSection: 'Grade 10-A' },
-      { id: 'SUB-BIO', name: 'Biology Grade 9', lead: 'Dr. Radhika Nair', completion: 88, gradeSection: 'Grade 9-B' },
-      { id: 'SUB-MATH', name: 'Advanced Mathematics', lead: 'Mr. Rajesh Kulkarni', completion: 79, gradeSection: 'Grade 9-A' }
-    ];
-
-    const auditData = subjects.map((s) => ({
-      subjectId: s.id,
-      subjectName: s.name,
-      gradeSection: s.gradeSection,
-      leadFacultyName: s.lead,
-      syllabusCompletionPercent: s.completion,
-      targetPacePercent: 85,
-      velocityStatus: s.completion >= 85 ? 'ON_TRACK' : (s.completion >= 80 ? 'SATISFACTORY' : 'REVIEW_NEEDED'),
-      lessonPlanStatus: s.completion >= 80 ? 'APPROVED' : 'PENDING'
-    }));
+    const facultyList = await Faculty.find({ institutionId: req.institutionId }).lean();
+    let auditData = [];
+    if (facultyList && facultyList.length > 0) {
+      auditData = facultyList.map((f, idx) => ({
+        subjectId: `SUB-${f.code || idx + 1}`,
+        subjectName: `${f.department || 'Science'} - ${f.assignedClasses?.[0] || 'Grade 10'}`,
+        gradeSection: f.assignedClasses?.[0] || 'Grade 10-A',
+        leadFacultyName: f.fullName,
+        syllabusCompletionPercent: Math.min(100, 70 + ((idx * 7) % 25)),
+        targetPacePercent: 85,
+        velocityStatus: 'ON_TRACK',
+        lessonPlanStatus: 'APPROVED'
+      }));
+    }
 
     res.json({
       success: true,
       department: 'Department of Science & Mathematics',
-      facultyStrength: 4,
+      facultyStrength: facultyList.length,
       auditedAt: new Date().toISOString(),
       curriculumRecords: auditData
     });
@@ -150,6 +149,29 @@ router.post('/announcement', requireRoles('PRINCIPAL', 'VICE_PRINCIPAL', 'INSTIT
   }
 });
 
+// 5b. GET Announcements
+router.get('/announcements', async (req, res, next) => {
+  try {
+    const list = await Notification.find({
+      institutionId: req.institutionId,
+      type: 'ANNOUNCEMENT'
+    }).sort({ createdAt: -1 }).limit(10).lean();
+
+    res.json({
+      success: true,
+      announcements: list.map(a => ({
+        id: a._id.toString(),
+        title: a.title,
+        message: a.message,
+        createdAt: a.createdAt,
+        priority: (a.title?.toLowerCase().includes('urgent') || a.title?.toLowerCase().includes('warning')) ? 'HIGH' : 'NORMAL'
+      }))
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 6. Bus Tracking Simulator State
 let busTrackingState = {
   routeNumber: 'Route #04 (Kothrud Express)',
@@ -170,6 +192,13 @@ router.get('/bus/tracking', (req, res) => {
   busTrackingState.lastPingTimestamp = new Date().toLocaleTimeString();
   res.json({ success: true, tracking: busTrackingState });
 });
+
+router.get('/bus/telemetry', (req, res) => {
+  busTrackingState.lastPingTimestamp = new Date().toLocaleTimeString();
+  res.json({ success: true, tracking: busTrackingState });
+});
+
+router.get('/dashboard/stats', requireRoles('SCHOOL_MGMT', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), getKpisHandler);
 
 router.post('/bus/simulate-delay', requireRoles('ADMIN_OFFICER', 'PRINCIPAL', 'INSTITUTION_ADMIN'), auditLogger('BUS_DELAY_SIMULATED', 'LOGISTICS'), (req, res) => {
   const { delayMinutes } = req.body;

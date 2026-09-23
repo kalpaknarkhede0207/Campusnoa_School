@@ -5,7 +5,7 @@ export async function runMultiTenantTests(serverUrl) {
   console.log('\n--- 2. Testing Multi-Tenant Data Isolation ---');
 
   // Login as User from Institution 1 (CampusNoa)
-  const inst1Login = await AuthService.login('s.roy@school.edu', 'CampusNoa@2026!', '127.0.0.1', 'TestRunner');
+  const inst1Login = await AuthService.login('teacher@campusnoa.edu', 'CampusNoa@2026!', '127.0.0.1', 'TestRunner');
 
   // Attempt to pass explicit institutionId for Institution 2 (St. Xavier's)
   const response = await fetch(`${serverUrl}/api/students?institutionId=INST-002`, {

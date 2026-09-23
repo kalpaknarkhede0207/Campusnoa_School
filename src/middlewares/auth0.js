@@ -112,8 +112,13 @@ export const auth0Middleware = async (req, res, next) => {
       token = req.cookies.campusnoa_auth0_token || req.cookies.campusnoa_access_token;
     }
 
-    // 3. Fallback for offline simulation / local tests: X-User-Email
-    if (!token && req.headers['x-user-email']) {
+    // 3. Check Query parameter (for EventSource SSE streaming)
+    if (!token && req.query?.token) {
+      token = req.query.token;
+    }
+
+    // 4. Fallback for offline test harness (strictly enabled only in test environment)
+    if (!token && req.headers['x-user-email'] && process.env.NODE_ENV === 'test') {
       const email = req.headers['x-user-email'].toLowerCase().trim();
       const user = await User.findOne({ email });
       if (user && user.status === 'ACTIVE') {

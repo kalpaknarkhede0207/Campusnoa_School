@@ -6,16 +6,16 @@ export async function runAuthTests() {
   console.log('\n--- 1. Testing Authentication & Session Security ---');
 
   // Test 1: Valid Login
-  const loginRes = await AuthService.login('principal@school.edu', 'CampusNoa@2026!', '127.0.0.1', 'TestRunner');
+  const loginRes = await AuthService.login('principal@campusnoa.edu', 'CampusNoa@2026!', '127.0.0.1', 'TestRunner');
   assert(loginRes.accessToken, 'Access token should be returned on valid login');
   assert(loginRes.refreshToken, 'Refresh token should be returned on valid login');
-  assert.strictEqual(loginRes.user.email, 'principal@school.edu');
+  assert.strictEqual(loginRes.user.email, 'principal@campusnoa.edu');
   assert.strictEqual(loginRes.user.passwordHash, undefined, 'Password hash must never leak in response');
   console.log('✅ PASS: Valid login issues Auth0 JWT access token and refresh token.');
 
   // Test 2: Invalid Password
   try {
-    await AuthService.login('principal@school.edu', 'WrongPassword123!', '127.0.0.1', 'TestRunner');
+    await AuthService.login('principal@campusnoa.edu', 'WrongPassword123!', '127.0.0.1', 'TestRunner');
     assert.fail('Should have failed on wrong password');
   } catch (err) {
     assert.strictEqual(err.code, 'INVALID_CREDENTIALS');
@@ -23,6 +23,7 @@ export async function runAuthTests() {
   }
 
   // Test 3: Account Lockout after 5 failed attempts
+  await User.deleteOne({ email: 'lockout.test@school.edu' });
   const testUser = await User.create({
     institutionId: 'INST-001',
     email: 'lockout.test@school.edu',

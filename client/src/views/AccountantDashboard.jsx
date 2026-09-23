@@ -46,36 +46,29 @@ export default function AccountantDashboard() {
   const handleReconcile = async (tx) => {
     try {
       await api.reconcilePayment(tx.id || tx._id);
-      showToast(`Transaction ${tx.refNo} reconciled and receipt generated!`, 'success');
-      setTransactions(prev => prev.map(t => t.id === tx.id ? { ...t, status: 'COMPLETED' } : t));
+      showToast(`Transaction ${tx.refNo || tx.invoiceNumber || 'receipt'} reconciled and receipt generated!`, 'success');
+      await fetchTx();
     } catch (err) {
-      showToast(`Transaction ${tx.refNo} cleared into accounts ledger.`, 'success');
-      setTransactions(prev => prev.map(t => t.id === tx.id ? { ...t, status: 'COMPLETED' } : t));
+      showToast(err.message || `Failed to reconcile transaction`, 'error');
     }
   };
 
-  const handleAddReceipt = (e) => {
+  const handleAddReceipt = async (e) => {
     e.preventDefault();
     if (!formData.studentName || !formData.amount) {
       showToast('Please enter student name and amount', 'error');
       return;
     }
 
-    const newTx = {
-      id: `tx-${Date.now()}`,
-      refNo: `PAY-2026-${Math.floor(100 + Math.random() * 900)}`,
-      studentName: formData.studentName,
-      grade: formData.grade,
-      amount: `₹${Number(formData.amount).toLocaleString('en-IN')}`,
-      method: formData.method,
-      date: new Date().toISOString().split('T')[0],
-      status: formData.status
-    };
-
-    setTransactions([newTx, ...transactions]);
-    setShowAddModal(false);
-    setFormData({ studentName: '', grade: 'Grade 9-A', amount: '45000', method: 'UPI / Razorpay', status: 'COMPLETED' });
-    showToast('Fee receipt generated and committed to institutional ledger!', 'success');
+    try {
+      await api.createFeeReceipt(formData);
+      setShowAddModal(false);
+      setFormData({ studentName: '', grade: 'Grade 9-A', amount: '45000', method: 'UPI / Razorpay', status: 'COMPLETED' });
+      showToast('Fee receipt generated and committed to institutional ledger!', 'success');
+      await fetchTx();
+    } catch (err) {
+      showToast(err.message || 'Failed to record fee receipt', 'error');
+    }
   };
 
   // Dynamic calculations from transactions

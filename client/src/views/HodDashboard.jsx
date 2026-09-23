@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Users, CheckCircle2, TrendingUp, Award, Calendar, PlusCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 export default function HodDashboard() {
   const { showToast } = useAuth();
   const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
     subject: '',
@@ -12,6 +14,30 @@ export default function HodDashboard() {
     progress: 75,
     target: 80
   });
+
+  const loadAudit = async () => {
+    try {
+      setLoading(true);
+      const res = await api.getSyllabusAudit();
+      if (res && res.curriculumRecords) {
+        setSubjects(res.curriculumRecords.map(r => ({
+          subject: r.subjectName,
+          teacher: r.leadFacultyName,
+          progress: r.syllabusCompletionPercent,
+          target: r.targetPacePercent || 85,
+          status: r.velocityStatus || 'ON_TRACK'
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to load syllabus audit:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAudit();
+  }, []);
 
   const handleAddTrack = (e) => {
     e.preventDefault();
@@ -31,7 +57,7 @@ export default function HodDashboard() {
       status
     };
 
-    setSubjects([...subjects, newTrack]);
+    setSubjects(prev => [...prev, newTrack]);
     setShowAddModal(false);
     setFormData({ subject: '', teacher: '', progress: 75, target: 80 });
     showToast('Curriculum delivery track registered successfully!', 'success');

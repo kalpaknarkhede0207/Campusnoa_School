@@ -172,6 +172,13 @@ export const api = {
     });
   },
 
+  async createFeeReceipt(data) {
+    return request('/finance/receipt', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Counselling
   async getCounsellingCases() {
     return request('/counselling/cases');
@@ -198,6 +205,33 @@ export const api = {
 
   async getBusTelemetry() {
     return request('/bus/telemetry');
+  },
+
+  // Logistics & Governance
+  async assignProxy(data) {
+    return request('/faculty/proxy-assign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSyllabusAudit() {
+    return request('/hod/syllabus-audit');
+  },
+
+  async broadcastAnnouncement(data) {
+    return request('/announcement', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getStudentWard() {
+    return request('/students/ward');
+  },
+
+  async getAnnouncements() {
+    return request('/announcements');
   },
 
   // Real-time Server Sent Events

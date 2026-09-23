@@ -20,50 +20,61 @@ export default function CounsellorDashboard() {
     notes: '',
   });
 
-  useEffect(() => {
-    async function loadCases() {
-      try {
-        const res = await api.getCounsellingCases().catch(() => ({ cases: [] }));
-        if (res?.cases && Array.isArray(res.cases)) {
-          setCases(res.cases.map(c => ({
-            id: c.caseId || c.id || `c-${Math.random()}`,
-            studentName: c.studentName || c.name || 'Student',
-            grade: c.gradeSection || c.grade || 'Grade 9-A',
-            reason: c.category || c.reason || 'Wellbeing Referral',
-            severity: c.severity || 'MEDIUM',
-            status: c.status || 'ACTIVE_INTERVENTION',
-            lastSession: c.sessionDate || c.date || new Date().toISOString().split('T')[0],
-            notes: c.confidentialNotes || c.notes || 'Confidential session logged.'
-          })));
-        } else {
-          setCases([]);
-        }
-      } catch (err) {
+  const loadCases = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getCounsellingCases().catch(() => ({ cases: [] }));
+      if (res?.cases && Array.isArray(res.cases)) {
+        setCases(res.cases.map(c => ({
+          id: c.caseId || c.id || `c-${Math.random()}`,
+          studentName: c.studentName || c.name || 'Student',
+          grade: c.gradeSection || c.grade || 'Grade 9-A',
+          reason: c.category || c.reason || 'Wellbeing Referral',
+          severity: c.severity || 'MEDIUM',
+          status: c.status || 'ACTIVE_INTERVENTION',
+          lastSession: c.sessionDate || c.date || new Date().toISOString().split('T')[0],
+          notes: c.confidentialNotes || c.notes || 'Confidential session logged.'
+        })));
+      } else {
         setCases([]);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      setCases([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadCases();
   }, []);
 
-  const handleCreateCase = (e) => {
+  const handleCreateCase = async (e) => {
     e.preventDefault();
-    const created = {
-      ...newCase,
-      id: `c-0${cases.length + 1}`,
-      status: 'ACTIVE_INTERVENTION',
-      lastSession: new Date().toISOString().split('T')[0],
-    };
-    setCases([created, ...cases]);
-    setIsModalOpen(false);
-    showToast(`Confidential wellness case opened for ${newCase.studentName}`, 'success');
-    setNewCase({ studentName: '', grade: 'Grade 9-A', reason: '', severity: 'MEDIUM', notes: '' });
+    try {
+      await api.createCounsellingCase({
+        studentName: newCase.studentName,
+        category: newCase.reason || 'Wellbeing Referral',
+        confidentialNotes: newCase.notes,
+        actionPlan: 'Regular counseling scheduled.'
+      });
+      setIsModalOpen(false);
+      showToast(`Confidential wellness case opened for ${newCase.studentName}`, 'success');
+      setNewCase({ studentName: '', grade: 'Grade 9-A', reason: '', severity: 'MEDIUM', notes: '' });
+      await loadCases();
+    } catch (err) {
+      showToast(err.message || 'Failed to open counselling case', 'error');
+    }
   };
 
-  const handleResolveCase = (caseId) => {
-    setCases(cases.map(c => c.id === caseId ? { ...c, status: 'RESOLVED' } : c));
-    showToast('Case marked as successfully resolved.', 'success');
+  const handleResolveCase = async (caseId) => {
+    try {
+      await api.resolveCounsellingCase(caseId, 'Successfully resolved with pastoral care team.');
+      showToast('Case marked as successfully resolved in database.', 'success');
+      await loadCases();
+    } catch (err) {
+      showToast(err.message || 'Failed to resolve case', 'error');
+    }
   };
 
   return (

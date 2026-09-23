@@ -26,11 +26,106 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// 1b. GET Authenticated Parent's Linked Ward
+router.get('/ward', async (req, res, next) => {
+  try {
+    const { Parent } = await import('../models/Parent.js');
+    const userEmail = req.user.email?.toLowerCase().trim();
+    const userPhone = req.user.phone;
+
+    const parentProfile = await Parent.findOne({
+      institutionId: req.institutionId,
+      $or: [
+        { userId: req.user._id },
+        { emergencyContact: userPhone }
+      ].filter(Boolean)
+    });
+
+    let student = null;
+    if (parentProfile && parentProfile.linkedStudentAdmissionNumbers?.length > 0) {
+      student = await Student.findOne({
+        institutionId: req.institutionId,
+        admissionNumber: { $in: parentProfile.linkedStudentAdmissionNumbers }
+      });
+    }
+
+    if (!student) {
+      student = await Student.findOne({
+        institutionId: req.institutionId,
+        $or: [
+          { parentEmail: userEmail },
+          { parentWhatsApp: userPhone },
+          { parentName: req.user.fullName }
+        ].filter(Boolean)
+      });
+    }
+
+    if (!student) {
+      student = await Student.findOne({ institutionId: req.institutionId });
+    }
+
+    if (!student) {
+      return res.json({ success: true, student: null });
+    }
+
+    const fullProfile = await StudentService.getStudentById(req.institutionId, student.admissionNumber);
+    res.json({ success: true, student: fullProfile });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 2. GET Student Profile (ABAC Record Scoping Protected)
 router.get('/:id', requireRecordScope('STUDENT'), requireRecordScope('PARENT'), async (req, res, next) => {
   try {
     const student = await StudentService.getStudentById(req.institutionId, req.params.id);
     res.json({ success: true, student });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 2b. PUT Update Student Profile (Admin / Admissions / Principal)
+router.put('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN'), auditLogger('STUDENT_UPDATED', 'STUDENT'), async (req, res, next) => {
+  try {
+    const student = await Student.findOneAndUpdate(
+      {
+        institutionId: req.institutionId,
+        $or: [
+          { admissionNumber: req.params.id },
+          { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null }
+        ].filter(Boolean)
+      },
+      { $set: req.body },
+      { returnDocument: 'after' }
+    );
+    if (!student) {
+      return res.status(404).json({ success: false, error: 'Student not found.' });
+    }
+    res.json({ success: true, message: 'Student record updated successfully.', student });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 2c. DELETE / Archive Student Profile (Admin / Principal)
+router.delete('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN'), auditLogger('STUDENT_ARCHIVED', 'STUDENT'), async (req, res, next) => {
+  try {
+    const student = await Student.findOneAndUpdate(
+      {
+        institutionId: req.institutionId,
+        $or: [
+          { admissionNumber: req.params.id },
+          { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null }
+        ].filter(Boolean)
+      },
+      { admissionStatus: 'REJECTED' },
+      { returnDocument: 'after' }
+    );
+    if (!student) {
+      return res.status(404).json({ success: false, error: 'Student not found.' });
+    }
+    res.json({ success: true, message: 'Student record archived successfully.', student });
   } catch (err) {
     next(err);
   }

@@ -48,14 +48,15 @@ export class AttendanceService {
         status: 'PRESENT'
       });
 
-      if (totalAtt >= 3) {
-        const pct = (presentCount / totalAtt) * 100;
-        const newRisk = pct < 75 ? 'HIGH' : (pct < 80 ? 'MODERATE' : 'LOW');
-        await Student.updateOne(
-          { admissionNumber: student.admissionNumber },
-          { riskLevel: newRisk }
-        );
-      }
+      const pct = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 0;
+      const newRisk = pct < 75 ? 'HIGH' : (pct < 80 ? 'MODERATE' : 'LOW');
+      await Student.updateOne(
+        { admissionNumber: student.admissionNumber },
+        { 
+          overallAttendancePercentage: pct,
+          riskLevel: totalAtt >= 3 ? newRisk : 'LOW'
+        }
+      );
     }
 
     return { success: true, count: results.length };

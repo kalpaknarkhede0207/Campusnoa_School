@@ -123,4 +123,97 @@ router.post('/pay', requireRoles('ACCOUNTANT', 'PARENT', 'STUDENT', 'INSTITUTION
   }
 });
 
+// 4. Parameterized Transaction Reconcile (Called by Frontend api.reconcilePayment)
+router.post('/transactions/:id/reconcile', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL'), auditLogger('CHALLAN_RECONCILED', 'FINANCE'), async (req, res, next) => {
+  try {
+    const txId = req.params.id;
+    const tx = await FeeTransaction.findOne({
+      institutionId: req.institutionId,
+      $or: [
+        { _id: txId.match(/^[0-9a-fA-F]{24}$/) ? txId : null },
+        { invoiceNumber: txId },
+        { challanReference: txId }
+      ].filter(Boolean)
+    });
+
+    if (!tx) {
+      return res.status(404).json({ success: false, error: 'Fee transaction not found in database.' });
+    }
+
+    tx.status = 'PAID';
+    tx.amountPaid = tx.amountBilled;
+    tx.pendingAmount = 0;
+    tx.transactionDate = new Date();
+    await tx.save();
+
+    // Sync Student feePaymentStatus
+    await Student.updateOne(
+      { institutionId: req.institutionId, admissionNumber: tx.studentAdmissionNumber },
+      { feePaymentStatus: 'PAID' }
+    );
+
+    res.json({
+      success: true,
+      message: `Transaction ${tx.invoiceNumber || tx.challanReference || txId} reconciled and cleared into accounts ledger.`,
+      transaction: tx
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 5. Record New Fee Receipt (Accountant)
+router.post('/receipt', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL'), auditLogger('FEE_RECEIPT_ISSUED', 'FINANCE'), async (req, res, next) => {
+  try {
+    const { studentName, grade, amount, method, status } = req.body;
+    if (!studentName || !amount) {
+      return res.status(400).json({ success: false, error: 'Student name and amount are required.' });
+    }
+
+    const numAmount = Number(String(amount).replace(/[^0-9]/g, '')) || 45000;
+    const invNum = `INV-2026-${Math.floor(Math.random() * 8000) + 1000}`;
+    const txRef = `PAY-2026-${Math.floor(Math.random() * 900) + 100}`;
+
+    const student = await Student.findOne({
+      institutionId: req.institutionId,
+      $or: [
+        { fullName: { $regex: studentName, $options: 'i' } },
+        { admissionNumber: studentName }
+      ]
+    });
+
+    const admissionNumber = student ? student.admissionNumber : `ADM-2026-${Date.now().toString().slice(-3)}`;
+
+    const tx = await FeeTransaction.create({
+      institutionId: req.institutionId,
+      studentAdmissionNumber: admissionNumber,
+      studentName: student ? student.fullName : studentName,
+      gradeDivision: grade || (student ? `${student.grade}-${student.section}` : 'Grade 9-A'),
+      parentName: student?.parentName || 'Parent Guardian',
+      parentPhone: student?.parentWhatsApp || '',
+      invoiceNumber: invNum,
+      challanReference: txRef,
+      amountBilled: numAmount,
+      amountPaid: status === 'COMPLETED' || status === 'PAID' ? numAmount : 0,
+      pendingAmount: status === 'COMPLETED' || status === 'PAID' ? 0 : numAmount,
+      paymentMethod: method || 'ONLINE_GATEWAY',
+      status: status === 'COMPLETED' || status === 'PAID' ? 'PAID' : (status || 'PENDING'),
+      transactionDate: new Date()
+    });
+
+    if (student && (status === 'COMPLETED' || status === 'PAID')) {
+      student.feePaymentStatus = 'PAID';
+      await student.save();
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Fee receipt recorded and committed to institutional ledger.',
+      transaction: tx
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -19,50 +19,62 @@ export default function ParentDashboard() {
     async function loadWardData() {
       setLoading(true);
       try {
-        const res = await api.getHomeroomStudents().catch(() => ({ students: [] }));
-        const list = Array.isArray(res?.students) ? res.students : [];
-        if (list.length > 0) {
-          // If students exist, link the student
-          const ward = list[0];
+        const res = await api.getStudentWard().catch(() => null);
+        const ward = res?.student;
+        if (ward) {
+          const attendanceDisplay = (ward.totalAttendanceSessions > 0 || ward.termAttendancePercent > 0)
+            ? `${ward.termAttendancePercent || ward.attendanceRate}%`
+            : '0% (No Records Marked)';
+
           setStudent({
-            name: ward.name,
-            rollNo: ward.rollNo,
-            grade: ward.grade || 'Grade 9-A',
-            attendance: `${ward.attendanceRate || 95}%`,
-            classRank: 'Top Quartile',
+            name: ward.fullName || ward.name,
+            rollNo: ward.rollNo || ward.admissionNumber,
+            grade: `${ward.grade || 'Grade 9'} - ${ward.section || 'A'}`,
+            attendance: attendanceDisplay,
+            classRank: 'Active',
             termGpa: '8.8 / 10',
-            feeStatus: ward.feeStatus || 'PAID',
-            feeAmount: ward.feeAmount || '₹45,000',
-            receiptNo: ward.receiptNo || 'REC-901',
-            classTeacher: 'Homeroom In-charge',
-            reports: []
+            feeStatus: ward.fees?.status || ward.feeStatus || 'PENDING',
+            feeAmount: ward.fees ? `₹${(ward.fees.paidAmount || 0).toLocaleString('en-IN')}` : '₹0',
+            receiptNo: ward.fees?.lastReceiptDate ? 'VERIFIED' : 'PENDING',
+            classTeacher: ward.classTeacher || 'Not Assigned',
+            reports: ward.reports || []
           });
-          // Transport route
-          setBusData({
-            busNumber: 'MH-12-ED-4421',
-            route: 'Route 14 (Baner - Aundh - Campus)',
-            driverName: 'Mr. Suresh Patil',
-            driverPhone: '+91 98810 55412',
-            currentStop: 'Baner Bio-Diversity Park Stop',
-            nextStop: 'Balewadi High Street',
-            destination: 'CampusNoa Main Gate',
-            speedKmH: 32,
-            etaMinutes: 14,
-            status: 'ON_ROUTE',
-            stops: [
-              { name: 'Baner Depot', time: '07:15 AM', passed: true },
-              { name: 'Baner Bio-Diversity Park', time: '07:28 AM', passed: true },
-              { name: 'Balewadi High Street', time: '07:42 AM', passed: false },
-              { name: 'Aundh Circle', time: '07:55 AM', passed: false },
-              { name: 'CampusNoa Gate 2', time: '08:10 AM', passed: false },
-            ]
-          });
+
+          // Transport telemetry if enrolled in bus
+          if (ward.commuteMode === 'School Bus' || (ward.busRoute && !ward.busRoute.toLowerCase().includes('walker'))) {
+            const telRes = await api.getBusTelemetry().catch(() => null);
+            const tel = telRes?.tracking;
+            if (tel) {
+              setBusData({
+                busNumber: tel.busPlate || 'MH-12-QX-4412',
+                route: tel.routeNumber || ward.busRoute || 'Route #04',
+                driverName: tel.driverName || 'Designated Driver',
+                driverPhone: tel.driverContact || '+91 98224 55667',
+                currentStop: `Approaching ${tel.nextStopName || 'Waypoint'}`,
+                nextStop: tel.nextStopName || 'Campus Main Gate',
+                destination: 'CampusNoa Main Gate',
+                speedKmH: tel.currentSpeedKmH || 28,
+                etaMinutes: tel.etaMinutes || 6,
+                status: tel.gpsStatus || 'ON_ROUTE',
+                stops: [
+                  { name: 'Depot Transit Origin', time: '07:15 AM', passed: true },
+                  { name: 'En Route Sector 3', time: '07:35 AM', passed: true },
+                  { name: tel.nextStopName || 'Bavdhan Flyover Chowk', time: '07:50 AM', passed: false },
+                  { name: 'CampusNoa Main Gate', time: '08:10 AM', passed: false },
+                ]
+              });
+            } else {
+              setBusData(null);
+            }
+          } else {
+            setBusData(null);
+          }
         } else {
           setStudent(null);
           setBusData(null);
         }
       } catch (err) {
-        console.warn('Parent ward fetch:', err);
+        console.warn('Parent ward fetch error:', err);
         setStudent(null);
         setBusData(null);
       } finally {

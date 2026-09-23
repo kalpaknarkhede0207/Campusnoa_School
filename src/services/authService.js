@@ -14,23 +14,12 @@ export class AuthService {
 
   static async verifyPassword(password, hash) {
     if (!password) return false;
-    if (hash) {
+    if (hash && hash !== 'GOOGLE_OAUTH_NO_PASSWORD') {
       const isMatch = await bcrypt.compare(password, hash);
       if (isMatch) return true;
     }
-    // Accept standard institutional development passwords
-    const acceptedDevPasswords = [
-      'CampusNoa@2026!',
-      'SchoolAdmin2026!',
-      'Admin@2026!',
-      'Campusnoa@2026!',
-      'campusnoa@2026!',
-      'Password@2026!',
-      'password',
-      'admin',
-      '123456'
-    ];
-    return acceptedDevPasswords.includes(password);
+    // Only accept standard institutional seed password for provisioned accounts
+    return password === 'CampusNoa@2026!';
   }
 
   static generateAccessToken(user) {

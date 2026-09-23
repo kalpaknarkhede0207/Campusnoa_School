@@ -75,6 +75,86 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// 1b. GET Faculty By ID
+router.get('/:id', async (req, res, next) => {
+  try {
+    const f = await Faculty.findOne({
+      institutionId: req.institutionId,
+      $or: [
+        { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null },
+        { employeeCode: req.params.id }
+      ].filter(Boolean)
+    }).populate('userId').lean();
+
+    if (!f) {
+      return res.status(404).json({ success: false, error: 'Faculty record not found.' });
+    }
+
+    const user = f.userId || {};
+    res.json({
+      success: true,
+      faculty: {
+        id: f._id.toString(),
+        code: f.employeeCode,
+        fullName: user.fullName || f.employeeCode,
+        officialEmail: user.email,
+        phone: user.phone,
+        type: f.designationTier === 'ADMIN_STAFF' ? 'non_teaching' : 'teaching',
+        designation: f.designationTier,
+        department: f.department,
+        subject: f.department,
+        qualification: f.qualification,
+        experienceYears: f.experienceYears,
+        joiningDate: f.joiningDate || f.createdAt
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1c. PUT Update Faculty
+router.put('/:id', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN'), auditLogger('FACULTY_UPDATED', 'FACULTY'), async (req, res, next) => {
+  try {
+    const faculty = await Faculty.findOneAndUpdate(
+      {
+        institutionId: req.institutionId,
+        $or: [
+          { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null },
+          { employeeCode: req.params.id }
+        ].filter(Boolean)
+      },
+      { $set: req.body },
+      { returnDocument: 'after' }
+    );
+    if (!faculty) return res.status(404).json({ success: false, error: 'Faculty not found.' });
+    res.json({ success: true, message: 'Faculty record updated.', faculty });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1d. DELETE / Archive Faculty
+router.delete('/:id', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN'), auditLogger('FACULTY_ARCHIVED', 'FACULTY'), async (req, res, next) => {
+  try {
+    const faculty = await Faculty.findOneAndUpdate(
+      {
+        institutionId: req.institutionId,
+        $or: [
+          { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null },
+          { employeeCode: req.params.id }
+        ].filter(Boolean)
+      },
+      { presenceStatus: 'ON_LEAVE' },
+      { returnDocument: 'after' }
+    );
+    if (!faculty) return res.status(404).json({ success: false, error: 'Faculty not found.' });
+    res.json({ success: true, message: 'Faculty archived.', faculty });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 2. Appoint Faculty (HR / Admin / Principal)
 const appointFacultyHandler = async (req, res, next) => {
   try {
