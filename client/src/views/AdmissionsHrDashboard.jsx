@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Briefcase, FileCheck, CheckCircle2, 
-  Clock, Search, Plus, Filter, ChevronRight, Eye, Send 
+  Clock, Search, Plus, Filter, ChevronRight, Eye, Send, Trash2 
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,21 @@ export default function AdmissionsHrDashboard() {
   const [faculty, setFaculty] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  const handleDeleteStudent = async (student) => {
+    const studentName = student.name || 'this student';
+    const studentId = student.admissionNumber || student.rollNo || '';
+    if (!window.confirm(`Are you sure you want to remove ${studentName} (${studentId}) from the student admissions register? This will permanently delete their records.`)) {
+      return;
+    }
+    try {
+      await api.deleteStudent(student._id || student.id || student.admissionNumber);
+      showToast(`Student ${studentName} removed successfully`, 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove student', 'error');
+    }
+  };
 
   // New Faculty Appointment Modal Form
   const [isAppointModalOpen, setIsAppointModalOpen] = useState(false);
@@ -307,9 +322,21 @@ export default function AdmissionsHrDashboard() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button className="px-3 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-800 text-xs font-semibold border border-violet-200">
-                          View Admission
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => setSelectedStudent(st)}
+                            className="px-2.5 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-800 text-xs font-semibold border border-violet-200"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(st)}
+                            className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                            title="Remove Student"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

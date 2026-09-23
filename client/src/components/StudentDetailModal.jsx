@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   X, User, Mail, Phone, Calendar, MapPin, 
-  CheckCircle, AlertTriangle, ShieldAlert, FileText, DollarSign, Award, Check
+  CheckCircle, AlertTriangle, ShieldAlert, FileText, DollarSign, Award, Check, Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -9,6 +9,7 @@ import { api } from '../services/api';
 export default function StudentDetailModal({ student, isOpen, onClose, onRefresh }) {
   const { user, showToast } = useAuth();
   const [approving, setApproving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!isOpen || !student) return null;
 
@@ -26,6 +27,24 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
       showToast(err.message || 'Approval failed', 'error');
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const studentIdentifier = student.name || 'this student';
+    if (!window.confirm(`Are you sure you want to remove ${studentIdentifier} (${student.admissionNumber || student.rollNo || ''}) from the school roster? This will permanently delete their records.`)) {
+      return;
+    }
+    try {
+      setDeleting(true);
+      await api.deleteStudent(student._id || student.id || student.admissionNumber);
+      showToast(`Student ${studentIdentifier} removed successfully`, 'success');
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove student', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -224,6 +243,14 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
             Institutional Record #{student._id ? student._id.substring(student._id.length - 8) : '2026-REC'}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {deleting ? 'Removing...' : 'Remove Student'}
+            </button>
             {isPrincipal && student.status === 'PENDING' && (
               <button
                 onClick={handleApprove}

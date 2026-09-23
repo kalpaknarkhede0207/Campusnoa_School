@@ -6,6 +6,8 @@ import { requireRoles, requireRecordScope } from '../middlewares/authorize.js';
 import { auditLogger } from '../middlewares/auditLogger.js';
 import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
+import { Attendance } from '../models/Attendance.js';
+import { FeeTransaction } from '../models/FeeTransaction.js';
 
 const router = express.Router();
 
@@ -108,24 +110,31 @@ router.put('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMI
   }
 });
 
-// 2c. DELETE / Archive Student Profile (Admin / Principal)
-router.delete('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN'), auditLogger('STUDENT_ARCHIVED', 'STUDENT'), async (req, res, next) => {
+// 2c. DELETE Student Profile (Admissions / Admin / Principal / VP / Class Teacher)
+router.delete('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'VICE_PRINCIPAL', 'CLASS_TEACHER'), auditLogger('STUDENT_DELETED', 'STUDENT'), async (req, res, next) => {
   try {
-    const student = await Student.findOneAndUpdate(
-      {
-        institutionId: req.institutionId,
-        $or: [
-          { admissionNumber: req.params.id },
-          { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null }
-        ].filter(Boolean)
-      },
-      { admissionStatus: 'REJECTED' },
-      { returnDocument: 'after' }
-    );
+    const student = await Student.findOneAndDelete({
+      institutionId: req.institutionId,
+      $or: [
+        { admissionNumber: req.params.id },
+        { _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null }
+      ].filter(Boolean)
+    });
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found.' });
     }
-    res.json({ success: true, message: 'Student record archived successfully.', student });
+
+    // Clean up auxiliary collections for this student
+    await Promise.all([
+      Attendance.deleteMany({ institutionId: req.institutionId, studentAdmissionNumber: student.admissionNumber }),
+      FeeTransaction.deleteMany({ institutionId: req.institutionId, studentAdmissionNumber: student.admissionNumber })
+    ]);
+
+    res.json({
+      success: true,
+      message: `Student ${student.fullName} (${student.admissionNumber}) removed successfully from institutional records.`,
+      student
+    });
   } catch (err) {
     next(err);
   }

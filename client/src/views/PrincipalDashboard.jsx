@@ -3,7 +3,7 @@ import {
   Users, UserCheck, GraduationCap, DollarSign, 
   TrendingUp, AlertCircle, Search, Filter, 
   Grid, List as ListIcon, CheckCircle2, ChevronRight, Eye, RefreshCw,
-  Megaphone, Clock, Send
+  Megaphone, Clock, Send, Trash2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +55,21 @@ export default function PrincipalDashboard() {
   // Selected modals
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
+
+  const handleDeleteStudent = async (student) => {
+    const studentName = student.name || 'this student';
+    const studentId = student.admissionNumber || student.rollNo || '';
+    if (!window.confirm(`Are you sure you want to remove ${studentName} (${studentId}) from institutional records? This will permanently delete the student.`)) {
+      return;
+    }
+    try {
+      await api.deleteStudent(student._id || student.id || student.admissionNumber);
+      showToast(`Student ${studentName} removed successfully`, 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove student', 'error');
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -406,9 +421,22 @@ export default function PrincipalDashboard() {
                       </td>
                       <td className="py-3 px-4 text-slate-600">{st.gpa || 'Pending'}</td>
                       <td className="py-3 px-4 text-right">
-                        <button className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700">
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => setSelectedStudent(st)}
+                            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800"
+                            title="View Profile"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(st)}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                            title="Remove Student"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

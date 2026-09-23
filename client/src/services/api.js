@@ -111,6 +111,12 @@ export const api = {
     });
   },
 
+  async deleteStudent(id) {
+    return request(`/students/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Faculty / Staff
   async getFaculty(params = {}) {
     const qs = new URLSearchParams(params).toString();
@@ -207,9 +213,15 @@ export const api = {
     return request('/bus/telemetry');
   },
 
-  // Logistics & Governance
   async assignProxy(data) {
     return request('/faculty/proxy-assign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async assignClassTeacher(data) {
+    return request('/assign-class-teacher', {
       method: 'POST',
       body: JSON.stringify(data),
     });

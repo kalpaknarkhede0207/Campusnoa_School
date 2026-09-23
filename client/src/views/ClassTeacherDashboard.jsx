@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, CheckCircle2, XCircle, Clock, Save, 
-  DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle
+  DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,21 @@ export default function ClassTeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  const handleDeleteStudent = async (student) => {
+    const studentName = student.name || 'this student';
+    const studentId = student.rollNo || student.admissionNumber || '';
+    if (!window.confirm(`Are you sure you want to remove ${studentName} (${studentId}) from the homeroom class roster?`)) {
+      return;
+    }
+    try {
+      await api.deleteStudent(student._id || student.id || student.admissionNumber);
+      showToast(`Student ${studentName} removed successfully`, 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove student', 'error');
+    }
+  };
 
   // Dynamic state for other subtabs
   const [assignedSubjects, setAssignedSubjects] = useState([]);
@@ -370,12 +385,21 @@ export default function ClassTeacherDashboard() {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => setSelectedStudent(st)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
-                          >
-                            View
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => setSelectedStudent(st)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStudent(st)}
+                              className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                              title="Remove Student"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
