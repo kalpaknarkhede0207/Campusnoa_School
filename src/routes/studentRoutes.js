@@ -36,12 +36,13 @@ router.get('/:id', requireRecordScope('STUDENT'), requireRecordScope('PARENT'), 
   }
 });
 
-// 3. POST Admit Student (Admissions Officer & Admin)
-router.post('/admit', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), async (req, res, next) => {
+// 3. POST Admit Student (Admissions Officer & Admin & Principal)
+const admitStudentHandler = async (req, res, next) => {
   try {
     const data = req.body;
     const admissionNumber = data.admissionNumber || `ADM-2026-${String(Math.floor(Math.random() * 900) + 100)}`;
-    const studentEmail = data.studentEmail || `student.${Date.now()}@campusnoa.edu`;
+    const studentEmail = data.studentEmail || data.email || `student.${Date.now()}@campusnoa.edu`;
+    const fullName = data.fullName || data.name || 'New Student';
 
     // Create student user + profile
     const defaultPassword = await import('bcryptjs').then(b => b.default.hash('CampusNoa@2026!', 12));
@@ -49,10 +50,10 @@ router.post('/admit', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_A
     const user = await User.create({
       institutionId: req.institutionId,
       email: studentEmail.toLowerCase().trim(),
-      fullName: data.fullName,
+      fullName,
       passwordHash: defaultPassword,
       roleCode: 'STUDENT',
-      phone: data.parentWhatsApp,
+      phone: data.parentWhatsApp || data.phone || '+91 98220 11223',
       auth0Sub: `auth0|${studentEmail.replace(/[@.]/g, '_')}`
     });
 
@@ -60,32 +61,35 @@ router.post('/admit', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_A
       institutionId: req.institutionId,
       userId: user._id,
       admissionNumber,
-      fullName: data.fullName,
+      fullName,
       email: user.email,
-      grade: data.grade || 'Grade 9',
+      grade: data.grade || data.class || 'Grade 9',
       section: data.section || 'A',
-      rollNo: data.rollNo || 25,
+      rollNo: Number(data.rollNo) || (await Student.countDocuments({ institutionId: req.institutionId })) + 1,
       dob: data.dob || '2012-05-15',
       gender: data.gender || 'Male',
       bloodGroup: data.bloodGroup || 'B+',
-      parentName: data.parentName || 'Parent Guardian',
-      parentWhatsApp: data.parentWhatsApp || '+91 98220 11223',
+      parentName: data.parentName || data.guardianName || 'Parent Guardian',
+      parentWhatsApp: data.parentWhatsApp || data.phone || '+91 98220 11223',
       parentEmail: data.parentEmail || user.email,
-      address: data.address || 'Residency Towers, Pune',
+      address: data.address || 'Pune, Maharashtra',
       busRoute: data.busRoute || 'Self Walker',
-      admissionStatus: 'PENDING_APPROVAL',
-      riskLevel: 'LOW'
+      admissionStatus: data.admissionStatus || 'APPROVED',
+      riskLevel: data.riskLevel || 'LOW'
     });
 
     res.status(201).json({
       success: true,
-      message: 'Student application submitted and sent to Principal approval queue.',
+      message: 'Student admitted and synchronized to database successfully.',
       student
     });
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.post('/admit', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), admitStudentHandler);
+router.post('/', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), admitStudentHandler);
 
 // 4. Principal Approval of Student Admission
 router.post('/principal-approval', requireRoles('PRINCIPAL', 'INSTITUTION_ADMIN'), auditLogger('STUDENT_APPROVED', 'STUDENT'), async (req, res, next) => {

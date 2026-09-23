@@ -73,20 +73,23 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// 2. Appoint Faculty (HR / Admin)
-router.post('/appoint', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), async (req, res, next) => {
+// 2. Appoint Faculty (HR / Admin / Principal)
+const appointFacultyHandler = async (req, res, next) => {
   try {
     const data = req.body;
     const defaultPassword = await import('bcryptjs').then(b => b.default.hash('CampusNoa@2026!', 12));
-    const officialEmail = data.officialEmail || `faculty.${Date.now()}@campusnoa.edu`;
+    const fullName = data.fullName || data.name || 'New Faculty';
+    const officialEmail = data.officialEmail || data.email || `faculty.${Date.now()}@campusnoa.edu`;
+    const designation = data.designationTier || data.designation || 'TGT';
+    const isStaff = data.type === 'non_teaching' || designation.includes('STAFF');
 
     const user = await User.create({
       institutionId: req.institutionId,
       email: officialEmail.toLowerCase().trim(),
-      fullName: data.fullName,
+      fullName,
       passwordHash: defaultPassword,
-      roleCode: data.designationTier?.includes('PGT') || data.designationTier?.includes('TGT') ? 'TEACHER' : 'STAFF',
-      phone: data.phone,
+      roleCode: isStaff ? 'STAFF' : 'TEACHER',
+      phone: data.phone || '+91 98220 00000',
       auth0Sub: `auth0|${officialEmail.replace(/[@.]/g, '_')}`
     });
 
@@ -94,19 +97,22 @@ router.post('/appoint', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN')
       institutionId: req.institutionId,
       userId: user._id,
       employeeCode: data.code || `EMP-${Math.floor(Math.random() * 800) + 200}`,
-      designationTier: data.designationTier || 'TGT',
-      department: data.department || 'General Faculty',
-      qualification: data.highestDegree || 'M.Sc, B.Ed',
+      designationTier: isStaff ? 'ADMIN_STAFF' : designation,
+      department: data.department || data.subject || 'Academics',
+      qualification: data.highestDegree || data.qualification || 'M.Sc, B.Ed',
       experienceYears: Number(data.experienceYears) || 5,
       tetCertificationId: data.tetCertificationId || 'CTET-PAPER-II-98214',
       homeroomDivision: data.homeroomAssignment || 'None'
     });
 
-    res.status(201).json({ success: true, message: 'Faculty appointed and routed to Principal verification.', faculty });
+    res.status(201).json({ success: true, message: 'Faculty appointed and synchronized to database successfully.', faculty });
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.post('/appoint', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
+router.post('/', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
 
 // 3. Apply Leave with Workload Delegation
 router.post('/apply-leave-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 'HOD', 'FACULTY'), auditLogger('LEAVE_APPLIED', 'FACULTY'), async (req, res, next) => {

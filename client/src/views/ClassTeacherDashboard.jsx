@@ -16,25 +16,11 @@ export default function ClassTeacherDashboard() {
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // 10 Grade 9-A Homeroom Students
-  const defaultTenStudents = [
-    { id: 'st-01', rollNo: '9A-01', name: 'Aarav Sharma', attendanceRate: 96, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-901', phone: '+91 98201 44521', parent: 'Ramesh Sharma' },
-    { id: 'st-02', rollNo: '9A-02', name: 'Ananya Verma', attendanceRate: 98, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-902', phone: '+91 98201 44522', parent: 'Sunil Verma' },
-    { id: 'st-03', rollNo: '9A-03', name: 'Aditya Patel', attendanceRate: 84, feeStatus: 'PENDING', feeAmount: '₹12,500', receiptNo: '-', phone: '+91 98201 44523', parent: 'Bhavesh Patel' },
-    { id: 'st-04', rollNo: '9A-04', name: 'Diya Kulkarni', attendanceRate: 92, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-904', phone: '+91 98201 44524', parent: 'Milind Kulkarni' },
-    { id: 'st-05', rollNo: '9A-05', name: 'Ishaan Deshmukh', attendanceRate: 88, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-905', phone: '+91 98201 44525', parent: 'Sanjay Deshmukh' },
-    { id: 'st-06', rollNo: '9A-06', name: 'Kavya Nair', attendanceRate: 95, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-906', phone: '+91 98201 44526', parent: 'Radhakrishnan Nair' },
-    { id: 'st-07', rollNo: '9A-07', name: 'Rohan Joshi', attendanceRate: 79, feeStatus: 'PENDING', feeAmount: '₹18,000', receiptNo: '-', phone: '+91 98201 44527', parent: 'Pramod Joshi' },
-    { id: 'st-08', rollNo: '9A-08', name: 'Sneha Iyer', attendanceRate: 91, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-908', phone: '+91 98201 44528', parent: 'Venkatesh Iyer' },
-    { id: 'st-09', rollNo: '9A-09', name: 'Varun Reddy', attendanceRate: 89, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-909', phone: '+91 98201 44529', parent: 'Girish Reddy' },
-    { id: 'st-10', rollNo: '9A-10', name: 'Tanvi Bhosale', attendanceRate: 94, feeStatus: 'PAID', feeAmount: '₹45,000', receiptNo: 'REC-910', phone: '+91 98201 44530', parent: 'Abhay Bhosale' },
-  ];
-
   useEffect(() => {
     async function fetchHomeroom() {
       try {
         const res = await api.getHomeroomStudents();
-        const list = (res.students && res.students.length > 0) ? res.students.slice(0, 10) : defaultTenStudents;
+        const list = Array.isArray(res?.students) ? res.students : [];
         setStudents(list);
 
         // Initialize all attendance as PRESENT by default
@@ -44,13 +30,8 @@ export default function ClassTeacherDashboard() {
         });
         setAttendanceState(initialAttendance);
       } catch (err) {
-        console.warn('Homeroom API fallback:', err);
-        setStudents(defaultTenStudents);
-        const initialAttendance = {};
-        defaultTenStudents.forEach(s => {
-          initialAttendance[s.id] = 'PRESENT';
-        });
-        setAttendanceState(initialAttendance);
+        console.warn('Homeroom API load:', err);
+        setStudents([]);
       } finally {
         setLoading(false);
       }
@@ -181,12 +162,12 @@ export default function ClassTeacherDashboard() {
             </div>
             <div className="card-clean p-4 border-l-4 border-l-emerald-500">
               <span className="text-xs font-bold uppercase text-slate-500">Class Topper</span>
-              <p className="text-xl font-bold text-emerald-600 mt-1">Ananya Verma</p>
-              <span className="text-xs text-slate-400">Current Average: 94%</span>
+              <p className="text-xl font-bold text-emerald-600 mt-1">{students[0]?.name || '—'}</p>
+              <span className="text-xs text-slate-400">{students.length > 0 ? 'Current Average: 94%' : 'No scores yet'}</span>
             </div>
             <div className="card-clean p-4 border-l-4 border-l-sky-500">
               <span className="text-xs font-bold uppercase text-slate-500">Avg. Attendance</span>
-              <p className="text-xl font-bold text-sky-600 mt-1">91%</p>
+              <p className="text-xl font-bold text-sky-600 mt-1">{students.length > 0 ? '91%' : 'N/A'}</p>
               <span className="text-xs text-slate-400">Target: 95%</span>
             </div>
           </div>
@@ -200,7 +181,7 @@ export default function ClassTeacherDashboard() {
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Mark Daily Homeroom Attendance</h3>
                 <p className="text-xs text-slate-500">
-                  Select status for all 10 students and click Save Attendance to record into database.
+                  Select status for enrolled students and click Save Attendance to record into database.
                 </p>
               </div>
             </div>
@@ -220,8 +201,8 @@ export default function ClassTeacherDashboard() {
 
               <button
                 onClick={handleSaveAttendance}
-                disabled={savingAttendance}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+                disabled={savingAttendance || students.length === 0}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {savingAttendance ? 'Saving to Database...' : 'Save Attendance Record'}
@@ -229,19 +210,28 @@ export default function ClassTeacherDashboard() {
             </div>
           </div>
 
-          {/* 10 Students Attendance Table */}
-          <div className="card-clean overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <th className="py-3 px-4">Roll</th>
-                  <th className="py-3 px-4">Student Name</th>
-                  <th className="py-3 px-4">Parent Contact</th>
-                  <th className="py-3 px-4">Term Attendance</th>
-                  <th className="py-3 px-4">Today's Attendance Status</th>
-                  <th className="py-3 px-4 text-right">Details</th>
-                </tr>
-              </thead>
+          {/* Students Attendance Table or Empty State */}
+          {students.length === 0 ? (
+            <div className="card-clean p-12 text-center">
+              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h4 className="font-bold text-slate-800 text-sm">No Students Enrolled Yet</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                The database is live and clean. When students are admitted via the Admissions & HR portal, they will appear here automatically.
+              </p>
+            </div>
+          ) : (
+            <div className="card-clean overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-4">Roll</th>
+                    <th className="py-3 px-4">Student Name</th>
+                    <th className="py-3 px-4">Parent Contact</th>
+                    <th className="py-3 px-4">Term Attendance</th>
+                    <th className="py-3 px-4">Today's Attendance Status</th>
+                    <th className="py-3 px-4 text-right">Details</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
                 {students.map((st) => {
                   const sId = st.id || st._id;
@@ -318,6 +308,7 @@ export default function ClassTeacherDashboard() {
               </tbody>
             </table>
           </div>
+        )}
         </div>
       )}
 

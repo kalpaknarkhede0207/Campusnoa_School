@@ -187,7 +187,7 @@ export default function PrincipalDashboard() {
               <Users className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900 mt-2">{students.length || 50}</p>
+          <p className="text-2xl font-black text-slate-900 mt-2">{students.length}</p>
           <p className="text-xs text-indigo-600 font-semibold mt-1 flex items-center gap-1">
             View student directory <ChevronRight className="w-3.5 h-3.5" />
           </p>
@@ -204,7 +204,7 @@ export default function PrincipalDashboard() {
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            {faculty.filter(f => f.type === 'teaching').length || 24}
+            {faculty.filter(f => f.type === 'teaching').length}
           </p>
           <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
             Inspect faculty roster <ChevronRight className="w-3.5 h-3.5" />
@@ -222,7 +222,7 @@ export default function PrincipalDashboard() {
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            {faculty.filter(f => f.type === 'non_teaching').length || 14}
+            {faculty.filter(f => f.type === 'non_teaching').length}
           </p>
           <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
             View administrative staff <ChevronRight className="w-3.5 h-3.5" />
@@ -291,59 +291,69 @@ export default function PrincipalDashboard() {
             </span>
           </div>
 
-          <div className="card-clean overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <th className="py-3 px-4">Student</th>
-                  <th className="py-3 px-4">Roll / ID</th>
-                  <th className="py-3 px-4">Grade & Section</th>
-                  <th className="py-3 px-4">Attendance</th>
-                  <th className="py-3 px-4">Fee Status</th>
-                  <th className="py-3 px-4">Academic Standing</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {filteredStudents.map((st) => (
-                  <tr 
-                    key={st._id || st.id} 
-                    onClick={() => setSelectedStudent(st)}
-                    className="hover:bg-slate-50/80 cursor-pointer transition"
-                  >
-                    <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                        {st.name ? st.name[0] : 'S'}
-                      </div>
-                      {st.name}
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 font-mono">{st.rollNo || st.enrollmentNo || 'STU-2026-01'}</td>
-                    <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 9-A'}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
-                        (st.attendanceRate || 88) >= 85 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                      }`}>
-                        {st.attendanceRate || 88}%
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${
-                        st.feeStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                      }`}>
-                        {st.feeStatus || 'PAID'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">{st.gpa || '8.8 / 10'}</td>
-                    <td className="py-3 px-4 text-right">
-                      <button className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
+          {filteredStudents.length === 0 ? (
+            <div className="card-clean p-12 text-center">
+              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h4 className="font-bold text-slate-800 text-sm">No Student Records Found</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                The institutional database is live and awaiting new student enrollments from the Admissions & HR portal.
+              </p>
+            </div>
+          ) : (
+            <div className="card-clean overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-4">Student</th>
+                    <th className="py-3 px-4">Roll / ID</th>
+                    <th className="py-3 px-4">Grade & Section</th>
+                    <th className="py-3 px-4">Attendance</th>
+                    <th className="py-3 px-4">Fee Status</th>
+                    <th className="py-3 px-4">Academic Standing</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {filteredStudents.map((st) => (
+                    <tr 
+                      key={st._id || st.id} 
+                      onClick={() => setSelectedStudent(st)}
+                      className="hover:bg-slate-50/80 cursor-pointer transition"
+                    >
+                      <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                          {st.name ? st.name[0] : 'S'}
+                        </div>
+                        {st.name}
+                      </td>
+                      <td className="py-3 px-4 text-slate-500 font-mono">{st.rollNo || st.enrollmentNo || 'STU-2026-01'}</td>
+                      <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 9-A'}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                          (st.attendanceRate || 88) >= 85 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {st.attendanceRate || 88}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${
+                          st.feeStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}>
+                          {st.feeStatus || 'PAID'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">{st.gpa || '8.8 / 10'}</td>
+                      <td className="py-3 px-4 text-right">
+                        <button className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -417,8 +427,16 @@ export default function PrincipalDashboard() {
             </div>
           </div>
 
-          {/* LIST VIEW (USER REQUESTED FEATURE) */}
-          {staffViewMode === 'list' ? (
+          {/* EMPTY OR LIST / GRID VIEW */}
+          {filteredStaff.length === 0 ? (
+            <div className="card-clean p-12 text-center">
+              <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h4 className="font-bold text-slate-800 text-sm">No Staff Records Found</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                The institutional database is live and awaiting new teacher appointments from the Admissions & HR portal.
+              </p>
+            </div>
+          ) : staffViewMode === 'list' ? (
             <div className="card-clean overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
