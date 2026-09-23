@@ -70,6 +70,13 @@ async function seedMongoDB() {
   // 4. Seed Core Institutional Personas
   const personas = [
     { email: 'superadmin@campusnoa.edu', name: 'Super Administrator', role: 'SUPER_ADMIN', phone: '+91 98221 00000' },
+    { email: 'board@campusnoa.edu', name: 'School Management Board', role: 'SCHOOL_MGMT', phone: '+91 98221 00001' },
+    { email: 'principal@campusnoa.edu', name: 'Dr. APJ Abdul Kalam', role: 'PRINCIPAL', phone: '+91 98221 00002' },
+    { email: 'teacher@campusnoa.edu', name: 'Mrs. Sunita Roy', role: 'CLASS_TEACHER', phone: '+91 98901 23456' },
+    { email: 'admissions@campusnoa.edu', name: 'Mr. Rajesh Sharma', role: 'ADMIN_OFFICER', phone: '+91 98221 00005' },
+    { email: 'accountant@campusnoa.edu', name: 'Mr. Suresh Prabhu', role: 'ACCOUNTANT', phone: '+91 98221 00007' },
+    { email: 'parent.arav@campusnoa.edu', name: 'Mr. Rajesh Kulkarni', role: 'PARENT', phone: '+91 98220 11223' },
+    { email: 'kalpaknarkhede0207@gmail.com', name: 'Kalpak Narkhede', role: 'PRINCIPAL', phone: '+91 98221 00002' },
     { email: 'management@school.edu', name: 'Dr. Vikram Sarabhai', role: 'SCHOOL_MGMT', phone: '+91 98221 00001' },
     { email: 'principal@school.edu', name: 'Dr. APJ Abdul Kalam', role: 'PRINCIPAL', phone: '+91 98221 00002' },
     { email: 'vp@school.edu', name: 'Dr. K. Radhakrishnan', role: 'VICE_PRINCIPAL', phone: '+91 98221 00003' },
