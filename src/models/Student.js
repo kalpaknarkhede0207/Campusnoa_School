@@ -19,6 +19,11 @@ const StudentSchema = new mongoose.Schema({
   allergies: { type: String, default: 'None reported' },
   admissionDate: { type: Date, default: Date.now },
   classTeacher: { type: String, default: 'Not Assigned' },
+  subjectTeachers: [{
+    subject: { type: String },
+    teacherName: { type: String },
+    teacherCode: { type: String }
+  }],
   gfmMentor: { type: String, default: 'Not Assigned' },
   overallAttendancePercentage: { type: Number, default: 0 },
   feePaymentStatus: { type: String, default: 'PENDING' },

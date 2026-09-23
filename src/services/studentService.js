@@ -80,6 +80,7 @@ export class StudentService {
         academicYear: '2026-2027',
         admissionDate: s.admissionDate || s.createdAt,
         classTeacher: s.classTeacher || 'Not Assigned',
+        subjectTeachers: s.subjectTeachers || [],
         gfmMentor: s.gfmMentor || 'Not Assigned',
         parentName: s.parentName || 'Parent Guardian',
         parentWhatsApp: s.parentWhatsApp || '',

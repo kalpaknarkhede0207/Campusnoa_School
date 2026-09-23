@@ -84,6 +84,23 @@ export default function AdmissionsHrDashboard() {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = api.subscribeSSE((event) => {
+      if ([
+        'CLASS_TEACHER_ASSIGNED', 
+        'SUBJECT_TEACHER_ASSIGNED', 
+        'TEACHER_ASSIGNED', 
+        'STUDENT_ADMITTED', 
+        'STUDENT_UPDATED', 
+        'STUDENT_DELETED', 
+        'FACULTY_APPOINTED', 
+        'FACULTY_UPDATED'
+      ].includes(event.type)) {
+        loadData();
+      }
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleCreateAppointment = async (e) => {

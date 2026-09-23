@@ -7,6 +7,7 @@ import { auditLogger } from '../middlewares/auditLogger.js';
 import { Faculty } from '../models/Faculty.js';
 import { User } from '../models/User.js';
 import { Notification } from '../models/Notification.js';
+import { NotificationService } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -39,6 +40,9 @@ router.get('/', async (req, res, next) => {
         qualification: t.highestDegree,
         experience: `${t.experienceYears} Years`,
         employeeId: t.code,
+        code: t.code,
+        homeroomAssignment: t.homeroomAssignment || 'None',
+        assignedClasses: t.assignedClasses || [],
         joiningDate: t.joiningDate || t.createdAt
       })),
       ...(data.nonTeachingStaff || []).map(s => ({
@@ -105,6 +109,8 @@ router.get('/:id', async (req, res, next) => {
         subject: f.department,
         qualification: f.qualification,
         experienceYears: f.experienceYears,
+        homeroomAssignment: f.homeroomDivision || 'None',
+        assignedClasses: f.assignedClasses || [],
         joiningDate: f.joiningDate || f.createdAt
       }
     });
@@ -128,6 +134,7 @@ router.put('/:id', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRI
       { returnDocument: 'after' }
     );
     if (!faculty) return res.status(404).json({ success: false, error: 'Faculty not found.' });
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'FACULTY_UPDATED', faculty);
     res.json({ success: true, message: 'Faculty record updated.', faculty });
   } catch (err) {
     next(err);
@@ -194,6 +201,8 @@ const appointFacultyHandler = async (req, res, next) => {
       joiningDate: data.joiningDate ? new Date(data.joiningDate) : new Date()
     });
 
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'FACULTY_APPOINTED', faculty);
+
     res.status(201).json({ success: true, message: 'Faculty appointed and synchronized to database successfully.', faculty });
   } catch (err) {
     console.error('Faculty appointment error:', err);
@@ -254,6 +263,7 @@ router.post('/leave-action', requireRoles('PRINCIPAL', 'VICE_PRINCIPAL', 'INSTIT
 router.post('/proxy-assign', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN'), auditLogger('PROXY_ASSIGNED', 'FACULTY'), async (req, res, next) => {
   try {
     const proxy = await FacultyService.assignProxy(req.institutionId, req.body);
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'PROXY_ASSIGNED', proxy);
     res.status(201).json({ success: true, message: 'Timetable proxy substitution recorded and faculty notified.', proxy });
   } catch (err) {
     next(err);

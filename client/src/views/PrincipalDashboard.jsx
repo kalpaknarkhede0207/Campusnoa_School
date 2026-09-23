@@ -130,6 +130,26 @@ export default function PrincipalDashboard() {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = api.subscribeSSE((event) => {
+      if ([
+        'CLASS_TEACHER_ASSIGNED', 
+        'SUBJECT_TEACHER_ASSIGNED', 
+        'TEACHER_ASSIGNED', 
+        'STUDENT_ADMITTED', 
+        'STUDENT_UPDATED', 
+        'STUDENT_DELETED', 
+        'FACULTY_APPOINTED', 
+        'FACULTY_UPDATED', 
+        'ANNOUNCEMENT',
+        'FEE_PAID',
+        'PROXY_ASSIGNED'
+      ].includes(event.type)) {
+        loadData();
+      }
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const stuArray = Array.isArray(students) ? students : [];
@@ -536,82 +556,145 @@ export default function PrincipalDashboard() {
                     <th className="py-3 px-4">Employee Name</th>
                     <th className="py-3 px-4">Role / Designation</th>
                     <th className="py-3 px-4">Staff Type</th>
+                    <th className="py-3 px-4">Class & Subject Role</th>
                     <th className="py-3 px-4">Department / Subject</th>
-                    <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Contact Phone</th>
                     <th className="py-3 px-4 text-right">Profile</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
-                  {filteredStaff.map((f) => (
-                    <tr 
-                      key={f._id || f.id} 
-                      onClick={() => setSelectedFaculty(f)}
-                      className="hover:bg-slate-50/80 cursor-pointer transition"
-                    >
-                      <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
-                          f.type === 'teaching' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {f.name ? f.name[0] : 'E'}
-                        </div>
-                        {f.name}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-slate-700">{f.designation || f.subject || 'Faculty'}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                          f.type === 'teaching' 
-                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {f.type === 'teaching' ? 'Teaching' : 'Non-Teaching'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{f.department || f.subject || 'Academics'}</td>
-                      <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">{f.email || 'faculty@campusnoa.edu'}</td>
-                      <td className="py-3 px-4 text-slate-600">{f.phone || '+91 94220 18839'}</td>
-                      <td className="py-3 px-4 text-right">
-                        <button className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredStaff.map((f) => {
+                    const isCT = f.homeroomAssignment && f.homeroomAssignment !== 'None';
+                    const assignedClasses = Array.isArray(f.assignedClasses) ? f.assignedClasses : [];
+                    const subjectList = assignedClasses.filter(c => c && c.role === 'Subject Teacher');
+
+                    return (
+                      <tr 
+                        key={f._id || f.id} 
+                        onClick={() => setSelectedFaculty(f)}
+                        className="hover:bg-slate-50/80 cursor-pointer transition"
+                      >
+                        <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            f.type === 'teaching' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {f.name ? f.name[0] : 'E'}
+                          </div>
+                          <div>
+                            <span>{f.name}</span>
+                            <span className="text-[10px] text-slate-400 block font-mono">{f.code || f.employeeId}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-medium text-slate-700">{f.designation || f.subject || 'Faculty'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
+                            f.type === 'teaching' 
+                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {f.type === 'teaching' ? 'Teaching' : 'Non-Teaching'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {f.type === 'teaching' ? (
+                            <div className="flex flex-col gap-1 items-start">
+                              {isCT ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  Class Teacher: {f.homeroomAssignment}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">No Homeroom</span>
+                              )}
+                              {subjectList.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {subjectList.map((sc, sIdx) => (
+                                    <span key={sIdx} className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-semibold">
+                                      {sc.subject} ({sc.grade}-{sc.section})
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">{f.department || f.subject || 'Academics'}</td>
+                        <td className="py-3 px-4 text-slate-600">{f.phone || '+91 94220 18839'}</td>
+                        <td className="py-3 px-4 text-right">
+                          <button className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           ) : (
             /* GRID VIEW */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredStaff.map((f) => (
-                <div
-                  key={f._id || f.id}
-                  onClick={() => setSelectedFaculty(f)}
-                  className="card-clean p-4 cursor-pointer hover:border-indigo-400 group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                      f.type === 'teaching' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {f.name ? f.name[0] : 'E'}
+              {filteredStaff.map((f) => {
+                const isCT = f.homeroomAssignment && f.homeroomAssignment !== 'None';
+                const assignedClasses = Array.isArray(f.assignedClasses) ? f.assignedClasses : [];
+                const subjectList = assignedClasses.filter(c => c && c.role === 'Subject Teacher');
+
+                return (
+                  <div
+                    key={f._id || f.id}
+                    onClick={() => setSelectedFaculty(f)}
+                    className="card-clean p-4 cursor-pointer hover:border-indigo-400 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        f.type === 'teaching' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {f.name ? f.name[0] : 'E'}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition">
+                          {f.name}
+                        </h4>
+                        <p className="text-xs text-slate-500">{f.designation || f.subject} ({f.code || f.employeeId})</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition">
-                        {f.name}
-                      </h4>
-                      <p className="text-xs text-slate-500">{f.designation || f.subject}</p>
+
+                    {f.type === 'teaching' && (
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[11px] text-slate-500">Homeroom:</span>
+                          {isCT ? (
+                            <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800">
+                              {f.homeroomAssignment}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">None</span>
+                          )}
+                        </div>
+                        {subjectList.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {subjectList.map((sc, sIdx) => (
+                              <span key={sIdx} className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-semibold">
+                                {sc.subject} ({sc.grade}-{sc.section})
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <span className="text-slate-500">{f.department || 'Academics'}</span>
+                      <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
+                        f.type === 'teaching' ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {f.type === 'teaching' ? 'Teaching' : 'Non-Teaching'}
+                      </span>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-500">{f.department || 'Academics'}</span>
-                    <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
-                      f.type === 'teaching' ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {f.type === 'teaching' ? 'Teaching' : 'Non-Teaching'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

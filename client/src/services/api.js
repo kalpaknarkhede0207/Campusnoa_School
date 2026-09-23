@@ -220,8 +220,15 @@ export const api = {
     });
   },
 
+  async assignTeacher(data) {
+    return request('/assign-teacher', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async assignClassTeacher(data) {
-    return request('/assign-class-teacher', {
+    return request('/assign-teacher', {
       method: 'POST',
       body: JSON.stringify(data),
     });

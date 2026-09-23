@@ -8,6 +8,7 @@ import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
 import { Attendance } from '../models/Attendance.js';
 import { FeeTransaction } from '../models/FeeTransaction.js';
+import { NotificationService } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -104,6 +105,7 @@ router.put('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMI
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found.' });
     }
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'STUDENT_UPDATED', student);
     res.json({ success: true, message: 'Student record updated successfully.', student });
   } catch (err) {
     next(err);
@@ -129,6 +131,12 @@ router.delete('/:id', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_A
       Attendance.deleteMany({ institutionId: req.institutionId, studentAdmissionNumber: student.admissionNumber }),
       FeeTransaction.deleteMany({ institutionId: req.institutionId, studentAdmissionNumber: student.admissionNumber })
     ]);
+
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'STUDENT_DELETED', {
+      id: student._id,
+      admissionNumber: student.admissionNumber,
+      fullName: student.fullName
+    });
 
     res.json({
       success: true,
@@ -213,6 +221,8 @@ const admitStudentHandler = async (req, res, next) => {
       console.warn('Initial fee transaction creation warning:', txErr);
     }
 
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'STUDENT_ADMITTED', student);
+
     res.status(201).json({
       success: true,
       message: 'Student admitted and synchronized to database successfully.',
@@ -243,6 +253,8 @@ router.post('/principal-approval', requireRoles('PRINCIPAL', 'INSTITUTION_ADMIN'
       },
       { admissionStatus: status }
     );
+
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'STUDENT_UPDATED', { studentId, status });
 
     res.json({ success: true, message: `Student admission ${status.toLowerCase()} successfully.` });
   } catch (err) {

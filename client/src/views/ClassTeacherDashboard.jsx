@@ -78,6 +78,23 @@ export default function ClassTeacherDashboard() {
       }
     }
     fetchHomeroomData();
+
+    const unsubscribe = api.subscribeSSE((event) => {
+      if ([
+        'CLASS_TEACHER_ASSIGNED', 
+        'SUBJECT_TEACHER_ASSIGNED', 
+        'TEACHER_ASSIGNED', 
+        'STUDENT_ADMITTED', 
+        'STUDENT_UPDATED', 
+        'STUDENT_DELETED'
+      ].includes(event.type)) {
+        fetchHomeroomData();
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleAttendanceChange = (studentId, status) => {

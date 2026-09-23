@@ -119,9 +119,12 @@ router.post('/hod/lesson-plan-action', requireRoles('HOD', 'INSTITUTION_ADMIN'),
 });
 
 // 3b. POST VP Assign Appointed Teacher as Class Teacher to Admitted Students
-const assignClassTeacherHandler = async (req, res, next) => {
+const assignTeacherHandler = async (req, res, next) => {
   try {
-    const { teacherId, teacherName, grade, section, studentIds } = req.body;
+    const { teacherId, teacherName, roleType, role, subject, grade, section, studentIds } = req.body;
+    const assignmentRole = (roleType || role || 'CLASS_TEACHER').toUpperCase(); // 'CLASS_TEACHER' | 'SUBJECT_TEACHER'
+    const targetSubject = subject || 'General';
+
     if (!teacherName && !teacherId) {
       return res.status(400).json({ success: false, error: 'Teacher identification required.' });
     }
@@ -133,19 +136,24 @@ const assignClassTeacherHandler = async (req, res, next) => {
         institutionId: req.institutionId,
         $or: [
           { _id: teacherId.match(/^[0-9a-fA-F]{24}$/) ? teacherId : null },
-          { code: teacherId }
+          { employeeCode: teacherId }
         ].filter(Boolean)
-      });
+      }).populate('userId');
     }
     if (!teacher && teacherName) {
-      teacher = await Faculty.findOne({
+      const user = await User.findOne({
         institutionId: req.institutionId,
         fullName: { $regex: new RegExp(`^${teacherName}$`, 'i') }
       });
+      if (user) {
+        teacher = await Faculty.findOne({ institutionId: req.institutionId, userId: user._id }).populate('userId');
+      }
     }
 
-    const assignedTeacherName = teacher ? teacher.fullName : teacherName;
-    const targetClass = grade ? (section ? `${grade}-${section}` : grade) : 'Grade 9-A';
+    const assignedTeacherName = teacher?.userId?.fullName || teacherName || teacher?.employeeCode;
+    const cleanGrade = grade ? grade.split('-')[0].trim() : 'Grade 9';
+    const cleanSection = section || (grade && grade.includes('-') ? grade.split('-')[1].trim() : 'A');
+    const targetClass = `${cleanGrade}-${cleanSection}`;
 
     // Build student query
     const studentQuery = { institutionId: req.institutionId };
@@ -155,80 +163,136 @@ const assignClassTeacherHandler = async (req, res, next) => {
         { _id: { $in: studentIds.filter(id => typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/)) } }
       ];
     } else if (grade) {
-      const cleanGrade = grade.split('-')[0].trim();
-      const extractedSection = section || (grade.includes('-') ? grade.split('-')[1].trim() : null);
-      if (extractedSection) {
-        studentQuery.$or = [
-          { grade: cleanGrade, section: extractedSection },
-          { grade: `${cleanGrade}-${extractedSection}` },
-          { grade: grade, section: extractedSection }
-        ];
-      } else {
-        studentQuery.$or = [
-          { grade: cleanGrade },
-          { grade: grade }
-        ];
-      }
+      studentQuery.$or = [
+        { grade: cleanGrade, section: cleanSection },
+        { grade: `${cleanGrade}-${cleanSection}` },
+        { grade: `${cleanGrade} - ${cleanSection}` },
+        { grade: cleanGrade, section: { $in: [cleanSection, '', null] } }
+      ];
     }
 
-    // Update admitted students
-    const updateResult = await Student.updateMany(
-      studentQuery,
-      { $set: { classTeacher: assignedTeacherName } }
-    );
+    let updateResult = { modifiedCount: 0 };
 
-    // If teacher found, update faculty assignedClasses and status
-    if (teacher) {
-      const cleanGrade = grade ? grade.split('-')[0].trim() : 'Grade 9';
-      const cleanSection = section || (grade && grade.includes('-') ? grade.split('-')[1].trim() : 'A');
-      teacher.homeroomDivision = targetClass;
-      if (!Array.isArray(teacher.assignedClasses)) {
-        teacher.assignedClasses = [];
-      }
-      const alreadyHasClass = teacher.assignedClasses.some(
-        c => c && ((c.grade === cleanGrade && c.section === cleanSection) || c === targetClass)
+    if (assignmentRole === 'CLASS_TEACHER') {
+      // RULE: Only one class teacher per teacher
+      // 1. Update admitted students with this class teacher
+      updateResult = await Student.updateMany(
+        studentQuery,
+        { $set: { classTeacher: assignedTeacherName } }
       );
-      if (!alreadyHasClass) {
+
+      if (teacher) {
+        // Remove any previous class teacher role from assignedClasses
+        if (!Array.isArray(teacher.assignedClasses)) {
+          teacher.assignedClasses = [];
+        }
+        teacher.assignedClasses = teacher.assignedClasses.filter(c => c && c.role !== 'Class Teacher');
+
+        // Add the single new class teacher entry
         teacher.assignedClasses.push({
           grade: cleanGrade,
           section: cleanSection,
           role: 'Class Teacher',
-          subject: teacher.department || 'General'
+          subject: 'Homeroom'
         });
-      }
-      teacher.isClassTeacher = true;
-      await teacher.save();
 
-      // Ensure corresponding User role is updated or capable
-      if (teacher.officialEmail) {
-        await User.updateOne(
-          { email: teacher.officialEmail.toLowerCase().trim() },
-          { $set: { roleCode: 'CLASS_TEACHER' } }
+        teacher.homeroomDivision = targetClass;
+        await teacher.save();
+
+        // Ensure user roleCode includes CLASS_TEACHER
+        if (teacher.userId?._id) {
+          await User.findByIdAndUpdate(teacher.userId._id, { $set: { roleCode: 'CLASS_TEACHER' } });
+        }
+      }
+
+      // Broadcast real-time SSE event
+      NotificationService.broadcastInstitutionEvent(req.institutionId, 'CLASS_TEACHER_ASSIGNED', {
+        teacherName: assignedTeacherName,
+        targetClass,
+        role: 'Class Teacher',
+        updatedStudentCount: updateResult.modifiedCount
+      });
+
+      return res.json({
+        success: true,
+        message: `Successfully appointed ${assignedTeacherName} as Class Teacher for ${targetClass} (${updateResult.modifiedCount} students updated).`,
+        assignedTeacher: assignedTeacherName,
+        targetClass,
+        role: 'Class Teacher',
+        updatedStudents: updateResult.modifiedCount
+      });
+
+    } else {
+      // RULE: Same teacher can be in multiple classes for subject teaching
+      // 1. Add subject teacher entry to faculty assignedClasses
+      if (teacher) {
+        if (!Array.isArray(teacher.assignedClasses)) {
+          teacher.assignedClasses = [];
+        }
+        const alreadyHasSubjectClass = teacher.assignedClasses.some(
+          c => c && c.grade === cleanGrade && c.section === cleanSection && c.subject === targetSubject
         );
+        if (!alreadyHasSubjectClass) {
+          teacher.assignedClasses.push({
+            grade: cleanGrade,
+            section: cleanSection,
+            role: 'Subject Teacher',
+            subject: targetSubject
+          });
+          await teacher.save();
+        }
       }
+
+      // 2. Add or update subject teacher on student records
+      const teacherCode = teacher?.employeeCode || 'T-FAC';
+      const students = await Student.find(studentQuery);
+      for (const st of students) {
+        if (!Array.isArray(st.subjectTeachers)) {
+          st.subjectTeachers = [];
+        }
+        const existingIdx = st.subjectTeachers.findIndex(stItem => stItem.subject === targetSubject);
+        if (existingIdx >= 0) {
+          st.subjectTeachers[existingIdx].teacherName = assignedTeacherName;
+          st.subjectTeachers[existingIdx].teacherCode = teacherCode;
+        } else {
+          st.subjectTeachers.push({
+            subject: targetSubject,
+            teacherName: assignedTeacherName,
+            teacherCode
+          });
+        }
+        await st.save();
+      }
+      updateResult = { modifiedCount: students.length };
+
+      // Broadcast real-time SSE event
+      NotificationService.broadcastInstitutionEvent(req.institutionId, 'SUBJECT_TEACHER_ASSIGNED', {
+        teacherName: assignedTeacherName,
+        subject: targetSubject,
+        targetClass,
+        role: 'Subject Teacher',
+        updatedStudentCount: updateResult.modifiedCount
+      });
+
+      return res.json({
+        success: true,
+        message: `Successfully appointed ${assignedTeacherName} as Subject Teacher for ${targetSubject} in ${targetClass} (${updateResult.modifiedCount} students updated).`,
+        assignedTeacher: assignedTeacherName,
+        subject: targetSubject,
+        targetClass,
+        role: 'Subject Teacher',
+        updatedStudents: updateResult.modifiedCount
+      });
     }
-
-    // Broadcast real-time SSE event
-    NotificationService.broadcastInstitutionEvent(req.institutionId, 'CLASS_TEACHER_ASSIGNED', {
-      teacherName: assignedTeacherName,
-      targetClass,
-      updatedStudentCount: updateResult.modifiedCount
-    });
-
-    res.json({
-      success: true,
-      message: `Successfully appointed ${assignedTeacherName} as Class Teacher for ${targetClass} (${updateResult.modifiedCount} admitted students assigned).`,
-      assignedTeacher: assignedTeacherName,
-      targetClass,
-      updatedStudents: updateResult.modifiedCount
-    });
   } catch (err) {
     next(err);
   }
 };
 
-router.post('/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignClassTeacherHandler);
-router.post('/vp/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignClassTeacherHandler);
+router.post('/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignTeacherHandler);
+router.post('/vp/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignTeacherHandler);
+router.post('/assign-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_TEACHER', 'GOVERNANCE'), assignTeacherHandler);
+router.post('/vp/assign-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_TEACHER', 'GOVERNANCE'), assignTeacherHandler);
 
 // 4. GET Grounded AI Progress Report
 router.get('/ai/report/:studentId', async (req, res, next) => {
