@@ -42,19 +42,19 @@ export default function FacultyDetailModal({ faculty, isOpen, onClose }) {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-slate-500">Department:</span>
-                <p className="font-semibold text-slate-800">{faculty.department || 'Science & Mathematics'}</p>
+                <p className="font-semibold text-slate-800">{faculty.department || 'Academics'}</p>
               </div>
               <div>
                 <span className="text-slate-500">Subject Specialization:</span>
-                <p className="font-semibold text-slate-800">{faculty.subject || 'Physics / General Science'}</p>
+                <p className="font-semibold text-slate-800">{faculty.subject || faculty.department || 'General Faculty'}</p>
               </div>
               <div>
                 <span className="text-slate-500">Qualification:</span>
-                <p className="font-semibold text-slate-800">{faculty.qualification || 'M.Sc., B.Ed'}</p>
+                <p className="font-semibold text-slate-800">{faculty.qualification || 'Not Specified'}</p>
               </div>
               <div>
                 <span className="text-slate-500">Experience:</span>
-                <p className="font-semibold text-slate-800">{faculty.experience || '8+ Years'}</p>
+                <p className="font-semibold text-slate-800">{faculty.experience || 'Not Specified'}</p>
               </div>
             </div>
           </div>
@@ -64,19 +64,21 @@ export default function FacultyDetailModal({ faculty, isOpen, onClose }) {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-slate-500">Email:</span>
-                <p className="font-medium text-slate-800">{faculty.email || 'faculty@campusnoa.edu'}</p>
+                <p className="font-medium text-slate-800">{faculty.email || 'Not Provided'}</p>
               </div>
               <div>
                 <span className="text-slate-500">Mobile:</span>
-                <p className="font-medium text-slate-800">{faculty.phone || '+91 94220 18839'}</p>
+                <p className="font-medium text-slate-800">{faculty.phone || 'Not Provided'}</p>
               </div>
               <div>
                 <span className="text-slate-500">Employee ID:</span>
-                <p className="font-medium text-slate-800">{faculty.employeeId || 'EMP-2024-041'}</p>
+                <p className="font-medium text-slate-800">{faculty.employeeId || faculty.code || 'Pending'}</p>
               </div>
               <div>
                 <span className="text-slate-500">Joining Date:</span>
-                <p className="font-medium text-slate-800">{faculty.joiningDate ? new Date(faculty.joiningDate).toLocaleDateString() : 'Aug 1, 2022'}</p>
+                <p className="font-medium text-slate-800">
+                  {faculty.joiningDate ? new Date(faculty.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : (faculty.createdAt ? new Date(faculty.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent Appointment')}
+                </p>
               </div>
             </div>
           </div>

@@ -98,13 +98,20 @@ export default function PrincipalDashboard() {
     return matchesCategory && matchesSearch;
   });
 
+  const hasAttendanceRecords = students.some(s => s.totalAttendanceSessions > 0 || (s.attendanceRate && s.attendanceRate > 0));
+  const pendingApprovals = students.filter(s => s.admissionStatus === 'PENDING_APPROVAL' || s.status === 'PENDING').length;
+  const principalAlerts = [];
+  if (pendingApprovals > 0) {
+    principalAlerts.push(`${pendingApprovals} admission verification records pending final Principal approval`);
+  }
+
   // Chart data
   const attendanceChartData = {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     datasets: [
       {
         label: 'Institutional Attendance Rate (%)',
-        data: [94.2, 95.8, 93.5, 96.1, 94.8, 92.4],
+        data: [0, 0, 0, 0, 0, 0],
         borderColor: '#4f46e5',
         backgroundColor: 'rgba(79, 70, 229, 0.1)',
         tension: 0.3,
@@ -118,12 +125,12 @@ export default function PrincipalDashboard() {
     datasets: [
       {
         label: 'Collected (₹ Lakhs)',
-        data: [24.5, 26.2, 28.1, 29.5, 31.0, 34.2],
+        data: [0, 0, 0, 0, 0, 0],
         backgroundColor: '#10b981',
       },
       {
         label: 'Overdue (₹ Lakhs)',
-        data: [1.5, 1.2, 2.3, 1.8, 2.1, 1.4],
+        data: [0, 0, 0, 0, 0, 0],
         backgroundColor: '#f43f5e',
       },
     ],
@@ -170,10 +177,7 @@ export default function PrincipalDashboard() {
         </div>
       </div>
 
-      <UrgentBanner alerts={[
-        '7 admission verification records pending final Principal approval',
-        'Term-end board examination hall ticket clearance ongoing',
-      ]} />
+      <UrgentBanner alerts={principalAlerts} />
 
       {/* Key Metrics Cards - ALWAYS VISIBLE */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -259,18 +263,38 @@ export default function PrincipalDashboard() {
               <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-indigo-600" /> Daily Attendance Trends
               </h3>
-              <div className="h-64">
-                <Line data={attendanceChartData} options={{ responsive: true, maintainAspectRatio: false }} />
-              </div>
+              {students.length === 0 || !hasAttendanceRecords ? (
+                <div className="h-64 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  <TrendingUp className="w-10 h-10 text-slate-300 mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No Attendance Logs Recorded Yet</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                    Attendance trend graphs will populate dynamically once students are enrolled and homeroom teachers mark daily attendance.
+                  </p>
+                </div>
+              ) : (
+                <div className="h-64">
+                  <Line data={attendanceChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+                </div>
+              )}
             </div>
 
             <div className="card-clean p-5">
               <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-emerald-600" /> Grade-wise Fee Realization
               </h3>
-              <div className="h-64">
-                <Bar data={feeChartData} options={{ responsive: true, maintainAspectRatio: false }} />
-              </div>
+              {students.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  <DollarSign className="w-10 h-10 text-slate-300 mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No Fee Transactions Recorded Yet</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                    Grade-wise fee realization bars will populate dynamically once student fee invoices and receipts are logged.
+                  </p>
+                </div>
+              ) : (
+                <div className="h-64">
+                  <Bar data={feeChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -334,19 +358,19 @@ export default function PrincipalDashboard() {
                       <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 9-A'}</td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
-                          (st.attendanceRate || 88) >= 85 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                          (st.attendanceRate || 0) >= 75 ? 'bg-emerald-50 text-emerald-700' : (st.attendanceRate > 0 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600')
                         }`}>
-                          {st.attendanceRate || 88}%
+                          {st.attendanceRate !== undefined ? `${st.attendanceRate}%` : '0%'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${
                           st.feeStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                         }`}>
-                          {st.feeStatus || 'PAID'}
+                          {st.feeStatus || 'PENDING'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{st.gpa || '8.8 / 10'}</td>
+                      <td className="py-3 px-4 text-slate-600">{st.gpa || 'Pending'}</td>
                       <td className="py-3 px-4 text-right">
                         <button className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700">
                           <Eye className="w-4 h-4" />

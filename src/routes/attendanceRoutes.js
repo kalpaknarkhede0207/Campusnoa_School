@@ -14,22 +14,58 @@ router.use(enforceTenantScope);
 router.get('/homeroom', async (req, res, next) => {
   try {
     const { Student } = await import('../models/Student.js');
+    const { Attendance } = await import('../models/Attendance.js');
+    const { FeeTransaction } = await import('../models/FeeTransaction.js');
+
     const students = await Student.find({
       institutionId: req.institutionId
-    }).sort({ rollNo: 1 }).limit(10).lean();
+    }).sort({ rollNo: 1 }).limit(100).lean();
 
-    const formatted = students.map((s, idx) => ({
-      id: s._id.toString(),
-      _id: s._id.toString(),
-      rollNo: `9A-${String(idx + 1).padStart(2, '0')}`,
-      name: s.fullName || s.name || `Student ${idx + 1}`,
-      attendanceRate: 90 + ((idx * 3) % 10),
-      feeStatus: idx % 3 === 0 ? 'PENDING' : 'PAID',
-      feeAmount: idx % 3 === 0 ? '₹12,500' : '₹45,000',
-      receiptNo: idx % 3 === 0 ? '-' : `REC-90${idx + 1}`,
-      phone: s.parentWhatsApp || '+91 98201 44521',
-      parent: s.parentName || 'Parent Guardian'
-    }));
+    const admissionNumbers = students.map(s => s.admissionNumber);
+    const [attendances, feeTxs] = await Promise.all([
+      Attendance.find({ institutionId: req.institutionId, studentAdmissionNumber: { $in: admissionNumbers } }).lean(),
+      FeeTransaction.find({ institutionId: req.institutionId, studentAdmissionNumber: { $in: admissionNumbers } }).lean()
+    ]);
+
+    const attCountMap = new Map();
+    const attPresentMap = new Map();
+    for (const a of attendances) {
+      attCountMap.set(a.studentAdmissionNumber, (attCountMap.get(a.studentAdmissionNumber) || 0) + 1);
+      if (a.status === 'PRESENT') {
+        attPresentMap.set(a.studentAdmissionNumber, (attPresentMap.get(a.studentAdmissionNumber) || 0) + 1);
+      }
+    }
+
+    const feeMap = new Map();
+    for (const f of feeTxs) {
+      if (!feeMap.has(f.studentAdmissionNumber)) feeMap.set(f.studentAdmissionNumber, f);
+    }
+
+    const formatted = students.map((s, idx) => {
+      const totalDays = attCountMap.get(s.admissionNumber) || 0;
+      const presentDays = attPresentMap.get(s.admissionNumber) || 0;
+      const rate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+      const fee = feeMap.get(s.admissionNumber);
+
+      return {
+        id: s._id.toString(),
+        _id: s._id.toString(),
+        admissionNumber: s.admissionNumber,
+        admissionDate: s.admissionDate || s.createdAt,
+        rollNo: s.rollNo ? `${s.grade || '9'}-${s.section || 'A'}-${String(s.rollNo).padStart(2, '0')}` : (s.admissionNumber || `STU-${idx + 1}`),
+        name: s.fullName || s.name || `Student ${idx + 1}`,
+        grade: `${s.grade || 'Grade 9'}-${s.section || 'A'}`,
+        attendanceRate: rate,
+        totalAttendanceSessions: totalDays,
+        feeStatus: fee ? (fee.status === 'PAID' ? 'PAID' : 'PENDING') : (s.feePaymentStatus || 'PENDING'),
+        feeAmount: fee ? `₹${(fee.amountBilled || 45000).toLocaleString('en-IN')}` : '₹45,000',
+        receiptNo: fee && fee.status === 'PAID' ? (fee.invoiceNumber || fee.transactionRef || 'REC-PAID') : '-',
+        phone: s.parentWhatsApp || s.phone || '',
+        parent: s.parentName || 'Parent Guardian',
+        classTeacher: s.classTeacher || 'Not Assigned',
+        gfmMentor: s.gfmMentor || 'Not Assigned'
+      };
+    });
 
     res.json({ success: true, count: formatted.length, students: formatted });
   } catch (err) {

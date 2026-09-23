@@ -17,6 +17,11 @@ const StudentSchema = new mongoose.Schema({
   parentEmail: { type: String },
   address: { type: String },
   allergies: { type: String, default: 'None reported' },
+  admissionDate: { type: Date, default: Date.now },
+  classTeacher: { type: String, default: 'Not Assigned' },
+  gfmMentor: { type: String, default: 'Not Assigned' },
+  overallAttendancePercentage: { type: Number, default: 0 },
+  feePaymentStatus: { type: String, default: 'PENDING' },
   busRoute: { type: String, default: 'Self Walker' },
   admissionStatus: { type: String, default: 'APPROVED', enum: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED'] },
   riskLevel: { type: String, default: 'LOW', enum: ['LOW', 'MODERATE', 'HIGH'] }

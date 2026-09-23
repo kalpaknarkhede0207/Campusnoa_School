@@ -31,6 +31,7 @@ export class FacultyService {
         maxWeeklyProxies: f.maxWeeklyProxies || 3,
         presenceStatus: f.presenceStatus || 'PRESENT',
         appointmentStatus: 'APPROVED',
+        joiningDate: f.joiningDate || f.createdAt,
         classReport: f.classReport || {
           syllabusCompletionPercent: 84,
           classAverageScore: 85.2,
@@ -49,7 +50,8 @@ export class FacultyService {
         role: f.department || 'Operational Staff',
         department: f.department || 'Administration',
         phone: user.phone || '+91 98220 00000',
-        responsibilities: f.qualification || 'Operational oversight & compliance'
+        responsibilities: f.qualification || 'Operational oversight & compliance',
+        joiningDate: f.joiningDate || f.createdAt
       };
     });
 

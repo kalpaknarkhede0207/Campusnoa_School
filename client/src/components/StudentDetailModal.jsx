@@ -52,7 +52,7 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                   {student.status || 'ACTIVE'}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">Roll No: {student.rollNo || student.enrollmentNo || 'STU-2026-091'}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Roll No: {student.rollNo || student.enrollmentNo || 'Pending'}</p>
             </div>
           </div>
           <button
@@ -75,7 +75,7 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-slate-500">Application Number:</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">ADM-{student.rollNo ? String(student.rollNo).replace('STU-', '') : '2026-4421'}</p>
+                    <p className="font-semibold text-slate-800 mt-0.5">ADM-{student.rollNo ? String(student.rollNo).replace('STU-', '') : (student.id ? String(student.id).slice(-4) : 'NEW')}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Admission Category:</span>
@@ -83,11 +83,11 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                   </div>
                   <div>
                     <span className="text-slate-500">Previous School / Board:</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">{student.previousSchool || 'St. Xavier High School (CBSE)'}</p>
+                    <p className="font-semibold text-slate-800 mt-0.5">{student.previousSchool || 'Fresher / Not Provided'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Entrance / Merit Score:</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">{student.entranceScore || '92.5 percentile'}</p>
+                    <p className="font-semibold text-slate-800 mt-0.5">{student.entranceScore || 'Standard Admission'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Document Verification:</span>
@@ -96,8 +96,10 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Enrolled Date:</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'June 12, 2025'}</p>
+                    <span className="text-slate-500">Date of Admission:</span>
+                    <p className="font-semibold text-slate-800 mt-0.5">
+                      {student.admissionDate ? new Date(student.admissionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : (student.createdAt ? new Date(student.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent Admission')}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -107,19 +109,19 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <span className="text-slate-500">Parent / Guardian:</span>
-                    <p className="font-medium text-slate-800">{student.guardianName || student.parentName || 'Ramesh & Sunita Sharma'}</p>
+                    <p className="font-medium text-slate-800">{student.guardianName || student.parentName || student.parent || 'Not Provided'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Primary Phone:</span>
-                    <p className="font-medium text-slate-800">{student.phone || '+91 98201 44521'}</p>
+                    <p className="font-medium text-slate-800">{student.phone || student.parentWhatsApp || 'Not Provided'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Email:</span>
-                    <p className="font-medium text-slate-800">{student.email || 'guardian@gmail.com'}</p>
+                    <p className="font-medium text-slate-800">{student.parentEmail || student.email || 'Not Provided'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Residential Address:</span>
-                    <p className="font-medium text-slate-800">{student.address || 'Flat 402, Green Acres, Pune'}</p>
+                    <p className="font-medium text-slate-800">{student.address || 'Not Provided'}</p>
                   </div>
                 </div>
               </div>
@@ -131,28 +133,32 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xs text-slate-500 font-medium">Attendance</span>
                   <p className={`text-xl font-bold mt-1 ${
-                    (student.attendanceRate || 88) >= 85 ? 'text-emerald-600' : 'text-amber-600'
+                    (student.attendanceRate || 0) >= 75 ? 'text-emerald-600' : (student.attendanceRate > 0 ? 'text-amber-600' : 'text-slate-700')
                   }`}>
-                    {student.attendanceRate || student.attendance || 88}%
+                    {student.attendanceRate !== undefined ? `${student.attendanceRate}%` : '0%'}
                   </p>
-                  <span className="text-[11px] text-slate-400">Term 1 Record</span>
+                  <span className="text-[11px] text-slate-400">
+                    {student.totalAttendanceSessions > 0 ? `${student.totalAttendanceSessions} Sessions Marked` : 'New Admission (0 Days)'}
+                  </span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xs text-slate-500 font-medium">Academic GPA</span>
                   <p className="text-xl font-bold text-indigo-600 mt-1">
-                    {student.gpa || student.academicAverage || '8.8 / 10'}
+                    {student.gpa || student.academicAverage || 'Pending'}
                   </p>
-                  <span className="text-[11px] text-slate-400">Class Rank: #4</span>
+                  <span className="text-[11px] text-slate-400">
+                    {student.gpa ? 'Term Exam Average' : 'Awaiting Examination'}
+                  </span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-xs text-slate-500 font-medium">Fee Standing</span>
                   <p className={`text-xl font-bold mt-1 ${
                     student.feeStatus === 'PAID' ? 'text-emerald-600' : 'text-rose-600'
                   }`}>
-                    {student.feeStatus || 'PAID'}
+                    {student.feeStatus || 'PENDING'}
                   </p>
                   <span className="text-[11px] text-slate-400">
-                    {student.feeStatus === 'PAID' ? 'Full Clear' : '₹12,500 Due'}
+                    {student.feeStatus === 'PAID' ? 'Full Clear' : (student.feeAmount ? `${student.feeAmount} Due` : 'Awaiting Payment')}
                   </span>
                 </div>
               </div>
@@ -163,15 +169,21 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <span className="text-slate-500">Class Section:</span>
-                    <p className="font-semibold text-slate-800">{student.grade || 'Grade 9-A'}</p>
+                    <p className="font-semibold text-slate-800">{student.grade || student.class || 'Unassigned'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Class Teacher:</span>
-                    <p className="font-semibold text-slate-800">{student.classTeacher || 'Mrs. Ananya Sharma'}</p>
+                    <p className="font-semibold text-slate-800">{student.classTeacher || 'Not Assigned'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">GFM Mentor:</span>
-                    <p className="font-semibold text-slate-800">{student.mentorName || 'Prof. Rajesh Kulkarni'}</p>
+                    <p className="font-semibold text-slate-800">{student.mentorName || student.gfmMentor || 'Not Assigned'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Date of Admission:</span>
+                    <p className="font-semibold text-slate-800">
+                      {student.admissionDate ? new Date(student.admissionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : (student.createdAt ? new Date(student.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent Admission')}
+                    </p>
                   </div>
                   <div>
                     <span className="text-slate-500">Disciplinary Status:</span>
@@ -186,19 +198,19 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <span className="text-slate-500">Student Email:</span>
-                    <p className="font-medium text-slate-800">{student.email || 'student@school.edu'}</p>
+                    <p className="font-medium text-slate-800">{student.email || 'Not generated'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Parent / Guardian:</span>
-                    <p className="font-medium text-slate-800">{student.guardianName || student.parentName || 'Ramesh Sharma'}</p>
+                    <p className="font-medium text-slate-800">{student.guardianName || student.parentName || student.parent || 'Not Provided'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Emergency Phone:</span>
-                    <p className="font-medium text-slate-800">{student.phone || '+91 98201 44521'}</p>
+                    <p className="font-medium text-slate-800">{student.phone || student.parentWhatsApp || 'Not Provided'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500">Bus Transport:</span>
-                    <p className="font-medium text-slate-800">Route 14 (Baner - School)</p>
+                    <p className="font-medium text-slate-800">{student.busRoute || 'Self Commute / Not Assigned'}</p>
                   </div>
                 </div>
               </div>

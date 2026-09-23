@@ -56,16 +56,17 @@ export class StudentService {
       const studentAtt = attMap.get(s.admissionNumber) || [];
       const totalAtt = studentAtt.length;
       const presentCount = studentAtt.filter(a => a.status === 'PRESENT').length;
-      const termAttendancePercent = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 1000) / 10 : 92.5;
+      const termAttendancePercent = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 1000) / 10 : 0;
 
       const latestFee = feeMap.get(s.admissionNumber);
-      const feeStatus = latestFee ? latestFee.status : 'PAID';
-      const paidAmount = latestFee ? latestFee.amountPaid : 45000;
+      const feeStatus = latestFee ? latestFee.status : (s.feePaymentStatus || 'PENDING');
+      const paidAmount = latestFee ? latestFee.amountPaid : 0;
       const totalAmount = latestFee ? latestFee.amountBilled : 45000;
 
       return {
         id: s.admissionNumber,
         dbId: s._id.toString(),
+        admissionNumber: s.admissionNumber,
         rollNo: `STU-${String(s.rollNo || 1).padStart(3, '0')}`,
         rollNumber: s.rollNo,
         name: s.fullName,
@@ -77,32 +78,33 @@ export class StudentService {
         grade: s.grade || 'Grade 9',
         section: s.section || 'A',
         academicYear: '2026-2027',
+        admissionDate: s.admissionDate || s.createdAt,
+        classTeacher: s.classTeacher || 'Not Assigned',
+        gfmMentor: s.gfmMentor || 'Not Assigned',
         parentName: s.parentName || 'Parent Guardian',
-        parentWhatsApp: s.parentWhatsApp || '+91 98220 11223',
+        parentWhatsApp: s.parentWhatsApp || '',
         parentEmail: s.parentEmail || s.email,
-        address: s.address || 'Residency Towers, Pune',
+        address: s.address || '',
         allergies: s.allergies || 'None reported',
         commuteMode: s.busRoute && s.busRoute.includes('Route') ? 'School Bus' : 'Private Transport',
         busRoute: s.busRoute || 'Self Walker',
         busStop: 'Stop 1 - Main Chowk',
         currentRiskLevel: s.riskLevel || 'LOW',
         termAttendancePercent,
-        attendanceToday: studentAtt[0]?.status || 'PRESENT',
+        attendanceRate: termAttendancePercent,
+        totalAttendanceSessions: totalAtt,
+        attendanceToday: studentAtt[0]?.status || 'NOT_MARKED',
         marks: {
-          t1: 18,
-          t2: 19,
-          semester: 72,
-          homework: 15,
-          activities: 16,
-          aggregatePercentage: 84
+          aggregatePercentage: 0
         },
         fees: {
           totalAmount,
           paidAmount,
           pendingAmount: totalAmount - paidAmount,
           status: feeStatus,
-          lastReceiptDate: '2026-08-15'
+          lastReceiptDate: latestFee?.transactionDate || null
         },
+        feeStatus,
         admissionStatus: s.admissionStatus || 'APPROVED'
       };
     });

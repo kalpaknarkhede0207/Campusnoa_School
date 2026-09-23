@@ -21,11 +21,13 @@ export default function AdmissionsHrDashboard() {
     name: '',
     email: '',
     phone: '',
-    designation: 'PGT Senior Teacher',
+    designation: 'TGT',
     department: 'Mathematics',
     subject: 'Mathematics',
     type: 'teaching',
     qualification: 'M.Sc., B.Ed',
+    experienceYears: 5,
+    joiningDate: new Date().toISOString().split('T')[0]
   });
 
   // New Student Admission Modal Form
@@ -40,7 +42,8 @@ export default function AdmissionsHrDashboard() {
     parentEmail: '',
     bloodGroup: 'B+',
     address: '',
-    busRoute: 'Self Walker'
+    busRoute: 'Self Walker',
+    admissionDate: new Date().toISOString().split('T')[0]
   });
 
   const loadData = async () => {
@@ -78,11 +81,13 @@ export default function AdmissionsHrDashboard() {
         name: '',
         email: '',
         phone: '',
-        designation: 'PGT Senior Teacher',
+        designation: 'TGT',
         department: 'Mathematics',
         subject: 'Mathematics',
         type: 'teaching',
         qualification: 'M.Sc., B.Ed',
+        experienceYears: 5,
+        joiningDate: new Date().toISOString().split('T')[0]
       });
       loadData();
     } catch (err) {
@@ -106,7 +111,8 @@ export default function AdmissionsHrDashboard() {
         parentEmail: '',
         bloodGroup: 'B+',
         address: '',
-        busRoute: 'Self Walker'
+        busRoute: 'Self Walker',
+        admissionDate: new Date().toISOString().split('T')[0]
       });
       loadData();
     } catch (err) {
@@ -505,6 +511,32 @@ export default function AdmissionsHrDashboard() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Date of Admission</label>
+                  <input
+                    type="date"
+                    required
+                    value={admitForm.admissionDate}
+                    onChange={(e) => setAdmitForm({ ...admitForm, admissionDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Transport / Commute</label>
+                  <select
+                    value={admitForm.busRoute}
+                    onChange={(e) => setAdmitForm({ ...admitForm, busRoute: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                  >
+                    <option value="Self Walker">Self Commute / Walker</option>
+                    <option value="Route 14 (Baner - School)">Route 14 (Baner - School)</option>
+                    <option value="Route 04 (Kothrud Express)">Route 04 (Kothrud Express)</option>
+                    <option value="Route 08 (Hinjawadi Shuttle)">Route 08 (Hinjawadi Shuttle)</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Residential Address</label>
                 <input
@@ -625,6 +657,39 @@ export default function AdmissionsHrDashboard() {
                     required
                     value={appointForm.subject}
                     onChange={(e) => setAppointForm({ ...appointForm, subject: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Joining Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={appointForm.joiningDate}
+                    onChange={(e) => setAppointForm({ ...appointForm, joiningDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Experience (Yrs)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={appointForm.experienceYears}
+                    onChange={(e) => setAppointForm({ ...appointForm, experienceYears: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Qualification</label>
+                  <input
+                    type="text"
+                    placeholder="M.Sc., B.Ed"
+                    value={appointForm.qualification}
+                    onChange={(e) => setAppointForm({ ...appointForm, qualification: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>

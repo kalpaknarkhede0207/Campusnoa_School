@@ -38,14 +38,15 @@ router.get('/', async (req, res, next) => {
         subject: t.department,
         qualification: t.highestDegree,
         experience: `${t.experienceYears} Years`,
-        employeeId: t.code
+        employeeId: t.code,
+        joiningDate: t.joiningDate || t.createdAt
       })),
       ...(data.nonTeachingStaff || []).map(s => ({
         id: s.id,
         _id: s.id,
         name: s.fullName,
         fullName: s.fullName,
-        email: `${s.code.toLowerCase()}@campusnoa.edu`,
+        email: s.officialEmail || `${s.code.toLowerCase()}@campusnoa.edu`,
         phone: s.phone,
         type: 'non_teaching',
         designation: s.role,
@@ -53,7 +54,8 @@ router.get('/', async (req, res, next) => {
         subject: s.department,
         qualification: s.responsibilities,
         experience: '5+ Years',
-        employeeId: s.code
+        employeeId: s.code,
+        joiningDate: s.joiningDate || s.createdAt
       }))
     ];
 
@@ -79,35 +81,43 @@ const appointFacultyHandler = async (req, res, next) => {
     const data = req.body;
     const defaultPassword = await import('bcryptjs').then(b => b.default.hash('CampusNoa@2026!', 12));
     const fullName = data.fullName || data.name || 'New Faculty';
-    const officialEmail = data.officialEmail || data.email || `faculty.${Date.now()}@campusnoa.edu`;
+    const officialEmail = (data.officialEmail || data.email || `faculty.${Date.now()}@campusnoa.edu`).toLowerCase().trim();
     const designation = data.designationTier || data.designation || 'TGT';
-    const isStaff = data.type === 'non_teaching' || designation.includes('STAFF');
+    const isStaff = data.type === 'non_teaching' || designation.toUpperCase().includes('STAFF');
 
-    const user = await User.create({
-      institutionId: req.institutionId,
-      email: officialEmail.toLowerCase().trim(),
-      fullName,
-      passwordHash: defaultPassword,
-      roleCode: isStaff ? 'STAFF' : 'TEACHER',
-      phone: data.phone || '+91 98220 00000',
-      auth0Sub: `auth0|${officialEmail.replace(/[@.]/g, '_')}`
-    });
+    let user = await User.findOne({ email: officialEmail });
+    if (!user) {
+      user = await User.create({
+        institutionId: req.institutionId,
+        email: officialEmail,
+        fullName,
+        passwordHash: defaultPassword,
+        roleCode: isStaff ? 'STAFF' : 'TEACHER',
+        phone: data.phone || '+91 98220 00000',
+        auth0Sub: `auth0|${officialEmail.replace(/[@.]/g, '_')}`
+      });
+    }
+
+    const count = await Faculty.countDocuments({ institutionId: req.institutionId });
+    const employeeCode = data.code || data.employeeCode || `EMP-${Date.now().toString().slice(-4)}${count + 1}`;
 
     const faculty = await Faculty.create({
       institutionId: req.institutionId,
       userId: user._id,
-      employeeCode: data.code || `EMP-${Math.floor(Math.random() * 800) + 200}`,
+      employeeCode,
       designationTier: isStaff ? 'ADMIN_STAFF' : designation,
       department: data.department || data.subject || 'Academics',
       qualification: data.highestDegree || data.qualification || 'M.Sc, B.Ed',
       experienceYears: Number(data.experienceYears) || 5,
       tetCertificationId: data.tetCertificationId || 'CTET-PAPER-II-98214',
-      homeroomDivision: data.homeroomAssignment || 'None'
+      homeroomDivision: data.homeroomAssignment || 'None',
+      joiningDate: data.joiningDate ? new Date(data.joiningDate) : new Date()
     });
 
     res.status(201).json({ success: true, message: 'Faculty appointed and synchronized to database successfully.', faculty });
   } catch (err) {
-    next(err);
+    console.error('Faculty appointment error:', err);
+    res.status(400).json({ success: false, error: err.message || 'Faculty appointment failed.' });
   }
 };
 

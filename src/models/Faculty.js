@@ -6,10 +6,9 @@ const FacultySchema = new mongoose.Schema({
   employeeCode: { type: String, required: true, unique: true, index: true },
   designationTier: {
     type: String,
-    required: true,
-    enum: ['PGT', 'TGT', 'PRT', 'LAB_HEAD', 'ADMIN_STAFF', 'COUNSELLOR'],
     default: 'TGT'
   },
+  joiningDate: { type: Date, default: Date.now },
   department: { type: String, default: 'General Faculty' },
   qualification: { type: String, default: 'M.Sc, B.Ed' },
   experienceYears: { type: Number, default: 5 },

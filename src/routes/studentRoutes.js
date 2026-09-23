@@ -41,21 +41,24 @@ const admitStudentHandler = async (req, res, next) => {
   try {
     const data = req.body;
     const admissionNumber = data.admissionNumber || `ADM-2026-${String(Math.floor(Math.random() * 900) + 100)}`;
-    const studentEmail = data.studentEmail || data.email || `student.${Date.now()}@campusnoa.edu`;
+    const studentEmail = (data.studentEmail || data.email || `student.${Date.now()}@campusnoa.edu`).toLowerCase().trim();
     const fullName = data.fullName || data.name || 'New Student';
 
-    // Create student user + profile
+    // Create student user + profile safely
     const defaultPassword = await import('bcryptjs').then(b => b.default.hash('CampusNoa@2026!', 12));
 
-    const user = await User.create({
-      institutionId: req.institutionId,
-      email: studentEmail.toLowerCase().trim(),
-      fullName,
-      passwordHash: defaultPassword,
-      roleCode: 'STUDENT',
-      phone: data.parentWhatsApp || data.phone || '+91 98220 11223',
-      auth0Sub: `auth0|${studentEmail.replace(/[@.]/g, '_')}`
-    });
+    let user = await User.findOne({ email: studentEmail });
+    if (!user) {
+      user = await User.create({
+        institutionId: req.institutionId,
+        email: studentEmail,
+        fullName,
+        passwordHash: defaultPassword,
+        roleCode: 'STUDENT',
+        phone: data.parentWhatsApp || data.phone || '+91 98220 11223',
+        auth0Sub: `auth0|${studentEmail.replace(/[@.]/g, '_')}`
+      });
+    }
 
     const student = await Student.create({
       institutionId: req.institutionId,
@@ -70,12 +73,17 @@ const admitStudentHandler = async (req, res, next) => {
       gender: data.gender || 'Male',
       bloodGroup: data.bloodGroup || 'B+',
       parentName: data.parentName || data.guardianName || 'Parent Guardian',
-      parentWhatsApp: data.parentWhatsApp || data.phone || '+91 98220 11223',
+      parentWhatsApp: data.parentWhatsApp || data.phone || '',
       parentEmail: data.parentEmail || user.email,
-      address: data.address || 'Pune, Maharashtra',
+      address: data.address || '',
       busRoute: data.busRoute || 'Self Walker',
       admissionStatus: data.admissionStatus || 'APPROVED',
-      riskLevel: data.riskLevel || 'LOW'
+      riskLevel: data.riskLevel || 'LOW',
+      admissionDate: data.admissionDate ? new Date(data.admissionDate) : new Date(),
+      classTeacher: data.classTeacher || 'Not Assigned',
+      gfmMentor: data.gfmMentor || 'Not Assigned',
+      overallAttendancePercentage: 0,
+      feePaymentStatus: data.feePaymentStatus || 'PENDING'
     });
 
     res.status(201).json({
@@ -84,7 +92,8 @@ const admitStudentHandler = async (req, res, next) => {
       student
     });
   } catch (err) {
-    next(err);
+    console.error('Admit student error:', err);
+    res.status(400).json({ success: false, error: err.message || 'Student admission failed.' });
   }
 };
 
