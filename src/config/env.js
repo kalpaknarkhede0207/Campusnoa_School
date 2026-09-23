@@ -4,7 +4,7 @@ dotenv.config();
 export const ENV = {
   PORT: process.env.PORT || 3000,
   NODE_ENV: process.env.NODE_ENV || 'development',
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/campusnoa',
+  MONGODB_URI: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campusnoa',
   DATABASE_URL: process.env.DATABASE_URL || 'file:./dev.db',
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN || '',
   AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID || '',

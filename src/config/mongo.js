@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/campusnoa';
+const FALLBACK_ATLAS_URI = 'mongodb+srv://kalpaknarkhede:Kalpak123@mentorsphere-cluster.t1lfehp.mongodb.net/campusnoa?retryWrites=true&w=majority&appName=mentorsphere-cluster';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || (process.env.NODE_ENV === 'production' ? FALLBACK_ATLAS_URI : 'mongodb://127.0.0.1:27017/campusnoa');
 
 let isConnected = false;
 

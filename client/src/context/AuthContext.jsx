@@ -96,6 +96,31 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const googleLogin = async (credential) => {
+    try {
+      // Direct fetch to our new backend route
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      });
+      const res = await response.json();
+      
+      if (!response.ok) throw new Error(res.message || 'Google Auth failed');
+      
+      if (res.user) {
+        setAuthToken(res.token);
+        setUser(res.user);
+        if (res.user.schoolMode) setSchoolMode(res.user.schoolMode);
+        showToast(`Welcome back, ${res.user.name}!`, 'success');
+        return res.user;
+      }
+    } catch (err) {
+      showToast(err.message || 'Google Login failed', 'error');
+      throw err;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -106,6 +131,7 @@ export function AuthProvider({ children }) {
         toast,
         showToast,
         login,
+        googleLogin,
         logout,
         switchRole,
         updateSchoolMode,

@@ -1,10 +1,12 @@
 import express from 'express';
+import { OAuth2Client } from 'google-auth-library';
 import { AuthService } from '../services/authService.js';
 import { loginRateLimiter } from '../middlewares/rateLimiter.js';
 import { authenticateToken } from '../middlewares/authenticate.js';
 import { auditLogger } from '../middlewares/auditLogger.js';
 
 const router = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // 1. Login with Rate Limiting & Audit
 router.post('/login', loginRateLimiter, auditLogger('USER_LOGIN', 'AUTH'), async (req, res, next) => {
@@ -43,6 +45,73 @@ router.post('/login', loginRateLimiter, auditLogger('USER_LOGIN', 'AUTH'), async
     });
   } catch (err) {
     next(err);
+  }
+});
+
+// Google OAuth Login
+router.post('/google', async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ success: false, error: 'MISSING_TOKEN', message: 'Google credential missing.' });
+    }
+
+    // Verify token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload.email;
+    const name = payload.name;
+    
+    // Assign role based on email (as discussed)
+    const isPrincipal = email === 'kalpaknarkhede0207@gmail.com';
+    const roleCode = isPrincipal ? 'PRINCIPAL' : 'TEACHER';
+
+    // Find or create user
+    const { User } = await import('../models/User.js');
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({
+        email,
+        fullName: name,
+        roleCode,
+        status: 'ACTIVE',
+        passwordHash: 'GOOGLE_OAUTH_NO_PASSWORD' 
+      });
+      await user.save();
+    }
+
+    // Issue standard tokens using AuthService logic
+    const { mintAuth0Token } = await import('../middlewares/auth0.js');
+    const accessToken = mintAuth0Token({
+      sub: user.auth0Sub || `auth0|${user.email.replace(/[@.]/g, '_')}`,
+      email: user.email,
+      fullName: user.fullName,
+      roleCode: user.roleCode,
+      institutionId: user.institutionId || 'NOA_INST_01'
+    });
+
+    res.cookie('campusnoa_access_token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000
+    });
+
+    const safeUser = user.toObject();
+    delete safeUser.passwordHash;
+
+    res.json({
+      success: true,
+      user: safeUser,
+      accessToken,
+      token: accessToken
+    });
+  } catch (err) {
+    console.error('Google Auth Error:', err);
+    res.status(401).json({ success: false, error: 'INVALID_GOOGLE_TOKEN', message: 'Google authentication failed.' });
   }
 });
 
