@@ -190,6 +190,29 @@ const admitStudentHandler = async (req, res, next) => {
       feePaymentStatus: data.feePaymentStatus || 'PENDING'
     });
 
+    // Create institutional fee invoice transaction
+    try {
+      const isPaid = student.feePaymentStatus === 'PAID';
+      await FeeTransaction.create({
+        institutionId: req.institutionId,
+        studentAdmissionNumber: student.admissionNumber,
+        studentName: student.fullName,
+        gradeDivision: `${student.grade}-${student.section}`,
+        parentName: student.parentName,
+        parentPhone: student.parentWhatsApp,
+        invoiceNumber: `INV-2026-${student.admissionNumber.replace(/[^0-9]/g, '') || Math.floor(Math.random() * 8000 + 1000)}`,
+        challanReference: `REF-${student.admissionNumber}`,
+        amountBilled: 45000,
+        amountPaid: isPaid ? 45000 : 0,
+        pendingAmount: isPaid ? 0 : 45000,
+        paymentMethod: isPaid ? 'Online Gateway' : 'Bank Challan',
+        status: isPaid ? 'PAID' : (student.feePaymentStatus || 'OVERDUE'),
+        transactionDate: student.admissionDate || new Date()
+      });
+    } catch (txErr) {
+      console.warn('Initial fee transaction creation warning:', txErr);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Student admitted and synchronized to database successfully.',

@@ -11,8 +11,8 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(enforceTenantScope);
 
-// Restricted to Counsellor, Principal, Class Teacher, and Admins
-router.use(requireRoles('COUNSELLOR', 'PRINCIPAL', 'CLASS_TEACHER', 'TEACHER', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'));
+// Restricted to Counsellor, Leadership, Teachers, and Admins
+router.use(requireRoles('COUNSELLOR', 'PRINCIPAL', 'VICE_PRINCIPAL', 'CLASS_TEACHER', 'TEACHER', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'));
 
 // 1. GET Confidential Cases
 router.get('/cases', async (req, res, next) => {

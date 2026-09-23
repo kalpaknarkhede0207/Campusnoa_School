@@ -5,20 +5,23 @@ import { Faculty } from '../models/Faculty.js';
 
 // 1. Role-Based Access Control
 export const requireRoles = (...allowedRoles) => {
+  const normalizedAllowed = allowedRoles.map(r => r.toUpperCase());
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ success: false, error: 'UNAUTHORIZED' });
     }
 
-    if (req.user.roleCode === 'SUPER_ADMIN') {
-      return next(); // Super Admin bypasses role check
+    const userRole = (req.user.roleCode || req.user.role || '').toUpperCase();
+
+    if (userRole === 'SUPER_ADMIN' || userRole === 'SCHOOL_MGMT') {
+      return next(); // Super Admin & School Management Board have full governance clearance
     }
 
-    if (!allowedRoles.includes(req.user.roleCode)) {
+    if (!normalizedAllowed.includes(userRole)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
-        message: `Security Access Violation: Role '${req.user.roleCode}' lacks required authority (${allowedRoles.join(', ')}).`
+        message: `Security Access Violation: Role '${userRole}' lacks required authority (${allowedRoles.join(', ')}).`
       });
     }
 
@@ -33,7 +36,8 @@ export const requireRecordScope = (scopeType) => {
     if (!user) return res.status(401).json({ success: false, error: 'UNAUTHORIZED' });
 
     // Leadership & Admins bypass individual record ownership
-    if (['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(user.roleCode)) {
+    const currentRole = (user.roleCode || user.role || '').toUpperCase();
+    if (['SUPER_ADMIN', 'SCHOOL_MGMT', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'VICE_PRINCIPAL'].includes(currentRole)) {
       return next();
     }
 

@@ -79,7 +79,7 @@ const getKpisHandler = async (req, res, next) => {
 router.get('/kpis', requireRoles('SCHOOL_MGMT', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), getKpisHandler);
 
 // 2. GET HOD Syllabus & Moderation Audit
-router.get('/hod/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN'), async (req, res, next) => {
+router.get('/hod/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT'), async (req, res, next) => {
   try {
     const facultyList = await Faculty.find({ institutionId: req.institutionId }).lean();
     let auditData = [];
@@ -227,8 +227,8 @@ const assignClassTeacherHandler = async (req, res, next) => {
   }
 };
 
-router.post('/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignClassTeacherHandler);
-router.post('/vp/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignClassTeacherHandler);
+router.post('/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignClassTeacherHandler);
+router.post('/vp/assign-class-teacher', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT', 'ADMIN_OFFICER'), auditLogger('ASSIGN_CLASS_TEACHER', 'GOVERNANCE'), assignClassTeacherHandler);
 
 // 4. GET Grounded AI Progress Report
 router.get('/ai/report/:studentId', async (req, res, next) => {

@@ -55,6 +55,8 @@ export default function PrincipalDashboard() {
   // Selected modals
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
+  const [financeFilter, setFinanceFilter] = useState('ALL'); // 'ALL' | 'PAID' | 'OVERDUE'
+  const [financeSearch, setFinanceSearch] = useState('');
 
   const handleDeleteStudent = async (student) => {
     const studentName = student.name || 'this student';
@@ -462,7 +464,7 @@ export default function PrincipalDashboard() {
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                Teaching Faculty ({faculty.filter(f => f.type === 'teaching').length || 24})
+                Teaching Faculty ({faculty.filter(f => f.type === 'teaching').length})
               </button>
               <button
                 onClick={() => setStaffCategory('non_teaching')}
@@ -472,7 +474,7 @@ export default function PrincipalDashboard() {
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                Non-Teaching Staff ({faculty.filter(f => f.type === 'non_teaching').length || 14})
+                Non-Teaching Staff ({faculty.filter(f => f.type === 'non_teaching').length})
               </button>
               <button
                 onClick={() => setStaffCategory('all')}
@@ -618,41 +620,217 @@ export default function PrincipalDashboard() {
       {/* FINANCE SUBTAB */}
       {activeTab === 'finance' && (
         <div className="space-y-6 animate-in fade-in">
+          {/* Clickable Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="card-clean p-5 border-l-4 border-l-emerald-500">
-              <span className="text-xs font-bold uppercase text-slate-500">Total Collected</span>
-              <p className="text-2xl font-black text-emerald-600 mt-1">
+            <button
+              type="button"
+              onClick={() => setFinanceFilter(financeFilter === 'PAID' ? 'ALL' : 'PAID')}
+              className={`card-clean p-5 text-left transition border-l-4 border-l-emerald-500 cursor-pointer ${
+                financeFilter === 'PAID'
+                  ? 'ring-2 ring-emerald-500 shadow-md bg-emerald-50/20'
+                  : 'hover:bg-slate-50/80 hover:shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Total Collected</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  {financeFilter === 'PAID' ? 'Filter Active' : 'Click to filter'}
+                </span>
+              </div>
+              <p className="text-2xl font-black text-emerald-600 mt-2">
                 ₹{((students.filter(s => s.feeStatus === 'PAID').length) * 45000).toLocaleString('en-IN')}
               </p>
-              <span className="text-xs text-slate-400">
-                {students.length > 0 ? `${Math.round((students.filter(s => s.feeStatus === 'PAID').length / students.length) * 100)}% Collection efficiency` : '0 records in database'}
+              <span className="text-xs text-slate-400 mt-1 block">
+                {students.length > 0 ? `${Math.round((students.filter(s => s.feeStatus === 'PAID').length / students.length) * 100)}% Collection efficiency (${students.filter(s => s.feeStatus === 'PAID').length} students)` : '0 records in database'}
               </span>
-            </div>
-            <div className="card-clean p-5 border-l-4 border-l-rose-500">
-              <span className="text-xs font-bold uppercase text-slate-500">Outstanding Overdue</span>
-              <p className="text-2xl font-black text-rose-600 mt-1">
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFinanceFilter(financeFilter === 'OVERDUE' ? 'ALL' : 'OVERDUE')}
+              className={`card-clean p-5 text-left transition border-l-4 border-l-rose-500 cursor-pointer ${
+                financeFilter === 'OVERDUE'
+                  ? 'ring-2 ring-rose-500 shadow-md bg-rose-50/20'
+                  : 'hover:bg-slate-50/80 hover:shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Outstanding Overdue</span>
+                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                  {financeFilter === 'OVERDUE' ? 'Filter Active' : 'Click to filter'}
+                </span>
+              </div>
+              <p className="text-2xl font-black text-rose-600 mt-2">
                 ₹{((students.filter(s => s.feeStatus !== 'PAID').length) * 45000).toLocaleString('en-IN')}
               </p>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 mt-1 block">
                 Across {students.filter(s => s.feeStatus !== 'PAID').length} student accounts
               </span>
-            </div>
-            <div className="card-clean p-5 border-l-4 border-l-indigo-500">
-              <span className="text-xs font-bold uppercase text-slate-500">Annual Billed Total</span>
-              <p className="text-2xl font-black text-indigo-600 mt-1">
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFinanceFilter('ALL')}
+              className={`card-clean p-5 text-left transition border-l-4 border-l-indigo-500 cursor-pointer ${
+                financeFilter === 'ALL'
+                  ? 'ring-2 ring-indigo-500 shadow-md bg-indigo-50/20'
+                  : 'hover:bg-slate-50/80 hover:shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase text-slate-500">Annual Billed Total</span>
+                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                  {financeFilter === 'ALL' ? 'Showing All' : 'Click to reset'}
+                </span>
+              </div>
+              <p className="text-2xl font-black text-indigo-600 mt-2">
                 ₹{(students.length * 45000).toLocaleString('en-IN')}
               </p>
-              <span className="text-xs text-slate-400">Current Academic Year</span>
-            </div>
+              <span className="text-xs text-slate-400 mt-1 block">
+                Distributed across all {students.length} admitted students
+              </span>
+            </button>
           </div>
 
-          {students.length === 0 && (
+          {/* Distributed Student Fee Breakdown Table */}
+          {students.length === 0 ? (
             <div className="card-clean p-12 text-center">
               <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <h4 className="font-bold text-slate-800 text-sm">No Fee Records Found</h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 The institutional finance ledger is live and clean. Student fee invoices, challans, and collections will appear here automatically as students are admitted.
               </p>
+            </div>
+          ) : (
+            <div className="card-clean overflow-hidden">
+              <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-indigo-600" />
+                    Distributed Student Fee Ledger & Account Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Individual fee realization, balance dues, and payment statuses for admitted students
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search student or roll..."
+                      value={financeSearch}
+                      onChange={(e) => setFinanceSearch(e.target.value)}
+                      className="text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center rounded-lg bg-slate-100 p-0.5 border border-slate-200 text-xs font-bold">
+                    <button
+                      onClick={() => setFinanceFilter('ALL')}
+                      className={`px-2 py-1 rounded-md transition ${financeFilter === 'ALL' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      All ({students.length})
+                    </button>
+                    <button
+                      onClick={() => setFinanceFilter('PAID')}
+                      className={`px-2 py-1 rounded-md transition ${financeFilter === 'PAID' ? 'bg-white shadow-xs text-emerald-700' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      Paid ({students.filter(s => s.feeStatus === 'PAID').length})
+                    </button>
+                    <button
+                      onClick={() => setFinanceFilter('OVERDUE')}
+                      className={`px-2 py-1 rounded-md transition ${financeFilter === 'OVERDUE' ? 'bg-white shadow-xs text-rose-700' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      Overdue ({students.filter(s => s.feeStatus !== 'PAID').length})
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/60 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Roll / Adm No</th>
+                      <th className="py-3 px-4">Student Name</th>
+                      <th className="py-3 px-4">Grade & Div</th>
+                      <th className="py-3 px-4">Annual Billed</th>
+                      <th className="py-3 px-4">Amount Paid</th>
+                      <th className="py-3 px-4">Balance Dues</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Guardian Contact</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {students
+                      .filter(st => {
+                        const isPaid = st.feeStatus === 'PAID';
+                        const matchesStatus = financeFilter === 'ALL' ||
+                                              (financeFilter === 'PAID' && isPaid) ||
+                                              (financeFilter === 'OVERDUE' && !isPaid);
+                        const matchesSearch = !financeSearch ||
+                                              (st.name || st.fullName || '').toLowerCase().includes(financeSearch.toLowerCase()) ||
+                                              (st.rollNo || '').toLowerCase().includes(financeSearch.toLowerCase()) ||
+                                              (st.admissionNumber || '').toLowerCase().includes(financeSearch.toLowerCase());
+                        return matchesStatus && matchesSearch;
+                      })
+                      .map((st) => {
+                        const isPaid = st.feeStatus === 'PAID';
+                        const billedAmt = st.fees?.totalAmount || 45000;
+                        const paidAmt = isPaid ? (st.fees?.paidAmount || billedAmt) : 0;
+                        const pendingAmt = isPaid ? 0 : billedAmt;
+
+                        return (
+                          <tr key={st.id || st.admissionNumber || st._id} className="hover:bg-slate-50/80 transition">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                              {st.rollNo || st.admissionNumber}
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-slate-900">
+                              {st.name || st.fullName}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded-md font-medium text-slate-700 bg-slate-100">
+                                {st.grade} {st.section ? `- ${st.section}` : ''}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-medium text-slate-800">
+                              ₹{billedAmt.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-3 px-4 font-bold text-emerald-600">
+                              ₹{paidAmt.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-3 px-4 font-bold text-rose-600">
+                              ₹{pendingAmt.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                                isPaid
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}>
+                                {isPaid ? 'PAID' : 'PENDING'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-600">
+                              {st.parent || st.parentName || 'Parent'} ({st.phone || st.parentWhatsApp || 'Not provided'})
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => setSelectedStudent(st)}
+                                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs border border-indigo-200 transition"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

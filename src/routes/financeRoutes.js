@@ -31,19 +31,13 @@ router.get('/summary', async (req, res, next) => {
 // 2. GET Transactions
 router.get('/transactions', async (req, res, next) => {
   try {
-    const txs = await FeeTransaction.find({ institutionId: req.institutionId }).sort({ transactionDate: -1 }).limit(100).lean();
-    const formatted = txs.map(t => ({
-      id: t._id.toString(),
-      _id: t._id.toString(),
-      refNo: t.transactionRef || `PAY-${t._id.toString().substring(0, 8).toUpperCase()}`,
-      studentName: t.studentName,
-      grade: t.academicYear || 'Grade 9-A',
-      amount: `₹${(t.amountPaid || t.amountBilled || 45000).toLocaleString('en-IN')}`,
-      method: t.paymentMethod || 'Online Transfer',
-      date: t.transactionDate ? new Date(t.transactionDate).toISOString().split('T')[0] : '2026-03-22',
-      status: t.status === 'PAID' ? 'COMPLETED' : t.status
-    }));
-    res.json({ success: true, transactions: formatted });
+    const data = await FinanceService.getFeeLedger(req.institutionId);
+    res.json({
+      success: true,
+      transactions: data.transactions,
+      summary: data.summary,
+      defaulters: data.defaulters
+    });
   } catch (err) {
     next(err);
   }
@@ -124,24 +118,54 @@ router.post('/pay', requireRoles('ACCOUNTANT', 'PARENT', 'STUDENT', 'INSTITUTION
 });
 
 // 4. Parameterized Transaction Reconcile (Called by Frontend api.reconcilePayment)
-router.post('/transactions/:id/reconcile', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL'), auditLogger('CHALLAN_RECONCILED', 'FINANCE'), async (req, res, next) => {
+router.post('/transactions/:id/reconcile', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('CHALLAN_RECONCILED', 'FINANCE'), async (req, res, next) => {
   try {
     const txId = req.params.id;
-    const tx = await FeeTransaction.findOne({
+    let tx = await FeeTransaction.findOne({
       institutionId: req.institutionId,
       $or: [
         { _id: txId.match(/^[0-9a-fA-F]{24}$/) ? txId : null },
         { invoiceNumber: txId },
-        { challanReference: txId }
+        { challanReference: txId },
+        { studentAdmissionNumber: txId }
       ].filter(Boolean)
     });
 
     if (!tx) {
+      // If student exists, create paid transaction
+      const st = await Student.findOne({
+        institutionId: req.institutionId,
+        $or: [
+          { admissionNumber: txId },
+          { _id: txId.match(/^[0-9a-fA-F]{24}$/) ? txId : null }
+        ].filter(Boolean)
+      });
+      if (st) {
+        tx = await FeeTransaction.create({
+          institutionId: req.institutionId,
+          studentAdmissionNumber: st.admissionNumber,
+          studentName: st.fullName,
+          gradeDivision: `${st.grade}-${st.section}`,
+          parentName: st.parentName,
+          parentPhone: st.parentWhatsApp,
+          invoiceNumber: `INV-2026-${st.admissionNumber}`,
+          challanReference: `REF-${st.admissionNumber}`,
+          amountBilled: 45000,
+          amountPaid: 45000,
+          pendingAmount: 0,
+          paymentMethod: 'Bank Challan Reconciled',
+          status: 'PAID',
+          transactionDate: new Date()
+        });
+        st.feePaymentStatus = 'PAID';
+        await st.save();
+        return res.json({ success: true, message: `Fee reconciled for student ${st.fullName}.`, transaction: tx });
+      }
       return res.status(404).json({ success: false, error: 'Fee transaction not found in database.' });
     }
 
     tx.status = 'PAID';
-    tx.amountPaid = tx.amountBilled;
+    tx.amountPaid = tx.amountBilled || 45000;
     tx.pendingAmount = 0;
     tx.transactionDate = new Date();
     await tx.save();
@@ -163,45 +187,69 @@ router.post('/transactions/:id/reconcile', requireRoles('ACCOUNTANT', 'INSTITUTI
 });
 
 // 5. Record New Fee Receipt (Accountant)
-router.post('/receipt', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL'), auditLogger('FEE_RECEIPT_ISSUED', 'FINANCE'), async (req, res, next) => {
+router.post('/receipt', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FEE_RECEIPT_ISSUED', 'FINANCE'), async (req, res, next) => {
   try {
-    const { studentName, grade, amount, method, status } = req.body;
-    if (!studentName || !amount) {
-      return res.status(400).json({ success: false, error: 'Student name and amount are required.' });
+    const { studentName, studentAdmissionNumber, grade, amount, method, status } = req.body;
+    if (!studentName && !studentAdmissionNumber) {
+      return res.status(400).json({ success: false, error: 'Student identification and amount are required.' });
     }
 
     const numAmount = Number(String(amount).replace(/[^0-9]/g, '')) || 45000;
-    const invNum = `INV-2026-${Math.floor(Math.random() * 8000) + 1000}`;
-    const txRef = `PAY-2026-${Math.floor(Math.random() * 900) + 100}`;
+    const isCompleted = status === 'COMPLETED' || status === 'PAID';
 
-    const student = await Student.findOne({
+    let student = null;
+    if (studentAdmissionNumber) {
+      student = await Student.findOne({ institutionId: req.institutionId, admissionNumber: studentAdmissionNumber });
+    }
+    if (!student && studentName) {
+      student = await Student.findOne({
+        institutionId: req.institutionId,
+        $or: [
+          { fullName: { $regex: studentName, $options: 'i' } },
+          { admissionNumber: studentName }
+        ]
+      });
+    }
+
+    const admissionNumber = student ? student.admissionNumber : (studentAdmissionNumber || `ADM-2026-${Date.now().toString().slice(-3)}`);
+    const finalStudentName = student ? student.fullName : studentName;
+    const finalGrade = student ? `${student.grade}-${student.section}` : (grade || 'Grade 9-A');
+
+    // Check if an existing transaction exists for this student
+    let tx = await FeeTransaction.findOne({
       institutionId: req.institutionId,
-      $or: [
-        { fullName: { $regex: studentName, $options: 'i' } },
-        { admissionNumber: studentName }
-      ]
+      studentAdmissionNumber: admissionNumber
     });
 
-    const admissionNumber = student ? student.admissionNumber : `ADM-2026-${Date.now().toString().slice(-3)}`;
+    if (tx) {
+      tx.amountPaid = isCompleted ? numAmount : tx.amountPaid;
+      tx.pendingAmount = isCompleted ? Math.max(0, (tx.amountBilled || numAmount) - numAmount) : tx.pendingAmount;
+      tx.status = isCompleted ? 'PAID' : (status || tx.status);
+      tx.paymentMethod = method || tx.paymentMethod;
+      tx.transactionDate = new Date();
+      await tx.save();
+    } else {
+      const invNum = `INV-2026-${admissionNumber.replace(/[^0-9]/g, '') || Math.floor(Math.random() * 8000 + 1000)}`;
+      const txRef = `PAY-2026-${Math.floor(Math.random() * 900) + 100}`;
+      tx = await FeeTransaction.create({
+        institutionId: req.institutionId,
+        studentAdmissionNumber: admissionNumber,
+        studentName: finalStudentName,
+        gradeDivision: finalGrade,
+        parentName: student?.parentName || 'Parent Guardian',
+        parentPhone: student?.parentWhatsApp || '',
+        invoiceNumber: invNum,
+        challanReference: txRef,
+        amountBilled: numAmount,
+        amountPaid: isCompleted ? numAmount : 0,
+        pendingAmount: isCompleted ? 0 : numAmount,
+        paymentMethod: method || 'ONLINE_GATEWAY',
+        status: isCompleted ? 'PAID' : (status || 'PENDING'),
+        transactionDate: new Date()
+      });
+    }
 
-    const tx = await FeeTransaction.create({
-      institutionId: req.institutionId,
-      studentAdmissionNumber: admissionNumber,
-      studentName: student ? student.fullName : studentName,
-      gradeDivision: grade || (student ? `${student.grade}-${student.section}` : 'Grade 9-A'),
-      parentName: student?.parentName || 'Parent Guardian',
-      parentPhone: student?.parentWhatsApp || '',
-      invoiceNumber: invNum,
-      challanReference: txRef,
-      amountBilled: numAmount,
-      amountPaid: status === 'COMPLETED' || status === 'PAID' ? numAmount : 0,
-      pendingAmount: status === 'COMPLETED' || status === 'PAID' ? 0 : numAmount,
-      paymentMethod: method || 'ONLINE_GATEWAY',
-      status: status === 'COMPLETED' || status === 'PAID' ? 'PAID' : (status || 'PENDING'),
-      transactionDate: new Date()
-    });
-
-    if (student && (status === 'COMPLETED' || status === 'PAID')) {
+    if (student && isCompleted) {
       student.feePaymentStatus = 'PAID';
       await student.save();
     }
