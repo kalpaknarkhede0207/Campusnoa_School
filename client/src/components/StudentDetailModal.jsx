@@ -61,7 +61,7 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">{student.name}</h3>
                 <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  {student.grade || student.class || 'Grade 9-A'}
+                  {student.grade || student.class || 'Grade 1-A'}
                 </span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   student.status === 'ACTIVE' 

@@ -10,8 +10,7 @@ import { api } from '../services/api';
 import StudentDetailModal from '../components/StudentDetailModal';
 
 const ALL_STANDARD_GRADES = [
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
-  'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'
+  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'
 ];
 
 const STANDARD_SUBJECTS = [
@@ -101,7 +100,7 @@ export default function VicePrincipalDashboard() {
       const loadedSubs = leaves.map(l => ({
         id: l.id,
         absentTeacher: l.teacherName,
-        section: 'Grade 9-A',
+        section: 'Grade 1-A',
         period: 'Period 1 (08:30 AM)',
         substitute: l.delegatedToName !== 'Unassigned' ? l.delegatedToName : 'Unassigned',
         status: l.delegationStatus === 'ACCEPTED' ? 'ASSIGNED' : 'PENDING'
@@ -577,7 +576,10 @@ export default function VicePrincipalDashboard() {
                   setAssignForm({
                     teacherId: '',
                     teacherName: '',
-                    grade: 'Grade 9',
+                    roleType: 'CLASS_TEACHER',
+                    subject: 'Mathematics',
+                    customSubject: '',
+                    grade: 'Grade 1',
                     section: 'A',
                     targetMode: 'class',
                     selectedStudentIds: []
@@ -638,7 +640,10 @@ export default function VicePrincipalDashboard() {
                                 setAssignForm({
                                   teacherId: t.id || t.code,
                                   teacherName: t.fullName,
-                                  grade: 'Grade 9',
+                                  roleType: 'CLASS_TEACHER',
+                                  subject: 'Mathematics',
+                                  customSubject: '',
+                                  grade: 'Grade 1',
                                   section: 'A',
                                   targetMode: 'class',
                                   selectedStudentIds: []
@@ -1131,12 +1136,18 @@ export default function VicePrincipalDashboard() {
                     onChange={(e) => setProxyFormData({ ...proxyFormData, section: e.target.value })}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
                   >
-                    <option>Grade 9-A</option>
-                    <option>Grade 9-B</option>
-                    <option>Grade 10-A</option>
-                    <option>Grade 10-B</option>
-                    <option>Grade 11-A</option>
-                    <option>Grade 12-A</option>
+                    <option>Grade 1-A</option>
+                    <option>Grade 1-B</option>
+                    <option>Grade 2-A</option>
+                    <option>Grade 2-B</option>
+                    <option>Grade 3-A</option>
+                    <option>Grade 3-B</option>
+                    <option>Grade 4-A</option>
+                    <option>Grade 4-B</option>
+                    <option>Grade 5-A</option>
+                    <option>Grade 5-B</option>
+                    <option>Grade 6-A</option>
+                    <option>Grade 6-B</option>
                   </select>
                 </div>
 

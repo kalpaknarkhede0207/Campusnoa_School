@@ -181,7 +181,7 @@ async function seedFullStaff() {
       dept: 'Mathematics',
       degree: 'M.Sc Mathematics, B.Ed',
       exp: 8,
-      homeroom: 'Grade 9-A',
+      homeroom: 'Grade 5-B',
       subject: 'Mathematics'
     },
     {
@@ -193,7 +193,7 @@ async function seedFullStaff() {
       dept: 'Science',
       degree: 'Ph.D Physics, B.Ed',
       exp: 12,
-      homeroom: 'Grade 10-A',
+      homeroom: 'Grade 6-B',
       subject: 'Physics'
     },
     {
@@ -205,7 +205,7 @@ async function seedFullStaff() {
       dept: 'Science',
       degree: 'M.Sc Chemistry, B.Ed',
       exp: 9,
-      homeroom: 'Grade 10-B',
+      homeroom: 'Grade 5-A',
       subject: 'Chemistry'
     },
     {
@@ -217,7 +217,7 @@ async function seedFullStaff() {
       dept: 'Mathematics',
       degree: 'M.Sc Mathematics, B.Ed',
       exp: 8,
-      homeroom: 'Grade 9-B',
+      homeroom: 'Grade 4-A',
       subject: 'Mathematics'
     },
     {
@@ -229,7 +229,7 @@ async function seedFullStaff() {
       dept: 'Science',
       degree: 'Ph.D Biology, B.Ed',
       exp: 6,
-      homeroom: 'Grade 8-A',
+      homeroom: 'Grade 4-B',
       subject: 'Biology'
     },
     {
@@ -241,7 +241,7 @@ async function seedFullStaff() {
       dept: 'English',
       degree: 'M.A English Lit, B.Ed',
       exp: 11,
-      homeroom: 'Grade 10-C',
+      homeroom: 'Grade 3-A',
       subject: 'English'
     },
     {
@@ -253,7 +253,7 @@ async function seedFullStaff() {
       dept: 'Social Studies',
       degree: 'M.A History, B.Ed',
       exp: 8,
-      homeroom: 'Grade 8-B',
+      homeroom: 'Grade 3-B',
       subject: 'History'
     },
     {
@@ -277,7 +277,7 @@ async function seedFullStaff() {
       dept: 'Primary',
       degree: 'B.A, B.Ed',
       exp: 5,
-      homeroom: 'Grade 6-B',
+      homeroom: 'Grade 2-A',
       subject: 'Social Science'
     },
     {
@@ -289,7 +289,7 @@ async function seedFullStaff() {
       dept: 'Computer Science',
       degree: 'MCA, B.Ed',
       exp: 7,
-      homeroom: 'Grade 7-A',
+      homeroom: 'Grade 2-B',
       subject: 'Computer Science'
     },
     {
@@ -301,7 +301,7 @@ async function seedFullStaff() {
       dept: 'Hindi',
       degree: 'M.A Hindi, B.Ed',
       exp: 10,
-      homeroom: 'Grade 7-B',
+      homeroom: 'Grade 1-A',
       subject: 'Hindi'
     },
     {
@@ -313,7 +313,7 @@ async function seedFullStaff() {
       dept: 'Science',
       degree: 'Ph.D Physics, B.Ed',
       exp: 10,
-      homeroom: 'Grade 9-C',
+      homeroom: 'Grade 1-B',
       subject: 'Physics'
     },
     {
@@ -410,10 +410,10 @@ async function seedFullStaff() {
       });
     }
 
+    const grade = t.homeroom !== 'None' ? t.homeroom.split('-')[0] : 'Grade 1';
+    const section = t.homeroom !== 'None' ? t.homeroom.split('-')[1] : 'A';
     let fac = await Faculty.findOne({ employeeCode: t.code });
     if (!fac) {
-      const grade = t.homeroom !== 'None' ? t.homeroom.split('-')[0] : 'Grade 9';
-      const section = t.homeroom !== 'None' ? t.homeroom.split('-')[1] : 'A';
       fac = await Faculty.create({
         institutionId,
         userId: u._id,
@@ -430,7 +430,12 @@ async function seedFullStaff() {
       });
       console.log(`✅ Created Teaching Faculty: ${t.name} (${t.code})`);
     } else {
-      console.log(`ℹ️ Teaching Faculty exists: ${t.name} (${t.code})`);
+      fac.homeroomDivision = t.homeroom;
+      fac.assignedClasses = [
+        { grade, section, role: t.homeroom !== 'None' ? 'Class Teacher' : 'Subject Teacher', subject: t.subject }
+      ];
+      await fac.save();
+      console.log(`✅ Updated Teaching Faculty: ${t.name} (${t.code}) -> ${t.homeroom}`);
     }
   }
 

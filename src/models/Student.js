@@ -6,7 +6,7 @@ const StudentSchema = new mongoose.Schema({
   admissionNumber: { type: String, required: true, unique: true, index: true },
   fullName: { type: String, required: true },
   email: { type: String },
-  grade: { type: String, default: 'Grade 9' },
+  grade: { type: String, default: 'Grade 1' },
   section: { type: String, default: 'A' },
   rollNo: { type: Number, default: 1 },
   dob: { type: String, default: '2012-05-15' },

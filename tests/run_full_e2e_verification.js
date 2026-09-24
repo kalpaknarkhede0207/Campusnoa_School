@@ -98,8 +98,8 @@ async function runFullVerification() {
       body: JSON.stringify({
         fullName: 'Audit Test Student',
         email: `audit.${Date.now()}@campusnoa.edu`,
-        grade: 'Grade 9',
-        section: 'A',
+        grade: 'Grade 5',
+        section: 'B',
         admissionNumber: testAdmNo,
         parentName: 'Audit Guardian',
         phone: '+91 98220 99999',
@@ -134,8 +134,8 @@ async function runFullVerification() {
       body: JSON.stringify({
         teacherName: teacherUser?.fullName || 'Mrs. Sunita Roy',
         roleType: 'CLASS_TEACHER',
-        grade: 'Grade 9',
-        section: 'A',
+        grade: 'Grade 5',
+        section: 'B',
         studentIds: [testAdmNo]
       })
     });
@@ -151,7 +151,7 @@ async function runFullVerification() {
         'Authorization': `Bearer ${tokens.CLASS_TEACHER}`
       },
       body: JSON.stringify({
-        divisionName: 'Grade 9-A',
+        divisionName: 'Grade 5-B',
         date: new Date().toISOString().split('T')[0],
         records: [{ studentId: testAdmNo, status: 'PRESENT' }]
       })

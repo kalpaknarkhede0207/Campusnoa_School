@@ -53,7 +53,7 @@ export class AiReportService {
       studentIdentity: {
         admissionNumber: student.admissionNumber,
         fullName: student.fullName,
-        gradeDivision: `${student.grade || 'Grade 9'}-${student.section || 'A'}`
+        gradeDivision: `${student.grade || 'Grade 1'}-${student.section || 'A'}`
       },
       factualMetrics: {
         attendanceRatePercent: factualAttendanceRate,

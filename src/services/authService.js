@@ -336,7 +336,7 @@ export class AuthService {
         admissionNumber: studentData.admissionNumber || `ADM-${Date.now()}`,
         fullName,
         email: newUser.email,
-        grade: studentData.grade || 'Grade 9',
+        grade: studentData.grade || 'Grade 1',
         section: studentData.section || 'A',
         rollNo: studentData.rollNo || 1,
         busRoute: studentData.busRoute || 'Self Walker'

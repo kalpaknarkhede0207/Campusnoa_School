@@ -86,8 +86,8 @@ const getSyllabusAuditHandler = async (req, res, next) => {
     if (facultyList && facultyList.length > 0) {
       auditData = facultyList.map((f, idx) => ({
         subjectId: `SUB-${f.code || idx + 1}`,
-        subjectName: `${f.department || 'Science'} - ${f.assignedClasses?.[0] || 'Grade 10'}`,
-        gradeSection: f.assignedClasses?.[0] || 'Grade 10-A',
+        subjectName: `${f.department || 'Science'} - ${f.assignedClasses?.[0] || 'Grade 1'}`,
+        gradeSection: f.assignedClasses?.[0] || 'Grade 1-A',
         leadFacultyName: f.fullName,
         syllabusCompletionPercent: Math.min(100, 70 + ((idx * 7) % 25)),
         targetPacePercent: 85,
@@ -154,7 +154,7 @@ const assignTeacherHandler = async (req, res, next) => {
     }
 
     const assignedTeacherName = teacher?.userId?.fullName || teacherName || teacher?.employeeCode;
-    const cleanGrade = grade ? grade.split('-')[0].trim() : 'Grade 9';
+    const cleanGrade = grade ? grade.split('-')[0].trim() : 'Grade 1';
     const cleanSection = section || (grade && grade.includes('-') ? grade.split('-')[1].trim() : 'A');
     const targetClass = `${cleanGrade}-${cleanSection}`;
 

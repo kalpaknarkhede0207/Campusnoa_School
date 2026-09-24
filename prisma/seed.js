@@ -110,7 +110,7 @@ async function main() {
     data: { institutionId: inst1.id, code: 'ADMIN', name: 'Administrative Operations' }
   });
 
-  const gradeNames = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'];
+  const gradeNames = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
   const classMap = {};
   const divisionMap = {};
 
@@ -119,7 +119,7 @@ async function main() {
       data: {
         institutionId: inst1.id,
         name: gradeNames[g],
-        gradeLevel: 6 + g
+        gradeLevel: 1 + g
       }
     });
     classMap[gradeNames[g]] = cls;
@@ -139,13 +139,13 @@ async function main() {
 
   // Subjects
   const subjPhys = await prisma.subject.create({
-    data: { institutionId: inst1.id, code: 'PHY-10', name: 'Physics (Grade 10)' }
+    data: { institutionId: inst1.id, code: 'SCI-06', name: 'Science (Grade 6)' }
   });
   const subjChem = await prisma.subject.create({
-    data: { institutionId: inst1.id, code: 'CHEM-09', name: 'Chemistry (Grade 9)' }
+    data: { institutionId: inst1.id, code: 'SCI-05', name: 'Science (Grade 5)' }
   });
   const subjMath = await prisma.subject.create({
-    data: { institutionId: inst1.id, code: 'MATH-09', name: 'Mathematics (Grade 9)' }
+    data: { institutionId: inst1.id, code: 'MATH-05', name: 'Mathematics (Grade 5)' }
   });
 
   console.log('✅ Academic structure (Departments, Classes, Divisions, Subjects) seeded.');
@@ -198,7 +198,7 @@ async function main() {
       qualification: 'M.Sc (Mathematics), B.Ed',
       experienceYears: 7,
       tetCertificationId: 'CTET-PAPER-II-98214',
-      homeroomDivision: 'Grade 9-A'
+      homeroomDivision: 'Grade 5-B'
     }
   });
 
@@ -213,7 +213,7 @@ async function main() {
       qualification: 'Ph.D (Physics), B.Ed',
       experienceYears: 10,
       tetCertificationId: 'CTET-PAPER-II-77120',
-      homeroomDivision: 'Grade 10-A'
+      homeroomDivision: 'Grade 6-B'
     }
   });
 
@@ -402,7 +402,7 @@ async function main() {
       assignedFacultyId: facSunita.id,
       periodNumber: 4,
       timeSlot: 'Period 4 (11:15 AM)',
-      divisionName: 'Grade 8-B',
+      divisionName: 'Grade 5-B',
       subjectName: 'Science (Biology)',
       absentTeacherName: 'Mrs. Rohini Deshmukh',
       lessonHandover: 'Conduct Ch 7 Photosynthesis lab observation worksheet.'

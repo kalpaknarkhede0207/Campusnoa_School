@@ -14,7 +14,7 @@ export default function CounsellorDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCase, setNewCase] = useState({
     studentName: '',
-    grade: 'Grade 9-A',
+    grade: 'Grade 1-A',
     reason: '',
     severity: 'MEDIUM',
     notes: '',
@@ -28,7 +28,7 @@ export default function CounsellorDashboard() {
         setCases(res.cases.map(c => ({
           id: c.caseId || c.id || `c-${Math.random()}`,
           studentName: c.studentName || c.name || 'Student',
-          grade: c.gradeSection || c.grade || 'Grade 9-A',
+          grade: c.gradeSection || c.grade || 'Grade 1-A',
           reason: c.category || c.reason || 'Wellbeing Referral',
           severity: c.severity || 'MEDIUM',
           status: c.status || 'ACTIVE_INTERVENTION',
@@ -60,7 +60,7 @@ export default function CounsellorDashboard() {
       });
       setIsModalOpen(false);
       showToast(`Confidential wellness case opened for ${newCase.studentName}`, 'success');
-      setNewCase({ studentName: '', grade: 'Grade 9-A', reason: '', severity: 'MEDIUM', notes: '' });
+      setNewCase({ studentName: '', grade: 'Grade 1-A', reason: '', severity: 'MEDIUM', notes: '' });
       await loadCases();
     } catch (err) {
       showToast(err.message || 'Failed to open counselling case', 'error');

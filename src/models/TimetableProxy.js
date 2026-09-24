@@ -5,7 +5,7 @@ const TimetableProxySchema = new mongoose.Schema({
   assignedEmployeeCode: { type: String, required: true, index: true },
   periodNumber: { type: Number, default: 1 },
   timeSlot: { type: String, default: 'Period 4 (11:15 AM)' },
-  divisionName: { type: String, default: 'Grade 8-B' },
+  divisionName: { type: String, default: 'Grade 5-B' },
   subjectName: { type: String, default: 'Science' },
   absentTeacherName: { type: String, required: true },
   lessonHandover: { type: String, default: 'Supervised self-study worksheet' },

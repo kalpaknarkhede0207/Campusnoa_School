@@ -36,7 +36,7 @@ router.get('/cases', async (req, res, next) => {
         caseId: `CASE-2026-0${idx + 7}`,
         studentId: n.studentAdmissionNumber,
         studentName: student.fullName || 'Student',
-        gradeSection: `${student.grade || 'Grade 9'}-${student.section || 'A'}`,
+        gradeSection: `${student.grade || 'Grade 1'}-${student.section || 'A'}`,
         category: n.noteType,
         sessionDate: n.createdAt ? new Date(n.createdAt).toISOString().split('T')[0] : '2026-09-10',
         confidentialNotes: n.content,

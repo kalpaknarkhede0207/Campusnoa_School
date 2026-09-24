@@ -214,7 +214,7 @@ router.post('/receipt', mutationRateLimiter, requireRoles('ACCOUNTANT', 'INSTITU
 
     const admissionNumber = student ? student.admissionNumber : (studentAdmissionNumber || `ADM-2026-${Date.now().toString().slice(-3)}`);
     const finalStudentName = student ? student.fullName : studentName;
-    const finalGrade = student ? `${student.grade}-${student.section}` : (grade || 'Grade 9-A');
+    const finalGrade = student ? `${student.grade}-${student.section}` : (grade || 'Grade 1-A');
 
     // Check if an existing transaction exists for this student
     let tx = await FeeTransaction.findOne({

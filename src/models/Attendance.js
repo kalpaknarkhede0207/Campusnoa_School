@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const AttendanceSchema = new mongoose.Schema({
   institutionId: { type: String, required: true, index: true },
-  divisionName: { type: String, required: true, index: true }, // e.g. "Grade 9-A"
+  divisionName: { type: String, required: true, index: true }, // e.g. "Grade 1-A"
   studentAdmissionNumber: { type: String, required: true, index: true },
   recordedByEmployeeCode: { type: String },
   date: { type: String, required: true, index: true }, // YYYY-MM-DD

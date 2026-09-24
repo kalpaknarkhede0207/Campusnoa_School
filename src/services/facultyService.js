@@ -25,7 +25,7 @@ export class FacultyService {
         tetCertificationId: f.tetCertificationId || 'CTET-PAPER-II-98214',
         experienceYears: f.experienceYears || 5,
         assignedClasses: f.assignedClasses || [
-          { grade: 'Grade 9', section: 'A', role: 'Subject Teacher' }
+          { grade: 'Grade 1', section: 'A', role: 'Subject Teacher' }
         ],
         homeroomAssignment: f.homeroomDivision || 'None',
         maxWeeklyProxies: f.maxWeeklyProxies || 3,
@@ -116,7 +116,7 @@ export class FacultyService {
       assignedEmployeeCode: data.assignedEmployeeCode || data.assignedFacultyCode || 'T-102',
       periodNumber: data.periodNumber || 1,
       timeSlot: data.timeSlot || 'Period 4 (11:15 AM)',
-      divisionName: data.divisionName || 'Grade 8-B',
+      divisionName: data.divisionName || 'Grade 5-B',
       subjectName: data.subjectName || 'Science',
       absentTeacherName: data.absentTeacherName,
       lessonHandover: data.lessonHandover || 'Supervised self-study worksheet',

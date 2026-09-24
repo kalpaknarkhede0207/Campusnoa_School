@@ -8,16 +8,12 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const ALL_STANDARD_GRADES = [
-  'Grade 1-A', 'Grade 1-B', 'Grade 2-A', 'Grade 2-B',
-  'Grade 3-A', 'Grade 3-B', 'Grade 4-A', 'Grade 4-B',
+  'Grade 1-A', 'Grade 1-B', 'Grade 1-C',
+  'Grade 2-A', 'Grade 2-B', 'Grade 2-C',
+  'Grade 3-A', 'Grade 3-B', 'Grade 3-C',
+  'Grade 4-A', 'Grade 4-B', 'Grade 4-C',
   'Grade 5-A', 'Grade 5-B', 'Grade 5-C',
-  'Grade 6-A', 'Grade 6-B', 'Grade 6-C',
-  'Grade 7-A', 'Grade 7-B', 'Grade 7-C',
-  'Grade 8-A', 'Grade 8-B', 'Grade 8-C',
-  'Grade 9-A', 'Grade 9-B', 'Grade 9-C',
-  'Grade 10-A', 'Grade 10-B', 'Grade 10-C',
-  'Grade 11-A', 'Grade 11-B', 'Grade 11-C',
-  'Grade 12-A', 'Grade 12-B', 'Grade 12-C'
+  'Grade 6-A', 'Grade 6-B', 'Grade 6-C'
 ];
 
 export default function AccountantDashboard() {
@@ -34,7 +30,7 @@ export default function AccountantDashboard() {
   const [formData, setFormData] = useState({
     studentAdmissionNumber: '',
     studentName: '',
-    grade: 'Grade 9-A',
+    grade: 'Grade 1-A',
     amount: '45000',
     method: 'UPI / Razorpay',
     status: 'COMPLETED'
@@ -90,7 +86,7 @@ export default function AccountantDashboard() {
       setFormData({
         studentAdmissionNumber: '',
         studentName: '',
-        grade: 'Grade 9-A',
+        grade: 'Grade 1-A',
         amount: '45000',
         method: 'UPI / Razorpay',
         status: 'COMPLETED'
@@ -164,12 +160,12 @@ export default function AccountantDashboard() {
   // Dynamic Grade Options for Modal
   const dynamicGradeOptions = Array.from(new Set([
     formData.grade,
-    ...students.map(s => `${s.grade || 'Grade 9'}-${s.section || 'A'}`),
+    ...students.map(s => `${s.grade || 'Grade 1'}-${s.section || 'A'}`),
     ...ALL_STANDARD_GRADES
   ])).filter(Boolean);
 
   const openReceiptModalForStudent = (st) => {
-    const stGrade = st.grade || 'Grade 9';
+    const stGrade = st.grade || 'Grade 1';
     const stSection = st.section || 'A';
     const isPaid = st.feeStatus === 'PAID';
     const pendingDues = isPaid ? 0 : 45000;
@@ -406,7 +402,7 @@ export default function AccountantDashboard() {
                           </td>
                           <td className="py-3 px-4">
                             <span className="px-2 py-0.5 rounded-md font-semibold text-[11px] bg-slate-100 text-slate-700">
-                              {st.grade || 'Grade 9'} - {st.section || 'A'}
+                              {st.grade || 'Grade 1'} - {st.section || 'A'}
                             </span>
                           </td>
                           <td className="py-3 px-4 font-bold text-slate-900">₹{billed.toLocaleString('en-IN')}</td>
@@ -561,7 +557,7 @@ export default function AccountantDashboard() {
                       const admNo = e.target.value;
                       const selectedSt = students.find(s => (s.admissionNumber || s.id) === admNo);
                       if (selectedSt) {
-                        const stGrade = selectedSt.grade || 'Grade 9';
+                        const stGrade = selectedSt.grade || 'Grade 1';
                         const stSection = selectedSt.section || 'A';
                         const combinedGrade = `${stGrade}-${stSection}`;
                         const isPaid = selectedSt.feeStatus === 'PAID';
@@ -579,7 +575,7 @@ export default function AccountantDashboard() {
                           ...formData,
                           studentAdmissionNumber: '',
                           studentName: '',
-                          grade: 'Grade 9-A',
+                          grade: 'Grade 1-A',
                           amount: '45000'
                         });
                       }

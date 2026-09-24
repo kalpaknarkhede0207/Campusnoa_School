@@ -77,7 +77,7 @@ export class GfmService {
         studentId: s._id.toString(),
         admissionNumber: s.admissionNumber,
         fullName: s.fullName,
-        grade: s.grade || 'Grade 9',
+        grade: s.grade || 'Grade 1',
         section: s.section || 'A',
         rollNo: s.rollNo,
         attendancePercent,

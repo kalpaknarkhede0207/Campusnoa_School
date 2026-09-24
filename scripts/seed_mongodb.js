@@ -111,18 +111,18 @@ async function seedMongoDB() {
 
   // 5. Seed Faculty Members (15 Teaching + 5 Non-Teaching = 20 total)
   const teachingStaffData = [
-    { code: 'T-101', name: 'Dr. Vivek Sharma', tier: 'PGT', dept: 'Science', degree: 'Ph.D Physics, B.Ed', exp: 12, homeroom: 'Grade 10-A', email: 'v.sharma@school.edu' },
-    { code: 'T-102', name: 'Mrs. Ananya Sen', tier: 'PGT', dept: 'Science', degree: 'M.Sc Chemistry, B.Ed', exp: 9, homeroom: 'Grade 10-B', email: 'a.sen@school.edu' },
-    { code: 'T-103', name: 'Mr. Rajesh Kulkarni', tier: 'TGT', dept: 'Mathematics', degree: 'M.Sc Mathematics, B.Ed', exp: 8, homeroom: 'Grade 9-B', email: 'r.kulkarni@school.edu' },
-    { code: 'T-104', name: 'Mrs. Sunita Roy', tier: 'TGT', dept: 'Mathematics', degree: 'M.Sc Mathematics, B.Ed', exp: 7, homeroom: 'Grade 9-A', email: 's.roy@school.edu', userId: userMap['s.roy@school.edu']._id },
-    { code: 'T-105', name: 'Dr. Radhika Nair', tier: 'TGT', dept: 'Science', degree: 'Ph.D Biology, B.Ed', exp: 6, homeroom: 'Grade 8-A', email: 'r.nair@school.edu' },
-    { code: 'T-106', name: 'Mr. Amitav Ghosh', tier: 'PGT', dept: 'English', degree: 'M.A English Lit, B.Ed', exp: 11, homeroom: 'Grade 10-C', email: 'a.ghosh@school.edu' },
-    { code: 'T-107', name: 'Mrs. Kavita Iyer', tier: 'TGT', dept: 'Social Studies', degree: 'M.A History, B.Ed', exp: 8, homeroom: 'Grade 8-B', email: 'k.iyer@school.edu' },
+    { code: 'T-101', name: 'Dr. Vivek Sharma', tier: 'PGT', dept: 'Science', degree: 'Ph.D Physics, B.Ed', exp: 12, homeroom: 'Grade 6-B', email: 'v.sharma@school.edu' },
+    { code: 'T-102', name: 'Mrs. Ananya Sen', tier: 'PGT', dept: 'Science', degree: 'M.Sc Chemistry, B.Ed', exp: 9, homeroom: 'Grade 5-A', email: 'a.sen@school.edu' },
+    { code: 'T-103', name: 'Mr. Rajesh Kulkarni', tier: 'TGT', dept: 'Mathematics', degree: 'M.Sc Mathematics, B.Ed', exp: 8, homeroom: 'Grade 4-A', email: 'r.kulkarni@school.edu' },
+    { code: 'T-104', name: 'Mrs. Sunita Roy', tier: 'TGT', dept: 'Mathematics', degree: 'M.Sc Mathematics, B.Ed', exp: 7, homeroom: 'Grade 5-B', email: 's.roy@school.edu', userId: userMap['s.roy@school.edu']._id },
+    { code: 'T-105', name: 'Dr. Radhika Nair', tier: 'TGT', dept: 'Science', degree: 'Ph.D Biology, B.Ed', exp: 6, homeroom: 'Grade 4-B', email: 'r.nair@school.edu' },
+    { code: 'T-106', name: 'Mr. Amitav Ghosh', tier: 'PGT', dept: 'English', degree: 'M.A English Lit, B.Ed', exp: 11, homeroom: 'Grade 3-A', email: 'a.ghosh@school.edu' },
+    { code: 'T-107', name: 'Mrs. Kavita Iyer', tier: 'TGT', dept: 'Social Studies', degree: 'M.A History, B.Ed', exp: 8, homeroom: 'Grade 3-B', email: 'k.iyer@school.edu' },
     { code: 'T-108', name: 'Mr. Sanjay Verma', tier: 'PRT', dept: 'Primary', degree: 'B.Sc, D.El.Ed', exp: 4, homeroom: 'Grade 6-A', email: 's.verma@school.edu' },
-    { code: 'T-109', name: 'Mrs. Meenakshi Rao', tier: 'PRT', dept: 'Primary', degree: 'B.A, B.Ed', exp: 5, homeroom: 'Grade 6-B', email: 'm.rao@school.edu' },
-    { code: 'T-110', name: 'Mr. Deepak Deshmukh', tier: 'TGT', dept: 'Computer Science', degree: 'MCA, B.Ed', exp: 7, homeroom: 'Grade 7-A', email: 'd.deshmukh@school.edu' },
-    { code: 'T-111', name: 'Mrs. Rohini Patil', tier: 'TGT', dept: 'Hindi', degree: 'M.A Hindi, B.Ed', exp: 10, homeroom: 'Grade 7-B', email: 'r.patil@school.edu' },
-    { code: 'T-112', name: 'Mr. Anand Joshi', tier: 'PGT', dept: 'Science', degree: 'Ph.D Physics, B.Ed', exp: 10, homeroom: 'Grade 9-C', email: 'a.joshi@school.edu', userId: userMap['a.joshi@school.edu']._id },
+    { code: 'T-109', name: 'Mrs. Meenakshi Rao', tier: 'PRT', dept: 'Primary', degree: 'B.A, B.Ed', exp: 5, homeroom: 'Grade 2-A', email: 'm.rao@school.edu' },
+    { code: 'T-110', name: 'Mr. Deepak Deshmukh', tier: 'TGT', dept: 'Computer Science', degree: 'MCA, B.Ed', exp: 7, homeroom: 'Grade 2-B', email: 'd.deshmukh@school.edu' },
+    { code: 'T-111', name: 'Mrs. Rohini Patil', tier: 'TGT', dept: 'Hindi', degree: 'M.A Hindi, B.Ed', exp: 10, homeroom: 'Grade 1-A', email: 'r.patil@school.edu' },
+    { code: 'T-112', name: 'Mr. Anand Joshi', tier: 'PGT', dept: 'Science', degree: 'Ph.D Physics, B.Ed', exp: 10, homeroom: 'Grade 1-B', email: 'a.joshi@school.edu', userId: userMap['a.joshi@school.edu']._id },
     { code: 'T-113', name: 'Mrs. Pooja Bhat', tier: 'PRT', dept: 'Primary', degree: 'B.Sc, B.Ed', exp: 6, homeroom: 'Grade 6-C', email: 'p.bhat@school.edu' },
     { code: 'T-114', name: 'Mr. Shailesh Reddy', tier: 'TGT', dept: 'Physical Education', degree: 'M.P.Ed, NIS', exp: 9, homeroom: 'None', email: 's.reddy@school.edu' },
     { code: 'T-115', name: 'Mrs. Shalini Mehta', tier: 'TGT', dept: 'Fine Arts', degree: 'M.F.A', exp: 8, homeroom: 'None', email: 's.mehta@school.edu' }
@@ -163,7 +163,7 @@ async function seedMongoDB() {
       homeroomDivision: t.homeroom,
       presenceStatus: 'PRESENT',
       assignedClasses: [
-        { grade: t.homeroom !== 'None' ? t.homeroom.split('-')[0] : 'Grade 9', section: t.homeroom !== 'None' ? t.homeroom.split('-')[1] : 'A', role: 'Subject Teacher', subject: t.dept }
+        { grade: t.homeroom !== 'None' ? t.homeroom.split('-')[0] : 'Grade 1', section: t.homeroom !== 'None' ? t.homeroom.split('-')[1] : 'A', role: 'Subject Teacher', subject: t.dept }
       ]
     });
     facultyDocs.push(fac);
@@ -234,7 +234,7 @@ async function seedMongoDB() {
     'Iyer', 'Sen', 'Gupta', 'Bose', 'Reddy', 'Nair', 'Chavan', 'Pawar', 'Bhat', 'Rao'
   ];
 
-  const grades = ['Grade 9', 'Grade 9', 'Grade 10', 'Grade 8', 'Grade 7'];
+  const grades = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
   const busRoutes = [
     'Route #04 (Kothrud Express)', 'Route #08 (Bavdhan)', 'Route #12 (Aundh)', 'Route #14 (Baner)',
     'Self Walker', 'Private Van'
@@ -376,7 +376,7 @@ async function seedMongoDB() {
     assignedEmployeeCode: 'T-104',
     periodNumber: 4,
     timeSlot: 'Period 4 (11:15 AM)',
-    divisionName: 'Grade 8-B',
+    divisionName: 'Grade 5-B',
     subjectName: 'Science (Biology)',
     absentTeacherName: 'Mrs. Rohini Deshmukh',
     lessonHandover: 'Conduct Chapter 7 Photosynthesis lab observation worksheet.',

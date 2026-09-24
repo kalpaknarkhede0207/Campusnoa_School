@@ -29,7 +29,7 @@ export default function ParentDashboard() {
           setStudent({
             name: ward.fullName || ward.name,
             rollNo: ward.rollNo || ward.admissionNumber,
-            grade: `${ward.grade || 'Grade 9'} - ${ward.section || 'A'}`,
+            grade: `${ward.grade || 'Grade 1'} - ${ward.section || 'A'}`,
             attendance: attendanceDisplay,
             classRank: 'Active',
             termGpa: '8.8 / 10',

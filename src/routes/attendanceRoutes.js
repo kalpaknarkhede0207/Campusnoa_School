@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(enforceTenantScope);
 
-// 1. GET Homeroom Students (Grade 9-A)
+// 1. GET Homeroom Students
 router.get('/homeroom', async (req, res, next) => {
   try {
     const { Student } = await import('../models/Student.js');
@@ -52,9 +52,9 @@ router.get('/homeroom', async (req, res, next) => {
         _id: s._id.toString(),
         admissionNumber: s.admissionNumber,
         admissionDate: s.admissionDate || s.createdAt,
-        rollNo: s.rollNo ? `${s.grade || '9'}-${s.section || 'A'}-${String(s.rollNo).padStart(2, '0')}` : (s.admissionNumber || `STU-${idx + 1}`),
+        rollNo: s.rollNo ? `${s.grade || '1'}-${s.section || 'A'}-${String(s.rollNo).padStart(2, '0')}` : (s.admissionNumber || `STU-${idx + 1}`),
         name: s.fullName || s.name || `Student ${idx + 1}`,
-        grade: `${s.grade || 'Grade 9'}-${s.section || 'A'}`,
+        grade: `${s.grade || 'Grade 1'}-${s.section || 'A'}`,
         attendanceRate: rate,
         totalAttendanceSessions: totalDays,
         feeStatus: fee ? (fee.status === 'PAID' ? 'PAID' : 'PENDING') : (s.feePaymentStatus || 'PENDING'),
@@ -80,7 +80,7 @@ router.post('/mark', auditLogger('ATTENDANCE_RECORDED', 'ATTENDANCE'), async (re
     const recordedBy = req.user?.email || 'CLASS_TEACHER';
     const result = await AttendanceService.saveBatchAttendance(
       req.institutionId,
-      divisionName || 'Grade 9-A',
+      divisionName || 'Grade 1-A',
       recordedBy,
       date || new Date().toISOString().split('T')[0],
       1,

@@ -159,8 +159,8 @@ model Class {
   id            String   @id @default(uuid())
   institutionId String
   departmentId  String?
-  name          String   // e.g. "Grade 9"
-  gradeLevel    Int      @default(9)
+  name          String   // e.g. "Grade 1"
+  gradeLevel    Int      @default(1)
   createdAt     DateTime @default(now())
 
   institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -224,7 +224,7 @@ model Faculty {
   experienceYears    Int      @default(5)
   tetCertificationId String?
   presenceStatus     String   @default("PRESENT") // PRESENT, ON_LEAVE, SUBSTITUTING
-  homeroomDivision   String?  // e.g. "Grade 9-A"
+  homeroomDivision   String?  // e.g. "Grade 1-A"
   maxWeeklyProxies   Int      @default(3)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

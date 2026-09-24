@@ -75,7 +75,7 @@ export class StudentService {
         dob: s.dob || '2012-05-15',
         gender: s.gender || 'Male',
         bloodGroup: s.bloodGroup || 'B+',
-        grade: s.grade || 'Grade 9',
+        grade: s.grade || 'Grade 1',
         section: s.section || 'A',
         academicYear: '2026-2027',
         admissionDate: s.admissionDate || s.createdAt,

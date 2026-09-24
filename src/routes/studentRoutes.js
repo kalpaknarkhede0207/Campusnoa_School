@@ -179,7 +179,7 @@ const admitStudentHandler = async (req, res, next) => {
       admissionNumber,
       fullName,
       email: user.email,
-      grade: data.grade || data.class || 'Grade 9',
+      grade: data.grade || data.class || 'Grade 1',
       section: data.section || 'A',
       rollNo: Number(data.rollNo) || (await Student.countDocuments({ institutionId: req.institutionId })) + 1,
       dob: data.dob || '2012-05-15',

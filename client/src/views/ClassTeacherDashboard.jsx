@@ -42,7 +42,7 @@ export default function ClassTeacherDashboard() {
 
   // Modal states
   const [showSubjectModal, setShowSubjectModal] = useState(false);
-  const [subjectForm, setSubjectForm] = useState({ subject: '', grade: 'Grade 9-A', schedule: 'Mon, Wed, Fri (10:00 AM)', progress: 0 });
+  const [subjectForm, setSubjectForm] = useState({ subject: '', grade: 'Grade 5-B', schedule: 'Mon, Wed, Fri (10:00 AM)', progress: 0 });
   
   const [showCounsellingModal, setShowCounsellingModal] = useState(false);
   const [counsellingForm, setCounsellingForm] = useState({ studentName: '', type: 'Academic Stress', notes: '' });
@@ -138,7 +138,7 @@ export default function ClassTeacherDashboard() {
     }
     setAssignedSubjects([...assignedSubjects, { ...subjectForm, id: `sub-${Date.now()}` }]);
     setShowSubjectModal(false);
-    setSubjectForm({ subject: '', grade: 'Grade 9-A', schedule: 'Mon, Wed, Fri (10:00 AM)', progress: 0 });
+    setSubjectForm({ subject: '', grade: 'Grade 5-B', schedule: 'Mon, Wed, Fri (10:00 AM)', progress: 0 });
     showToast('Subject class assignment created!', 'success');
   };
 
@@ -190,7 +190,7 @@ export default function ClassTeacherDashboard() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Class Teacher Dashboard</h1>
             <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Homeroom Grade 9-A
+              Homeroom {user?.homeroomDivision || user?.assignedDivision || 'Grade 5-B'}
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -885,10 +885,18 @@ export default function ClassTeacherDashboard() {
                     onChange={(e) => setSubjectForm({ ...subjectForm, grade: e.target.value })}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
                   >
-                    <option>Grade 9-A</option>
-                    <option>Grade 9-B</option>
-                    <option>Grade 10-A</option>
-                    <option>Grade 10-B</option>
+                    <option>Grade 1-A</option>
+                    <option>Grade 1-B</option>
+                    <option>Grade 2-A</option>
+                    <option>Grade 2-B</option>
+                    <option>Grade 3-A</option>
+                    <option>Grade 3-B</option>
+                    <option>Grade 4-A</option>
+                    <option>Grade 4-B</option>
+                    <option>Grade 5-A</option>
+                    <option>Grade 5-B</option>
+                    <option>Grade 6-A</option>
+                    <option>Grade 6-B</option>
                   </select>
                 </div>
 

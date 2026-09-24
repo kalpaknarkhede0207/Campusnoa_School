@@ -18,10 +18,10 @@ const FacultySchema = new mongoose.Schema({
     default: 'PRESENT',
     enum: ['PRESENT', 'ON_LEAVE', 'SUBSTITUTING']
   },
-  homeroomDivision: { type: String, default: 'None' }, // e.g. "Grade 9-A"
+  homeroomDivision: { type: String, default: 'None' }, // e.g. "Grade 1-A"
   maxWeeklyProxies: { type: Number, default: 3 },
   assignedClasses: [{
-    grade: { type: String, default: 'Grade 9' },
+    grade: { type: String, default: 'Grade 1' },
     section: { type: String, default: 'A' },
     role: { type: String, default: 'Subject Teacher' },
     subject: { type: String, default: 'General' }

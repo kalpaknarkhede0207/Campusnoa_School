@@ -197,7 +197,7 @@ export default function HodDashboard() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Grade 10 Higher Mathematics"
+                  placeholder="e.g. Grade 5 Mathematics"
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"

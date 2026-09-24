@@ -27,7 +27,7 @@ export async function runAttendanceFinanceTests(serverUrl) {
       'Authorization': `Bearer ${teacherLogin.accessToken}`
     },
     body: JSON.stringify({
-      divisionId: 'Grade 9-A',
+      divisionId: 'Grade 5-B',
       date: '2026-09-22',
       periodNumber: 1,
       records: testRecords

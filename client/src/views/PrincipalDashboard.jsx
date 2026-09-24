@@ -192,7 +192,7 @@ export default function PrincipalDashboard() {
   };
 
   const feeChartData = {
-    labels: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
+    labels: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'],
     datasets: [
       {
         label: 'Collected (₹ Lakhs)',
@@ -427,7 +427,7 @@ export default function PrincipalDashboard() {
                           {st.name}
                         </td>
                         <td className="py-3 px-4 text-slate-500 font-mono">{st.rollNo || st.enrollmentNo || 'STU-2026-01'}</td>
-                        <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 9-A'}</td>
+                        <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 1-A'}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
                             (st.attendanceRate || 0) >= 75 ? 'bg-emerald-50 text-emerald-700' : (st.attendanceRate > 0 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600')
