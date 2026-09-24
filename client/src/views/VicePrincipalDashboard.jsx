@@ -301,7 +301,7 @@ export default function VicePrincipalDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
           <button
             onClick={() => loadData()}
             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
@@ -338,10 +338,10 @@ export default function VicePrincipalDashboard() {
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-6">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-6 overflow-x-auto scrollbar-none max-w-full">
         <button
           onClick={() => setActiveTab('class_teacher_assign')}
-          className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition ${
+          className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap shrink-0 ${
             activeTab === 'class_teacher_assign'
               ? 'bg-indigo-600 text-white shadow-xs'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -357,7 +357,7 @@ export default function VicePrincipalDashboard() {
 
         <button
           onClick={() => setActiveTab('proxies')}
-          className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition ${
+          className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap shrink-0 ${
             activeTab === 'proxies'
               ? 'bg-indigo-600 text-white shadow-xs'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -470,7 +470,7 @@ export default function VicePrincipalDashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50/60 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       <th className="py-3 px-4">Admission No</th>
@@ -711,51 +711,53 @@ export default function VicePrincipalDashboard() {
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-4">Absent Faculty</th>
-                    <th className="py-3 px-4">Grade & Section</th>
-                    <th className="py-3 px-4">Period</th>
-                    <th className="py-3 px-4">Assigned Substitute</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {substitutes.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3 px-4 font-semibold text-slate-900">{s.absentTeacher}</td>
-                      <td className="py-3 px-4 text-slate-700 font-medium">{s.section}</td>
-                      <td className="py-3 px-4 text-slate-600">{s.period}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-800">{s.substitute}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                          s.status === 'ASSIGNED'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {s.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {s.status !== 'ASSIGNED' ? (
-                          <button
-                            onClick={() => handleAssignProxy(s.id)}
-                            className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
-                          >
-                            Assign Proxy
-                          </button>
-                        ) : (
-                          <span className="text-emerald-600 font-semibold flex items-center gap-1 justify-end">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Dispatched
-                          </span>
-                        )}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Absent Faculty</th>
+                      <th className="py-3 px-4">Grade & Section</th>
+                      <th className="py-3 px-4">Period</th>
+                      <th className="py-3 px-4">Assigned Substitute</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {substitutes.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-4 font-semibold text-slate-900">{s.absentTeacher}</td>
+                        <td className="py-3 px-4 text-slate-700 font-medium">{s.section}</td>
+                        <td className="py-3 px-4 text-slate-600">{s.period}</td>
+                        <td className="py-3 px-4 font-semibold text-slate-800">{s.substitute}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                            s.status === 'ASSIGNED'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
+                            {s.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {s.status !== 'ASSIGNED' ? (
+                            <button
+                              onClick={() => handleAssignProxy(s.id)}
+                              className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
+                            >
+                              Assign Proxy
+                            </button>
+                          ) : (
+                            <span className="text-emerald-600 font-semibold flex items-center gap-1 justify-end">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Dispatched
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -764,7 +766,7 @@ export default function VicePrincipalDashboard() {
       {/* MODAL 1: APPOINT TEACHER (CLASS TEACHER OR SUBJECT TEACHER) */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 border border-slate-200 max-h-[92vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-4 sm:p-6 border border-slate-200 max-h-[92vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -853,7 +855,7 @@ export default function VicePrincipalDashboard() {
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Appointment Role *
                 </label>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setAssignForm({ ...assignForm, roleType: 'CLASS_TEACHER' })}
@@ -1072,7 +1074,7 @@ export default function VicePrincipalDashboard() {
       {/* MODAL 2: LOG PROXY ALLOCATION */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 border border-slate-200">
             <h3 className="text-base font-bold text-slate-900 mb-1">Log Daily Proxy Allocation</h3>
             <p className="text-xs text-slate-500 mb-4">Allocate a substitute teacher to cover an absent colleague's class period.</p>
 

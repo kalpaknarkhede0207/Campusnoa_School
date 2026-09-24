@@ -13,6 +13,7 @@ const ROLES = [
   { id: 'class_teacher', name: 'Class Teacher', desc: 'Homeroom attendance, fee status & mentorship', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   { id: 'admissions_officer', name: 'Admissions & Staffing Authority', desc: 'Student enrollment & teacher appointing authority', icon: Briefcase, color: 'text-violet-600 bg-violet-50 border-violet-200' },
   { id: 'accountant', name: 'Accountant / Finance Staff', desc: 'Fee collections, dues & ledger reconciliation', icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-200' },
+  { id: 'counsellor', name: 'Student Counsellor', desc: 'Confidential pastoral care & wellness cases', icon: HeartHandshake, color: 'text-rose-600 bg-rose-50 border-rose-200' },
   { id: 'parent', name: 'Parent & Guardian', desc: 'Student performance, fee receipts & live bus GPS', icon: Users, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
 ];
 
@@ -30,12 +31,12 @@ export default function RoleSwitcherModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Switch Institutional Persona</h3>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">Switch Institutional Persona</h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Select an institutional persona to preview authorization, dashboards, and privileges.
             </p>
@@ -49,7 +50,7 @@ export default function RoleSwitcherModal({ isOpen, onClose }) {
         </div>
 
         {/* Roles Grid */}
-        <div className="p-6 overflow-y-auto space-y-2.5">
+        <div className="p-3 sm:p-6 overflow-y-auto space-y-2.5">
           {ROLES.map((r) => {
             const Icon = r.icon;
             const isCurrent = user?.role === r.id;

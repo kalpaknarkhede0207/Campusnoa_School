@@ -140,52 +140,54 @@ export default function HodDashboard() {
             </p>
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="py-3 px-4">Subject & Level</th>
-                <th className="py-3 px-4">Assigned Faculty</th>
-                <th className="py-3 px-4">Syllabus Progress</th>
-                <th className="py-3 px-4">Benchmark</th>
-                <th className="py-3 px-4">Delivery Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {subjects.map((sub) => (
-                <tr key={sub.subject} className="hover:bg-slate-50/80">
-                  <td className="py-3 px-4 font-semibold text-slate-900">{sub.subject}</td>
-                  <td className="py-3 px-4 font-medium text-slate-700">{sub.teacher}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 bg-slate-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${sub.progress}%` }} />
-                      </div>
-                      <span className="font-bold text-slate-800">{sub.progress}%</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-slate-500">{sub.target}% Target</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                      sub.status === 'AHEAD'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : sub.status === 'ON_TRACK'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                      {sub.status.replace('_', ' ')}
-                    </span>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 px-4">Subject & Level</th>
+                  <th className="py-3 px-4">Assigned Faculty</th>
+                  <th className="py-3 px-4">Syllabus Progress</th>
+                  <th className="py-3 px-4">Benchmark</th>
+                  <th className="py-3 px-4">Delivery Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {subjects.map((sub) => (
+                  <tr key={sub.subject} className="hover:bg-slate-50/80">
+                    <td className="py-3 px-4 font-semibold text-slate-900">{sub.subject}</td>
+                    <td className="py-3 px-4 font-medium text-slate-700">{sub.teacher}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 bg-slate-200 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${sub.progress}%` }} />
+                        </div>
+                        <span className="font-bold text-slate-800">{sub.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500">{sub.target}% Target</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                        sub.status === 'AHEAD'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : sub.status === 'ON_TRACK'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {sub.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Add Curriculum Track Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-slate-900 mb-1">Add Department Curriculum Track</h3>
             <p className="text-xs text-slate-500 mb-4">Register a subject syllabus benchmark for delivery audit.</p>
 
@@ -214,7 +216,7 @@ export default function HodDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Current Progress (%)</label>
                   <input

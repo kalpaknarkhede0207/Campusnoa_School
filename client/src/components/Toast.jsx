@@ -11,7 +11,7 @@ export default function Toast() {
   const isWarning = toast.type === 'warning';
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 bg-white/95 border-slate-200 text-slate-800">
+    <div className="fixed bottom-5 right-4 left-4 sm:left-auto sm:right-5 max-w-sm sm:max-w-md z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 bg-white/95 border-slate-200 text-slate-800">
       {isSuccess && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
       {isError && <XCircle className="w-5 h-5 text-rose-600 shrink-0" />}
       {isWarning && <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />}

@@ -141,10 +141,10 @@ export default function ParentDashboard() {
         </div>
 
         {/* Tab 1: Student, Tab 2: Bus Tracking */}
-        <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-none max-w-full">
           <button
             onClick={() => setActiveTab('student')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition whitespace-nowrap shrink-0 ${
               activeTab === 'student'
                 ? 'bg-white text-indigo-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -156,7 +156,7 @@ export default function ParentDashboard() {
 
           <button
             onClick={() => setActiveTab('bus')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition whitespace-nowrap shrink-0 ${
               activeTab === 'bus'
                 ? 'bg-white text-indigo-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -215,30 +215,32 @@ export default function ParentDashboard() {
             </div>
 
             {student.reports && student.reports.length > 0 ? (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-4">Subject</th>
-                    <th className="py-3 px-4">Marks Obtained</th>
-                    <th className="py-3 px-4">Grade</th>
-                    <th className="py-3 px-4">Teacher Remark</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {student.reports.map((r) => (
-                    <tr key={r.subject} className="hover:bg-slate-50/80">
-                      <td className="py-3 px-4 font-semibold text-slate-900">{r.subject}</td>
-                      <td className="py-3 px-4 font-bold text-slate-800">{r.marks}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-indigo-50 text-indigo-700">
-                          {r.grade}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{r.remarks}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Subject</th>
+                      <th className="py-3 px-4">Marks Obtained</th>
+                      <th className="py-3 px-4">Grade</th>
+                      <th className="py-3 px-4">Teacher Remark</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {student.reports.map((r) => (
+                      <tr key={r.subject} className="hover:bg-slate-50/80">
+                        <td className="py-3 px-4 font-semibold text-slate-900">{r.subject}</td>
+                        <td className="py-3 px-4 font-bold text-slate-800">{r.marks}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-indigo-50 text-indigo-700">
+                            {r.grade}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">{r.remarks}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="p-8 text-center">
                 <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />

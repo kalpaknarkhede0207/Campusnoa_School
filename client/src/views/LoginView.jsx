@@ -26,14 +26,17 @@ export default function LoginView() {
   const quickLogins = [
     { role: 'School Management', email: 'board@campusnoa.edu', desc: 'Executive governance' },
     { role: 'Principal', email: 'principal@campusnoa.edu', desc: 'Full institutional governance' },
+    { role: 'Vice Principal', email: 'viceprincipal@campusnoa.edu', desc: 'Appoint teachers & daily proxies' },
     { role: 'Class Teacher', email: 'teacher@campusnoa.edu', desc: 'Homeroom & fees' },
+    { role: 'HOD Academics', email: 'hod@campusnoa.edu', desc: 'Curriculum delivery & audits' },
+    { role: 'Student Counsellor', email: 'counsellor@campusnoa.edu', desc: 'Pastoral & wellbeing cases' },
     { role: 'Admissions & HR', email: 'admissions@campusnoa.edu', desc: 'Admissions & teacher appointing' },
     { role: 'Accountant', email: 'accountant@campusnoa.edu', desc: 'Fee collections & dues' },
     { role: 'Parent', email: 'parent.arav@campusnoa.edu', desc: 'Student progress & live bus GPS' },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 text-slate-100">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="mx-auto w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 mb-4">
           <School className="w-8 h-8" />
@@ -42,8 +45,8 @@ export default function LoginView() {
         <p className="mt-1 text-sm text-indigo-200">One Institution. One Intelligent Ecosystem.</p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/15 py-8 px-6 shadow-2xl rounded-2xl sm:px-10">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-lg px-2 sm:px-0">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/15 py-6 px-4 shadow-2xl rounded-2xl sm:py-8 sm:px-10">
           {error && (
             <div className="mb-5 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-medium text-center">
               {error}
@@ -145,7 +148,7 @@ export default function LoginView() {
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               Quick-Fill Demo Roles:
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {quickLogins.map((item) => (
                 <button
                   key={item.role}

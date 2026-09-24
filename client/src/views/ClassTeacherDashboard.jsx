@@ -197,10 +197,10 @@ export default function ClassTeacherDashboard() {
         </div>
 
         {/* Subtabs for Students & Fee Collection */}
-        <div className="flex items-center flex-wrap gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-none max-w-full">
           <button
             onClick={() => setActiveSubtab('students')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
               activeSubtab === 'students'
                 ? 'bg-white text-emerald-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -212,7 +212,7 @@ export default function ClassTeacherDashboard() {
 
           <button
             onClick={() => setActiveSubtab('fees')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
               activeSubtab === 'fees'
                 ? 'bg-white text-emerald-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -224,7 +224,7 @@ export default function ClassTeacherDashboard() {
 
           <button
             onClick={() => setActiveSubtab('subject')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
               activeSubtab === 'subject'
                 ? 'bg-white text-emerald-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -236,7 +236,7 @@ export default function ClassTeacherDashboard() {
 
           <button
             onClick={() => setActiveSubtab('counsellor')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
               activeSubtab === 'counsellor'
                 ? 'bg-white text-emerald-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -248,7 +248,7 @@ export default function ClassTeacherDashboard() {
 
           <button
             onClick={() => setActiveSubtab('delegation')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
               activeSubtab === 'delegation'
                 ? 'bg-white text-emerald-700 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
@@ -329,7 +329,8 @@ export default function ClassTeacherDashboard() {
             </div>
           ) : (
             <div className="card-clean overflow-hidden">
-              <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <th className="py-3 px-4">Roll</th>
@@ -423,6 +424,7 @@ export default function ClassTeacherDashboard() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
@@ -463,7 +465,8 @@ export default function ClassTeacherDashboard() {
             </div>
           ) : (
             <div className="card-clean overflow-hidden">
-              <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <th className="py-3 px-4">Roll</th>
@@ -512,6 +515,7 @@ export default function ClassTeacherDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
@@ -566,42 +570,44 @@ export default function ClassTeacherDashboard() {
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-4">Subject & Grade</th>
-                    <th className="py-3 px-4">Schedule</th>
-                    <th className="py-3 px-4">Syllabus Progress</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {assignedSubjects.map((s, i) => (
-                    <tr key={s.id || i} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3 px-4 font-bold text-slate-800">
-                        {s.subject} <span className="text-slate-500 font-medium">({s.grade})</span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{s.schedule}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-full bg-slate-200 rounded-full h-1.5 max-w-[100px]">
-                            <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${s.progress}%` }}></div>
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-500">{s.progress}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button 
-                          onClick={() => showToast(`Opening Grade Book for ${s.grade} ${s.subject}`, 'info')}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200"
-                        >
-                          Grade Book
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Subject & Grade</th>
+                      <th className="py-3 px-4">Schedule</th>
+                      <th className="py-3 px-4">Syllabus Progress</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {assignedSubjects.map((s, i) => (
+                      <tr key={s.id || i} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-4 font-bold text-slate-800">
+                          {s.subject} <span className="text-slate-500 font-medium">({s.grade})</span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">{s.schedule}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-full bg-slate-200 rounded-full h-1.5 max-w-[100px]">
+                              <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${s.progress}%` }}></div>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-500">{s.progress}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button 
+                            onClick={() => showToast(`Opening Grade Book for ${s.grade} ${s.subject}`, 'info')}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200"
+                          >
+                            Grade Book
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -647,43 +653,45 @@ export default function ClassTeacherDashboard() {
                 </p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-4">Student</th>
-                    <th className="py-3 px-4">Concern / Type</th>
-                    <th className="py-3 px-4">Date / Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {counsellingCases.map((c, i) => (
-                    <tr key={c.caseId || i} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3 px-4 font-bold text-slate-800">
-                        {c.name || c.studentName || 'Student'} <span className="text-slate-500 font-medium">({c.gradeSection || '9-A'})</span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{c.type || c.category}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
-                          c.status === 'Completed' || c.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700' : 
-                          c.status === 'Scheduled' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {c.status}
-                        </span>
-                        <span className="ml-2 text-slate-500 text-[11px]">{c.date || c.sessionDate}</span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button 
-                          onClick={() => showToast(`Viewing counsellor notes: ${c.confidentialNotes || 'Confidential'}`, 'info')}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200"
-                        >
-                          View Notes
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Student</th>
+                      <th className="py-3 px-4">Concern / Type</th>
+                      <th className="py-3 px-4">Date / Status</th>
+                      <th className="py-3 px-4 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {counsellingCases.map((c, i) => (
+                      <tr key={c.caseId || i} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-4 font-bold text-slate-800">
+                          {c.name || c.studentName || 'Student'} <span className="text-slate-500 font-medium">({c.gradeSection || '9-A'})</span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">{c.type || c.category}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
+                            c.status === 'Completed' || c.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700' : 
+                            c.status === 'Scheduled' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {c.status}
+                          </span>
+                          <span className="ml-2 text-slate-500 text-[11px]">{c.date || c.sessionDate}</span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button 
+                            onClick={() => showToast(`Viewing counsellor notes: ${c.confidentialNotes || 'Confidential'}`, 'info')}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200"
+                          >
+                            View Notes
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -795,7 +803,7 @@ export default function ClassTeacherDashboard() {
       {/* Delegation Assignment Modal */}
       {showDelegationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-4 sm:p-6 border border-slate-200 max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-slate-900 mb-1">Assign Homeroom Responsibility</h3>
             <p className="text-xs text-slate-500 mb-4">
               Select or enter the student's name for {showDelegationModal === 'monitor' ? 'Class Monitor' : showDelegationModal === 'sportsCaptain' ? 'Sports Captain' : 'IT In-charge'}.
@@ -850,7 +858,7 @@ export default function ClassTeacherDashboard() {
       {/* Create Assignment Modal */}
       {showSubjectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 border border-slate-200 max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-slate-900 mb-1">Create Subject Class Assignment</h3>
             <p className="text-xs text-slate-500 mb-4">Register a teaching assignment for class syllabus tracking.</p>
 
@@ -929,7 +937,7 @@ export default function ClassTeacherDashboard() {
       {/* Log Counselling Modal */}
       {showCounsellingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 border border-slate-200 max-h-[92vh] overflow-y-auto">
             <h3 className="text-base font-bold text-slate-900 mb-1">Log Student Counselling Record</h3>
             <p className="text-xs text-slate-500 mb-4">Record a wellbeing observation or pastoral appointment.</p>
 

@@ -121,7 +121,7 @@ export default function CounsellorDashboard() {
                     {c.studentName[0]}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-bold text-slate-900">{c.studentName}</h3>
                       <span className="text-xs text-slate-500 font-medium">({c.grade})</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -163,7 +163,7 @@ export default function CounsellorDashboard() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-slate-900 mb-1">Open Confidential Case File</h3>
             <p className="text-xs text-slate-500 mb-4">
               All notes are encrypted and restricted exclusively to authorized counselling personnel.

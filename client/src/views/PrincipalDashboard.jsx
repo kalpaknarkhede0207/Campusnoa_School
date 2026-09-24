@@ -221,7 +221,7 @@ export default function PrincipalDashboard() {
         </div>
 
         {/* Subtabs */}
-        <div className="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto scrollbar-none max-w-full">
           {[
             { id: 'overview', label: 'Executive Overview', icon: Grid },
             { id: 'students', label: `Students (${students.length})`, icon: Users },
@@ -234,7 +234,7 @@ export default function PrincipalDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
                   activeTab === tab.id
                     ? 'bg-white text-indigo-700 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
@@ -400,70 +400,72 @@ export default function PrincipalDashboard() {
             </div>
           ) : (
             <div className="card-clean overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-4">Student</th>
-                    <th className="py-3 px-4">Roll / ID</th>
-                    <th className="py-3 px-4">Grade & Section</th>
-                    <th className="py-3 px-4">Attendance</th>
-                    <th className="py-3 px-4">Fee Status</th>
-                    <th className="py-3 px-4">Academic Standing</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {filteredStudents.map((st) => (
-                    <tr 
-                      key={st._id || st.id} 
-                      onClick={() => setSelectedStudent(st)}
-                      className="hover:bg-slate-50/80 cursor-pointer transition"
-                    >
-                      <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                          {st.name ? st.name[0] : 'S'}
-                        </div>
-                        {st.name}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500 font-mono">{st.rollNo || st.enrollmentNo || 'STU-2026-01'}</td>
-                      <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 9-A'}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
-                          (st.attendanceRate || 0) >= 75 ? 'bg-emerald-50 text-emerald-700' : (st.attendanceRate > 0 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600')
-                        }`}>
-                          {st.attendanceRate !== undefined ? `${st.attendanceRate}%` : '0%'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${
-                          st.feeStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                        }`}>
-                          {st.feeStatus || 'PENDING'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{st.gpa || 'Pending'}</td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            onClick={() => setSelectedStudent(st)}
-                            className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800"
-                            title="View Profile"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteStudent(st)}
-                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
-                            title="Remove Student"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Student</th>
+                      <th className="py-3 px-4">Roll / ID</th>
+                      <th className="py-3 px-4">Grade & Section</th>
+                      <th className="py-3 px-4">Attendance</th>
+                      <th className="py-3 px-4">Fee Status</th>
+                      <th className="py-3 px-4">Academic Standing</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {filteredStudents.map((st) => (
+                      <tr 
+                        key={st._id || st.id} 
+                        onClick={() => setSelectedStudent(st)}
+                        className="hover:bg-slate-50/80 cursor-pointer transition"
+                      >
+                        <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                            {st.name ? st.name[0] : 'S'}
+                          </div>
+                          {st.name}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 font-mono">{st.rollNo || st.enrollmentNo || 'STU-2026-01'}</td>
+                        <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 9-A'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                            (st.attendanceRate || 0) >= 75 ? 'bg-emerald-50 text-emerald-700' : (st.attendanceRate > 0 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600')
+                          }`}>
+                            {st.attendanceRate !== undefined ? `${st.attendanceRate}%` : '0%'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${
+                            st.feeStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                          }`}>
+                            {st.feeStatus || 'PENDING'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">{st.gpa || 'Pending'}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                              onClick={() => setSelectedStudent(st)}
+                              className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800"
+                              title="View Profile"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStudent(st)}
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                              title="Remove Student"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -474,7 +476,7 @@ export default function PrincipalDashboard() {
         <div className="space-y-4 animate-in fade-in">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200">
             {/* Category Filter: Teaching vs Non-Teaching */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Category:</span>
               <button
                 onClick={() => setStaffCategory('teaching')}
@@ -550,7 +552,8 @@ export default function PrincipalDashboard() {
             </div>
           ) : staffViewMode === 'list' ? (
             <div className="card-clean overflow-hidden">
-              <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <th className="py-3 px-4">Employee Name</th>
@@ -631,6 +634,7 @@ export default function PrincipalDashboard() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             /* GRID VIEW */
@@ -797,7 +801,7 @@ export default function PrincipalDashboard() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                     <input
@@ -833,7 +837,7 @@ export default function PrincipalDashboard() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50/60 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       <th className="py-3 px-4">Roll / Adm No</th>
