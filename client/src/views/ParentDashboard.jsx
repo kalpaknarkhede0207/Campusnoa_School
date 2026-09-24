@@ -82,6 +82,16 @@ export default function ParentDashboard() {
       }
     }
     loadWardData();
+
+    const unsub = api.subscribeSSE((event) => {
+      if ([
+        'STUDENT_UPDATED', 'STUDENT_ADMITTED', 'ATTENDANCE_MARKED',
+        'FEE_COLLECTED', 'REPORT_PUBLISHED', 'BUS_TELEMETRY_UPDATE'
+      ].includes(event.type)) {
+        loadWardData();
+      }
+    });
+    return () => { if (unsub) unsub(); };
   }, []);
 
   if (loading) {

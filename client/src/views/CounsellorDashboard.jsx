@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
   HeartHandshake, ShieldAlert, CheckCircle2, 
-  MessageSquare, User, Clock, Plus, Lock 
+  MessageSquare, User, Clock, Plus, Lock, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+
+const GRADE_OPTIONS = [
+  'Grade 1-A', 'Grade 1-B', 'Grade 1-C',
+  'Grade 2-A', 'Grade 2-B', 'Grade 2-C',
+  'Grade 3-A', 'Grade 3-B', 'Grade 3-C',
+  'Grade 4-A', 'Grade 4-B', 'Grade 4-C',
+  'Grade 5-A', 'Grade 5-B', 'Grade 5-C',
+  'Grade 6-A', 'Grade 6-B', 'Grade 6-C',
+];
 
 export default function CounsellorDashboard() {
   const { showToast } = useAuth();
@@ -47,6 +56,12 @@ export default function CounsellorDashboard() {
 
   useEffect(() => {
     loadCases();
+    const unsub = api.subscribeSSE((event) => {
+      if (['COUNSELLING_CASE_OPENED', 'COUNSELLING_CASE_RESOLVED', 'STUDENT_ADMITTED', 'STUDENT_UPDATED'].includes(event.type)) {
+        loadCases();
+      }
+    });
+    return () => { if (unsub) unsub(); };
   }, []);
 
   const handleCreateCase = async (e) => {
@@ -170,32 +185,58 @@ export default function CounsellorDashboard() {
             </p>
 
             <form onSubmit={handleCreateCase} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Student Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Student Full Name"
-                  value={newCase.studentName}
-                  onChange={(e) => setNewCase({ ...newCase, studentName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Student Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Student Full Name"
+                    value={newCase.studentName}
+                    onChange={(e) => setNewCase({ ...newCase, studentName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Grade &amp; Section</label>
+                  <select
+                    value={newCase.grade}
+                    onChange={(e) => setNewCase({ ...newCase, grade: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  >
+                    {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Primary Concern / Referral Cause *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Academic stress, peer friction, anxiety"
+                    value={newCase.reason}
+                    onChange={(e) => setNewCase({ ...newCase, reason: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Severity Level</label>
+                  <select
+                    value={newCase.severity}
+                    onChange={(e) => setNewCase({ ...newCase, severity: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  >
+                    <option value="LOW">LOW — Monitor Only</option>
+                    <option value="MEDIUM">MEDIUM — Regular Sessions</option>
+                    <option value="HIGH">HIGH — Immediate Intervention</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Primary Concern / Referral Cause</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Academic stress, peer friction, anxiety"
-                  value={newCase.reason}
-                  onChange={(e) => setNewCase({ ...newCase, reason: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Confidential Session Notes</label>
+                <label className="block font-semibold text-slate-700 mb-1">Confidential Session Notes *</label>
                 <textarea
                   rows="3"
                   required
