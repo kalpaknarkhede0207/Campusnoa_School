@@ -243,6 +243,47 @@ export const api = {
     });
   },
 
+  // Faculty Leaves & Workload Delegation
+  async getFacultyLeaves() {
+    return request('/faculty/leaves');
+  },
+
+  async getFacultyDelegations() {
+    return request('/faculty/delegations');
+  },
+
+  async applyLeaveDelegation(data) {
+    return request('/faculty/apply-leave-delegation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async respondDelegation(data) {
+    return request('/faculty/respond-delegation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async actionLeave(data) {
+    return request('/faculty/leave-action', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getHomeroomDuties() {
+    return request('/faculty/homeroom-duties');
+  },
+
+  async saveHomeroomDuties(duties) {
+    return request('/faculty/homeroom-duties', {
+      method: 'POST',
+      body: JSON.stringify({ duties }),
+    });
+  },
+
   // Class Teacher / Homeroom & Attendance
   async getHomeroomStudents() {
     return request('/attendance/homeroom');

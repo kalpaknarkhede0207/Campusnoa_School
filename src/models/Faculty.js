@@ -31,6 +31,11 @@ const FacultySchema = new mongoose.Schema({
     classAverageScore: { type: Number, default: 82.5 },
     attendanceRate: { type: Number, default: 94.0 },
     studentsCount: { type: Number, default: 10 }
+  },
+  assignedDuties: {
+    monitor: { type: String, default: 'Aarav Sharma' },
+    sportsCaptain: { type: String, default: 'Zara Khan' },
+    itIncharge: { type: String, default: 'Unassigned' }
   }
 }, { timestamps: true });
 

@@ -78,6 +78,92 @@ export class FacultyService {
     };
   }
 
+  static async getAllLeaves(institutionId) {
+    const leaves = await LeaveApplication.find({ institutionId }).sort({ createdAt: -1 }).lean();
+    return leaves.map(l => ({
+      id: l._id.toString(),
+      _id: l._id.toString(),
+      teacherCode: l.applicantEmployeeCode,
+      teacherName: l.applicantName,
+      leaveType: l.leaveType,
+      dates: `${l.startDate} to ${l.endDate}`,
+      startDate: l.startDate,
+      endDate: l.endDate,
+      reason: l.reason,
+      delegatedToCode: l.delegatedEmployeeCode || 'N/A',
+      delegatedToName: l.delegatedName || 'Unassigned',
+      delegationStatus: l.delegationStatus,
+      principalStatus: l.principalStatus,
+      createdAt: l.createdAt
+    }));
+  }
+
+  static async getDelegationsForUser(institutionId, user, employeeCode) {
+    const nameRegex = user.fullName ? new RegExp(user.fullName.trim(), 'i') : null;
+    const codeMatch = employeeCode && employeeCode !== 'N/A' ? employeeCode : null;
+
+    const incomingQuery = {
+      institutionId,
+      $or: [
+        ...(codeMatch ? [{ delegatedEmployeeCode: codeMatch }] : []),
+        ...(nameRegex ? [{ delegatedName: nameRegex }] : [])
+      ]
+    };
+
+    const outgoingQuery = {
+      institutionId,
+      $or: [
+        ...(codeMatch ? [{ applicantEmployeeCode: codeMatch }] : []),
+        ...(nameRegex ? [{ applicantName: nameRegex }] : [])
+      ]
+    };
+
+    const [incomingDocs, outgoingDocs] = await Promise.all([
+      LeaveApplication.find(incomingQuery).sort({ createdAt: -1 }).lean(),
+      LeaveApplication.find(outgoingQuery).sort({ createdAt: -1 }).lean()
+    ]);
+
+    const formatDoc = (l) => ({
+      id: l._id.toString(),
+      _id: l._id.toString(),
+      teacherCode: l.applicantEmployeeCode,
+      teacherName: l.applicantName,
+      leaveType: l.leaveType,
+      dates: `${l.startDate} to ${l.endDate}`,
+      startDate: l.startDate,
+      endDate: l.endDate,
+      reason: l.reason,
+      delegatedToCode: l.delegatedEmployeeCode || 'N/A',
+      delegatedToName: l.delegatedName || 'Unassigned',
+      delegationStatus: l.delegationStatus,
+      principalStatus: l.principalStatus,
+      createdAt: l.createdAt
+    });
+
+    return {
+      incoming: incomingDocs.map(formatDoc),
+      outgoing: outgoingDocs.map(formatDoc)
+    };
+  }
+
+  static async getHomeroomDuties(institutionId, userId) {
+    const faculty = await Faculty.findOne({ institutionId, userId }).lean();
+    return faculty?.assignedDuties || {
+      monitor: 'Aarav Sharma',
+      sportsCaptain: 'Zara Khan',
+      itIncharge: 'Unassigned'
+    };
+  }
+
+  static async saveHomeroomDuties(institutionId, userId, duties) {
+    const faculty = await Faculty.findOneAndUpdate(
+      { institutionId, userId },
+      { $set: { assignedDuties: duties } },
+      { returnDocument: 'after', upsert: false }
+    );
+    return faculty?.assignedDuties || duties;
+  }
+
   static async applyLeave(institutionId, data) {
     return LeaveApplication.create({
       institutionId,

@@ -80,7 +80,54 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// 1b. GET Faculty By ID
+// 1b. GET All Leaves & Delegation Records
+router.get('/leaves', async (req, res, next) => {
+  try {
+    const leaves = await FacultyService.getAllLeaves(req.institutionId);
+    res.json({ success: true, leaves });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1c. GET Incoming & Outgoing Delegations for Current User
+router.get('/delegations', async (req, res, next) => {
+  try {
+    const faculty = await Faculty.findOne({ userId: req.user._id });
+    const employeeCode = faculty?.employeeCode || req.user.code;
+    const delegations = await FacultyService.getDelegationsForUser(req.institutionId, req.user, employeeCode);
+    res.json({ success: true, ...delegations });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1d. GET Homeroom Duties (Monitor, Sports Captain, IT Incharge)
+router.get('/homeroom-duties', async (req, res, next) => {
+  try {
+    const duties = await FacultyService.getHomeroomDuties(req.institutionId, req.user._id);
+    res.json({ success: true, duties });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1e. POST Save Homeroom Duties
+router.post('/homeroom-duties', auditLogger('HOMEROOM_DUTIES_UPDATED', 'FACULTY'), async (req, res, next) => {
+  try {
+    const { duties } = req.body;
+    if (!duties || typeof duties !== 'object') {
+      return res.status(400).json({ success: false, error: 'Invalid duties payload' });
+    }
+    const updated = await FacultyService.saveHomeroomDuties(req.institutionId, req.user._id, duties);
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'HOMEROOM_DUTIES_UPDATED', { duties: updated });
+    res.json({ success: true, message: 'Homeroom student duties updated and saved.', duties: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1f. GET Faculty By ID
 router.get('/:id', async (req, res, next) => {
   try {
     const f = await Faculty.findOne({
@@ -215,13 +262,13 @@ router.post('/appoint', mutationRateLimiter, requireRoles('ADMIN_OFFICER', 'HR',
 router.post('/', mutationRateLimiter, requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
 
 // 3. Apply Leave with Workload Delegation
-router.post('/apply-leave-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 'HOD', 'FACULTY'), auditLogger('LEAVE_APPLIED', 'FACULTY'), async (req, res, next) => {
+router.post('/apply-leave-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 'HOD', 'FACULTY', 'STAFF', 'VICE_PRINCIPAL', 'PRINCIPAL'), auditLogger('LEAVE_APPLIED', 'FACULTY'), async (req, res, next) => {
   try {
     const data = req.body;
     const faculty = await Faculty.findOne({ userId: req.user._id });
     const leave = await FacultyService.applyLeave(req.institutionId, {
-      applicantEmployeeCode: faculty?.employeeCode || 'T-101',
-      applicantName: req.user.fullName,
+      applicantEmployeeCode: faculty?.employeeCode || data.applicantEmployeeCode || 'T-101',
+      applicantName: req.user.fullName || data.applicantName || 'Faculty Member',
       delegatedEmployeeCode: data.delegatedToCode || data.delegatedEmployeeCode || 'N/A',
       delegatedName: data.delegatedToName || data.delegatedName || 'Unassigned',
       leaveType: data.leaveType || 'CASUAL',
@@ -230,6 +277,8 @@ router.post('/apply-leave-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 
       reason: data.reason
     });
 
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'LEAVE_APPLIED', { leave });
+
     res.status(201).json({ success: true, message: 'Leave application submitted with peer delegation notice.', leave });
   } catch (err) {
     next(err);
@@ -237,31 +286,33 @@ router.post('/apply-leave-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 
 });
 
 // 4. Respond to Leave Delegation (Peer Teacher)
-router.post('/respond-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 'HOD', 'FACULTY'), async (req, res, next) => {
+router.post('/respond-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 'HOD', 'FACULTY', 'STAFF', 'VICE_PRINCIPAL', 'PRINCIPAL'), async (req, res, next) => {
   try {
     const { leaveId, action } = req.body;
     const status = action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
-    await FacultyService.updateLeaveDelegation(leaveId, status);
-    res.json({ success: true, message: `Delegation response (${status}) recorded.` });
+    const updated = await FacultyService.updateLeaveDelegation(leaveId, status);
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'DELEGATION_RESPONDED', { leaveId, status, leave: updated });
+    res.json({ success: true, message: `Delegation response (${status}) recorded.`, leave: updated });
   } catch (err) {
     next(err);
   }
 });
 
 // 5. Principal Leave Action
-router.post('/leave-action', requireRoles('PRINCIPAL', 'VICE_PRINCIPAL', 'INSTITUTION_ADMIN'), auditLogger('LEAVE_APPROVED', 'FACULTY'), async (req, res, next) => {
+router.post('/leave-action', requireRoles('PRINCIPAL', 'VICE_PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('LEAVE_APPROVED', 'FACULTY'), async (req, res, next) => {
   try {
     const { leaveId, action } = req.body;
     const status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
-    await FacultyService.updatePrincipalLeave(leaveId, status);
-    res.json({ success: true, message: `Leave application ${status.toLowerCase()} by leadership.` });
+    const updated = await FacultyService.updatePrincipalLeave(leaveId, status);
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'LEAVE_ACTION_TAKEN', { leaveId, status, leave: updated });
+    res.json({ success: true, message: `Leave application ${status.toLowerCase()} by leadership.`, leave: updated });
   } catch (err) {
     next(err);
   }
 });
 
 // 6. Vice Principal Timetable Proxy Assignment
-router.post('/proxy-assign', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN'), auditLogger('PROXY_ASSIGNED', 'FACULTY'), async (req, res, next) => {
+router.post('/proxy-assign', requireRoles('VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), auditLogger('PROXY_ASSIGNED', 'FACULTY'), async (req, res, next) => {
   try {
     const proxy = await FacultyService.assignProxy(req.institutionId, req.body);
     NotificationService.broadcastInstitutionEvent(req.institutionId, 'PROXY_ASSIGNED', proxy);

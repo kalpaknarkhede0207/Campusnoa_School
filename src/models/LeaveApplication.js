@@ -16,12 +16,12 @@ const LeaveApplicationSchema = new mongoose.Schema({
   reason: { type: String, required: true },
   delegationStatus: {
     type: String,
-    default: 'ACCEPTED',
+    default: 'PENDING',
     enum: ['PENDING', 'ACCEPTED', 'REJECTED']
   },
   principalStatus: {
     type: String,
-    default: 'APPROVED',
+    default: 'PENDING',
     enum: ['PENDING', 'APPROVED', 'REJECTED']
   }
 }, { timestamps: true });

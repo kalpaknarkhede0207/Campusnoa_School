@@ -40,6 +40,22 @@ export default function ClassTeacherDashboard() {
     itIncharge: 'Unassigned'
   });
 
+  // Staff Workload & Leave Delegation states
+  const [colleagues, setColleagues] = useState([]);
+  const [incomingDelegations, setIncomingDelegations] = useState([]);
+  const [myLeaves, setMyLeaves] = useState([]);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    leaveType: 'CASUAL',
+    startDate: '',
+    endDate: '',
+    reason: '',
+    delegatedToCode: '',
+    delegatedToName: ''
+  });
+  const [submittingLeave, setSubmittingLeave] = useState(false);
+  const [respondingLeaveId, setRespondingLeaveId] = useState(null);
+
   // Modal states
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [subjectForm, setSubjectForm] = useState({ subject: '', grade: 'Grade 5-B', schedule: 'Mon, Wed, Fri (10:00 AM)', progress: 0 });
@@ -53,9 +69,12 @@ export default function ClassTeacherDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [studentRes, counselRes] = await Promise.all([
+      const [studentRes, counselRes, dutiesRes, delegRes, facRes] = await Promise.all([
         api.getHomeroomStudents().catch(() => ({ students: [] })),
-        api.getCounsellingCases().catch(() => ({ cases: [] }))
+        api.getCounsellingCases().catch(() => ({ cases: [] })),
+        api.getHomeroomDuties().catch(() => ({ duties: {} })),
+        api.getFacultyDelegations().catch(() => ({ incoming: [], outgoing: [] })),
+        api.getFaculty().catch(() => ({ teachers: [] }))
       ]);
 
       const list = Array.isArray(studentRes?.students) ? studentRes.students : [];
@@ -70,6 +89,19 @@ export default function ClassTeacherDashboard() {
       if (counselRes?.cases && Array.isArray(counselRes.cases)) {
         setCounsellingCases(counselRes.cases);
       }
+
+      if (dutiesRes?.duties) {
+        setDelegations(prev => ({
+          ...prev,
+          ...dutiesRes.duties
+        }));
+      }
+
+      setIncomingDelegations(delegRes?.incoming || []);
+      setMyLeaves(delegRes?.outgoing || []);
+
+      const teacherList = facRes?.teachers || (facRes?.faculty || []).filter(f => f.type === 'teaching');
+      setColleagues(teacherList);
     } catch (err) {
       console.warn('Homeroom API load:', err);
       setStudents([]);
@@ -88,7 +120,11 @@ export default function ClassTeacherDashboard() {
         'TEACHER_ASSIGNED', 
         'STUDENT_ADMITTED', 
         'STUDENT_UPDATED', 
-        'STUDENT_DELETED'
+        'STUDENT_DELETED',
+        'LEAVE_APPLIED',
+        'DELEGATION_RESPONDED',
+        'LEAVE_ACTION_TAKEN',
+        'HOMEROOM_DUTIES_UPDATED'
       ].includes(event.type)) {
         loadData();
       }
@@ -164,15 +200,61 @@ export default function ClassTeacherDashboard() {
     showToast('Student counselling case registered.', 'success');
   };
 
-  const handleAssignDelegation = (roleKey) => {
+  const handleAssignDelegation = async (roleKey) => {
     if (!delegationTarget.trim()) {
       showToast('Please specify a student name', 'error');
       return;
     }
-    setDelegations(prev => ({ ...prev, [roleKey]: delegationTarget.trim() }));
+    const updated = { ...delegations, [roleKey]: delegationTarget.trim() };
+    setDelegations(updated);
     setShowDelegationModal(null);
     setDelegationTarget('');
-    showToast('Homeroom duty assigned successfully!', 'success');
+    try {
+      await api.saveHomeroomDuties(updated);
+      showToast('Homeroom duty assigned and saved to database!', 'success');
+    } catch (err) {
+      showToast('Failed to save duty: ' + (err.message || ''), 'error');
+    }
+  };
+
+  const handleApplyLeave = async (e) => {
+    e.preventDefault();
+    if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason.trim()) {
+      showToast('Please fill all required leave fields', 'error');
+      return;
+    }
+    setSubmittingLeave(true);
+    try {
+      await api.applyLeaveDelegation(leaveForm);
+      showToast('Leave application submitted with peer workload delegation notice!', 'success');
+      setShowLeaveModal(false);
+      setLeaveForm({
+        leaveType: 'CASUAL',
+        startDate: '',
+        endDate: '',
+        reason: '',
+        delegatedToCode: '',
+        delegatedToName: ''
+      });
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to submit leave application', 'error');
+    } finally {
+      setSubmittingLeave(false);
+    }
+  };
+
+  const handleRespondDelegation = async (leaveId, action) => {
+    setRespondingLeaveId(leaveId);
+    try {
+      await api.respondDelegation({ leaveId, action });
+      showToast(`Delegation ${action === 'ACCEPT' ? 'accepted' : 'declined'} successfully!`, 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to record delegation response', 'error');
+    } finally {
+      setRespondingLeaveId(null);
+    }
   };
 
   // Dynamic fee computations
@@ -701,62 +783,86 @@ export default function ClassTeacherDashboard() {
 
       {/* SUBTAB 5: WORKLOAD DELEGATION */}
       {activeSubtab === 'delegation' && (
-        <div className="space-y-4 animate-in fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Student Duties Delegation */}
+        <div className="space-y-6 animate-in fade-in">
+          {/* Top Header Card */}
+          <div className="card-clean p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-md">
+            <div>
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-indigo-400" />
+                Workload & Peer Delegation Governance
+              </h2>
+              <p className="text-xs text-indigo-200 mt-0.5">
+                Delegate homeroom responsibilities to student leaders, request peer coverage for planned leaves, and respond to colleagues.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowLeaveModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 transition self-start sm:self-auto shrink-0"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Apply Leave & Delegate
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Student Duties Delegation Card */}
             <div className="card-clean p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
-                  <Users className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Student Duty Delegation</h3>
+                    <p className="text-xs text-slate-500">Persistent homeroom responsibilities for students</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Student Duty Delegation</h3>
-                  <p className="text-xs text-slate-500">Assign homeroom responsibilities to students</p>
-                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Synced to Database
+                </span>
               </div>
               
               <div className="space-y-3">
-                <div className="p-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between">
+                <div className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/70 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-800">Class Monitor / Prefect</p>
                     <p className="text-[11px] text-slate-500">
-                      Currently assigned to: <span className="font-semibold text-slate-700">{delegations.monitor}</span>
+                      Assigned to: <span className="font-semibold text-indigo-600">{delegations.monitor || 'Unassigned'}</span>
                     </p>
                   </div>
                   <button 
                     onClick={() => { setShowDelegationModal('monitor'); setDelegationTarget(delegations.monitor !== 'Unassigned' ? delegations.monitor : ''); }}
-                    className="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition"
                   >
                     {delegations.monitor === 'Unassigned' ? 'Assign' : 'Reassign'}
                   </button>
                 </div>
 
-                <div className="p-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between">
+                <div className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/70 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-800">Sports Captain</p>
                     <p className="text-[11px] text-slate-500">
-                      Currently assigned to: <span className="font-semibold text-slate-700">{delegations.sportsCaptain}</span>
+                      Assigned to: <span className="font-semibold text-indigo-600">{delegations.sportsCaptain || 'Unassigned'}</span>
                     </p>
                   </div>
                   <button 
                     onClick={() => { setShowDelegationModal('sportsCaptain'); setDelegationTarget(delegations.sportsCaptain !== 'Unassigned' ? delegations.sportsCaptain : ''); }}
-                    className="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition"
                   >
                     {delegations.sportsCaptain === 'Unassigned' ? 'Assign' : 'Reassign'}
                   </button>
                 </div>
 
-                <div className="p-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between">
+                <div className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/70 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-slate-800">IT / Smartboard In-charge</p>
                     <p className="text-[11px] text-slate-500">
-                      Currently assigned to: <span className="font-semibold text-slate-700">{delegations.itIncharge}</span>
+                      Assigned to: <span className="font-semibold text-indigo-600">{delegations.itIncharge || 'Unassigned'}</span>
                     </p>
                   </div>
                   <button 
                     onClick={() => { setShowDelegationModal('itIncharge'); setDelegationTarget(delegations.itIncharge !== 'Unassigned' ? delegations.itIncharge : ''); }}
-                    className="px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-xs"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-xs transition"
                   >
                     {delegations.itIncharge === 'Unassigned' ? 'Assign Role' : 'Reassign'}
                   </button>
@@ -764,40 +870,282 @@ export default function ClassTeacherDashboard() {
               </div>
             </div>
 
-            {/* Co-Teacher / Substitute Delegation */}
-            <div className="card-clean p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600">
-                  <Share2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Staff Workload Delegation</h3>
-                  <p className="text-xs text-slate-500">Request substitute or share duties with co-teachers</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-semibold text-slate-800 mb-1">Planning a Leave?</p>
-                  <p className="text-xs text-slate-500 max-w-[250px] mb-4">
-                    Delegate your homeroom attendance and syllabus tracking temporarily to a substitute.
-                  </p>
-                  <button 
-                    onClick={() => showToast('Substitute request forwarded to Vice Principal.', 'success')}
-                    className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-md transition w-full"
-                  >
-                    Request Substitute Teacher
-                  </button>
+            {/* Incoming Peer Delegations Card */}
+            <div className="card-clean p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">Incoming Peer Delegations</h3>
+                      <p className="text-xs text-slate-500">Requests from colleagues asking you to cover their classes</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    {incomingDelegations.filter(d => d.delegationStatus === 'PENDING').length} Pending
+                  </span>
                 </div>
 
-                <div className="p-4 border border-emerald-200 rounded-xl bg-emerald-50">
-                  <p className="text-xs font-bold text-emerald-800 mb-1">Co-Teacher Status</p>
-                  <p className="text-[11px] text-emerald-600">
-                    You currently have no active shared homeroom duties.
-                  </p>
-                </div>
+                {incomingDelegations.length === 0 ? (
+                  <div className="p-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-center">
+                    <p className="text-xs font-semibold text-slate-700">No Incoming Requests</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      When a fellow teacher requests you as substitute, their request will appear here for your review and acceptance.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    {incomingDelegations.map((d) => (
+                      <div key={d.id || d._id} className="p-3.5 border border-slate-200 rounded-xl bg-white shadow-2xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">{d.teacherName}</p>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              {d.dates} • <span className="uppercase text-[10px] font-semibold text-indigo-600">{d.leaveType}</span>
+                            </p>
+                            <p className="text-xs text-slate-600 mt-1 italic">
+                              "{d.reason}"
+                            </p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                            d.delegationStatus === 'ACCEPTED'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : d.delegationStatus === 'REJECTED'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {d.delegationStatus}
+                          </span>
+                        </div>
+
+                        {d.delegationStatus === 'PENDING' && (
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-end gap-2">
+                            <button
+                              disabled={respondingLeaveId === (d.id || d._id)}
+                              onClick={() => handleRespondDelegation(d.id || d._id, 'REJECT')}
+                              className="px-3 py-1 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition disabled:opacity-50"
+                            >
+                              Decline
+                            </button>
+                            <button
+                              disabled={respondingLeaveId === (d.id || d._id)}
+                              onClick={() => handleRespondDelegation(d.id || d._id, 'ACCEPT')}
+                              className="px-3 py-1 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-2xs transition disabled:opacity-50"
+                            >
+                              Accept Delegation
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+          </div>
+
+          {/* My Leave & Delegation Requests Table */}
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-600" /> My Submitted Leave & Workload Requests
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Track the lifecycle of your leave applications, peer delegate acceptance, and leadership approval
+                </p>
+              </div>
+              <button
+                onClick={() => setShowLeaveModal(true)}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> New Application
+              </button>
+            </div>
+
+            {myLeaves.length === 0 ? (
+              <div className="p-10 text-center">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-700">No Leave Applications Found</p>
+                <p className="text-[11px] text-slate-500 max-w-sm mx-auto mt-0.5">
+                  You haven't submitted any leave requests yet. Click "Apply Leave & Delegate" above when planning time off.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Leave Type</th>
+                      <th className="py-3 px-4">Leave Dates</th>
+                      <th className="py-3 px-4">Reason</th>
+                      <th className="py-3 px-4">Delegated Peer Substitute</th>
+                      <th className="py-3 px-4">Peer Acceptance</th>
+                      <th className="py-3 px-4">Principal Approval</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {myLeaves.map((l) => (
+                      <tr key={l.id || l._id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-4 font-bold text-slate-800">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {l.leaveType}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-700 font-mono text-[11px]">
+                          {l.dates || `${l.startDate} to ${l.endDate}`}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate" title={l.reason}>
+                          {l.reason}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-slate-800">
+                          {l.delegatedToName || 'Unassigned'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            l.delegationStatus === 'ACCEPTED'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : l.delegationStatus === 'REJECTED'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {l.delegationStatus}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            l.principalStatus === 'APPROVED'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : l.principalStatus === 'REJECTED'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {l.principalStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Apply Leave & Workload Delegation Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Apply for Leave & Delegate Workload</h3>
+                <p className="text-xs text-slate-500">Submit planned absence and nominate a peer substitute</p>
+              </div>
+              <button onClick={() => setShowLeaveModal(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleApplyLeave} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Leave Type</label>
+                <select
+                  value={leaveForm.leaveType}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, leaveType: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="CASUAL">Casual Leave (CL)</option>
+                  <option value="MEDICAL">Medical Leave (ML)</option>
+                  <option value="DUTY">On-Duty / Conference Leave (OD)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={leaveForm.startDate}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">End Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={leaveForm.endDate}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Reason for Leave</label>
+                <textarea
+                  required
+                  rows={2}
+                  placeholder="e.g. Attending pedagogical training / Family emergency"
+                  value={leaveForm.reason}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Nominate Peer Substitute Teacher
+                </label>
+                <select
+                  required
+                  value={leaveForm.delegatedToCode}
+                  onChange={(e) => {
+                    const sel = colleagues.find(c => (c.code || c.employeeId || c.id) === e.target.value);
+                    setLeaveForm({
+                      ...leaveForm,
+                      delegatedToCode: e.target.value,
+                      delegatedToName: sel ? (sel.fullName || sel.name) : ''
+                    });
+                  }}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">-- Select Colleague for Workload Delegation --</option>
+                  {colleagues
+                    .filter(c => (c.fullName || c.name) !== user?.fullName)
+                    .map((c) => (
+                      <option key={c.id || c.code} value={c.code || c.employeeId || c.id}>
+                        {c.fullName || c.name} ({c.department || c.subject || 'Faculty'} - {c.code || c.employeeId})
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  The selected colleague will receive a notification to review and accept your homeroom coverage.
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingLeave}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition disabled:opacity-50"
+                >
+                  {submittingLeave ? 'Submitting...' : 'Submit with Peer Delegation'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

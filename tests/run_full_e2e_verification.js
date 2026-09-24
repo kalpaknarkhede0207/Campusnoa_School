@@ -222,9 +222,119 @@ async function runFullVerification() {
     const feeDeleted = await FeeTransaction.findOne({ studentAdmissionNumber: testAdmNo });
     recordResult('FLOW-15', 'Cascade Student Record Deletion', deleteRes.status === 200 && !deletedInDb && !feeDeleted, `Student removed: ${!deletedInDb}, Cascade auxiliary cleaned: ${!feeDeleted}`);
 
+    // 16. Principal Access Migration: Dr. Neha Bhatnagar
+    const nehaLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'nehabhatnagar@gmail.com', password: 'CampusNoa@2026!' })
+    });
+    const nehaLoginData = await nehaLoginRes.json();
+    const isNehaPrincipal = nehaLoginRes.status === 200 && nehaLoginData.user?.role === 'principal' && nehaLoginData.user?.fullName?.includes('Neha Bhatnagar');
+    recordResult('FLOW-16', 'Principal Governance Access (Dr. Neha Bhatnagar)', isNehaPrincipal, `HTTP ${nehaLoginRes.status} - Principal: ${nehaLoginData.user?.fullName} (${nehaLoginData.user?.role})`);
+
+    // 17. Homeroom Duty Delegation Persistence (Monitor, Sports, IT)
+    const dutiesPayload = {
+      monitor: 'Aarav Sharma',
+      sportsCaptain: 'Zara Khan',
+      itIncharge: 'Devansh Gupta'
+    };
+    const saveDutiesRes = await fetch(`${baseUrl}/api/faculty/homeroom-duties`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokens.CLASS_TEACHER}`
+      },
+      body: JSON.stringify({ duties: dutiesPayload })
+    });
+    const getDutiesRes = await fetch(`${baseUrl}/api/faculty/homeroom-duties`, {
+      headers: { 'Authorization': `Bearer ${tokens.CLASS_TEACHER}` }
+    });
+    const getDutiesData = await getDutiesRes.json();
+    const dutiesMatch = getDutiesData.duties?.monitor === 'Aarav Sharma' && getDutiesData.duties?.sportsCaptain === 'Zara Khan';
+    recordResult('FLOW-17', 'Homeroom Duty Delegation Persistence', saveDutiesRes.status === 200 && dutiesMatch, `Duties saved and queried from DB: Monitor=${getDutiesData.duties?.monitor}`);
+
+    // 18. Apply Leave with Workload Delegation
+    const applyLeaveRes = await fetch(`${baseUrl}/api/faculty/apply-leave-delegation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokens.CLASS_TEACHER}`
+      },
+      body: JSON.stringify({
+        leaveType: 'CASUAL',
+        startDate: '2026-10-01',
+        endDate: '2026-10-03',
+        reason: 'National Pedagogy Workshop',
+        delegatedToCode: 'T-102',
+        delegatedToName: 'Dr. Vivek Sharma'
+      })
+    });
+    const applyLeaveData = await applyLeaveRes.json();
+    const createdLeave = applyLeaveData.leave;
+    const leaveAppliedOk = applyLeaveRes.status === 201 && createdLeave?.delegationStatus === 'PENDING' && createdLeave?.principalStatus === 'PENDING';
+    recordResult('FLOW-18', 'Staff Leave Application with Workload Delegation', leaveAppliedOk, `Leave ID: ${createdLeave?._id || createdLeave?.id}, Peer: ${createdLeave?.delegatedName}`);
+
+    // 19. Peer Respond to Workload Delegation (Accept)
+    let peerAcceptedOk = false;
+    if (createdLeave?._id) {
+      const peerRes = await fetch(`${baseUrl}/api/faculty/respond-delegation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokens.CLASS_TEACHER}`
+        },
+        body: JSON.stringify({
+          leaveId: createdLeave._id,
+          action: 'ACCEPT'
+        })
+      });
+      const peerData = await peerRes.json();
+      peerAcceptedOk = peerRes.status === 200 && (peerData.leave?.delegationStatus === 'ACCEPTED' || peerData.success);
+    }
+    recordResult('FLOW-19', 'Peer Teacher Delegation Acceptance', peerAcceptedOk, `Delegation status updated to ACCEPTED`);
+
+    // 20. Principal Leave Approval Action
+    let principalApprovedOk = false;
+    if (createdLeave?._id) {
+      const actionRes = await fetch(`${baseUrl}/api/faculty/leave-action`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokens.PRINCIPAL}`
+        },
+        body: JSON.stringify({
+          leaveId: createdLeave._id,
+          action: 'APPROVE'
+        })
+      });
+      const actionData = await actionRes.json();
+      principalApprovedOk = actionRes.status === 200 && (actionData.leave?.principalStatus === 'APPROVED' || actionData.success);
+    }
+    recordResult('FLOW-20', 'Leadership Leave Sanction (Principal Approval)', principalApprovedOk, `Principal status updated to APPROVED`);
+
+    // 21. Timetable Proxy Allocation (VP Workflow)
+    const proxyRes = await fetch(`${baseUrl}/api/faculty/proxy-assign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokens.VICE_PRINCIPAL}`
+      },
+      body: JSON.stringify({
+        assignedEmployeeCode: 'T-102',
+        absentTeacherName: teacherUser?.fullName || 'Mrs. Sunita Roy',
+        divisionName: 'Grade 5-B',
+        periodNumber: 3,
+        timeSlot: 'Period 3 (10:15 AM)',
+        subjectName: 'Mathematics',
+        lessonHandover: 'Complete textbook chapter 5 worksheet'
+      })
+    });
+    const proxyData = await proxyRes.json();
+    recordResult('FLOW-21', 'VP Timetable Proxy Substitution Allocation', proxyRes.status === 201 && proxyData.success, `Proxy created for ${proxyData.proxy?.timeSlot}`);
+
     console.log('\n================================================================');
     const allPassed = results.every(r => r.pass);
-    console.log(allPassed ? '🎉 ALL 15 CRITICAL PRODUCT FLOWS VERIFIED 100% WORKING!' : '⚠️ SOME CRITICAL FLOWS FAILED');
+    console.log(allPassed ? `🎉 ALL ${results.length} CRITICAL PRODUCT FLOWS VERIFIED 100% WORKING!` : '⚠️ SOME CRITICAL FLOWS FAILED');
     console.log('================================================================');
     if (!allPassed) process.exit(1);
 

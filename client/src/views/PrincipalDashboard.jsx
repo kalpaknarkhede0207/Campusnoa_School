@@ -46,6 +46,8 @@ export default function PrincipalDashboard() {
   
   const [students, setStudents] = useState([]);
   const [faculty, setFaculty] = useState([]);
+  const [leaves, setLeaves] = useState([]);
+  const [actingLeaveId, setActingLeaveId] = useState(null);
   const [financeSummary, setFinanceSummary] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,14 +75,28 @@ export default function PrincipalDashboard() {
     }
   };
 
+  const handleActionLeave = async (leaveId, action) => {
+    setActingLeaveId(leaveId);
+    try {
+      await api.actionLeave({ leaveId, action });
+      showToast(`Leave application ${action === 'APPROVE' ? 'approved' : 'rejected'} successfully!`, 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to update leave', 'error');
+    } finally {
+      setActingLeaveId(null);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [stuRes, facRes, finRes, annRes] = await Promise.all([
+      const [stuRes, facRes, finRes, annRes, leaveRes] = await Promise.all([
         api.getStudents({ limit: 100 }),
         api.getFaculty({ limit: 100 }),
         api.getFinanceSummary().catch(() => null),
         api.getAnnouncements().catch(() => null),
+        api.getFacultyLeaves().catch(() => ({ leaves: [] }))
       ]);
       const stuList = Array.isArray(stuRes?.students) ? stuRes.students : (Array.isArray(stuRes) ? stuRes : []);
       const facList = Array.isArray(facRes?.faculty) 
@@ -88,6 +104,7 @@ export default function PrincipalDashboard() {
         : (Array.isArray(facRes?.teachers) ? [...facRes.teachers, ...(facRes.nonTeachingStaff || [])] : (Array.isArray(facRes) ? facRes : []));
       setStudents(stuList);
       setFaculty(facList);
+      setLeaves(leaveRes?.leaves || facRes?.leaves || []);
       setFinanceSummary(finRes || { totalCollected: 0, totalPending: 0, collectionRate: 0 });
       if (annRes?.announcements) {
         setAnnouncements(annRes.announcements);
@@ -142,7 +159,10 @@ export default function PrincipalDashboard() {
         'FACULTY_UPDATED', 
         'ANNOUNCEMENT',
         'FEE_PAID',
-        'PROXY_ASSIGNED'
+        'PROXY_ASSIGNED',
+        'LEAVE_APPLIED',
+        'DELEGATION_RESPONDED',
+        'LEAVE_ACTION_TAKEN'
       ].includes(event.type)) {
         loadData();
       }
@@ -508,6 +528,23 @@ export default function PrincipalDashboard() {
               >
                 All Staff ({faculty.length})
               </button>
+              <button
+                onClick={() => setStaffCategory('leaves')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  staffCategory === 'leaves'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>Leave & Workload Approvals</span>
+                {leaves.filter(l => l.principalStatus === 'PENDING').length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    staffCategory === 'leaves' ? 'bg-white text-rose-700' : 'bg-rose-600 text-white'
+                  }`}>
+                    {leaves.filter(l => l.principalStatus === 'PENDING').length}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* View Mode Toggle: List View vs Grid View */}
@@ -541,8 +578,151 @@ export default function PrincipalDashboard() {
             </div>
           </div>
 
-          {/* EMPTY OR LIST / GRID VIEW */}
-          {filteredStaff.length === 0 ? (
+          {/* LEAVE & WORKLOAD DELEGATION GOVERNANCE VIEW */}
+          {staffCategory === 'leaves' ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="card-clean p-4 border-l-4 border-l-rose-500">
+                  <span className="text-xs font-bold uppercase text-slate-500">Pending Approvals</span>
+                  <p className="text-2xl font-black text-rose-600 mt-1">
+                    {leaves.filter(l => l.principalStatus === 'PENDING').length} Applications
+                  </p>
+                  <span className="text-xs text-slate-400">Awaiting Principal sanction</span>
+                </div>
+                <div className="card-clean p-4 border-l-4 border-l-emerald-500">
+                  <span className="text-xs font-bold uppercase text-slate-500">Approved Leaves</span>
+                  <p className="text-2xl font-black text-emerald-600 mt-1">
+                    {leaves.filter(l => l.principalStatus === 'APPROVED').length} Approved
+                  </p>
+                  <span className="text-xs text-slate-400">Sanctioned faculty absences</span>
+                </div>
+                <div className="card-clean p-4 border-l-4 border-l-indigo-500">
+                  <span className="text-xs font-bold uppercase text-slate-500">Peer Substitutes Agreed</span>
+                  <p className="text-2xl font-black text-indigo-600 mt-1">
+                    {leaves.filter(l => l.delegationStatus === 'ACCEPTED').length} Delegations
+                  </p>
+                  <span className="text-xs text-slate-400">Classroom continuity confirmed</span>
+                </div>
+              </div>
+
+              <div className="card-clean overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-rose-600" /> Faculty Leave Applications & Workload Delegations
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Review proposed staff leaves, nominated peer substitute agreements, and grant administrative sanction
+                    </p>
+                  </div>
+                  <span className="text-xs text-slate-500 font-mono">
+                    Total: {leaves.length} records
+                  </span>
+                </div>
+
+                {leaves.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <CheckCircle2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <h4 className="font-bold text-slate-800 text-sm">No Leave Applications on File</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                      All teaching and non-teaching personnel are on active institutional duty.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-slate-50/60 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          <th className="py-3 px-4">Applicant Faculty</th>
+                          <th className="py-3 px-4">Leave Type</th>
+                          <th className="py-3 px-4">Dates / Duration</th>
+                          <th className="py-3 px-4">Reason</th>
+                          <th className="py-3 px-4">Nominated Peer Substitute</th>
+                          <th className="py-3 px-4">Peer Acceptance</th>
+                          <th className="py-3 px-4">Principal Status</th>
+                          <th className="py-3 px-4 text-right">Administrative Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {leaves.map((l) => {
+                          const isActing = actingLeaveId === (l.id || l._id);
+                          return (
+                            <tr key={l.id || l._id} className="hover:bg-slate-50/80 transition">
+                              <td className="py-3 px-4">
+                                <span className="font-bold text-slate-900 block">{l.teacherName}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">{l.teacherCode}</span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  {l.leaveType}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-mono text-[11px] text-slate-700">
+                                {l.dates || `${l.startDate} to ${l.endDate}`}
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate" title={l.reason}>
+                                {l.reason}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="font-semibold text-slate-800 block">{l.delegatedToName || 'Unassigned'}</span>
+                                {l.delegatedToCode && l.delegatedToCode !== 'N/A' && (
+                                  <span className="text-[10px] text-slate-400 font-mono">{l.delegatedToCode}</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  l.delegationStatus === 'ACCEPTED'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : l.delegationStatus === 'REJECTED'
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>
+                                  {l.delegationStatus}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  l.principalStatus === 'APPROVED'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : l.principalStatus === 'REJECTED'
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>
+                                  {l.principalStatus}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {l.principalStatus === 'PENDING' ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      disabled={isActing}
+                                      onClick={() => handleActionLeave(l.id || l._id, 'REJECT')}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition disabled:opacity-50"
+                                    >
+                                      Reject
+                                    </button>
+                                    <button
+                                      disabled={isActing}
+                                      onClick={() => handleActionLeave(l.id || l._id, 'APPROVE')}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-2xs transition disabled:opacity-50"
+                                    >
+                                      Approve
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 text-xs italic font-medium">Decided</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : filteredStaff.length === 0 ? (
             <div className="card-clean p-12 text-center">
               <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <h4 className="font-bold text-slate-800 text-sm">No Staff Records Found</h4>

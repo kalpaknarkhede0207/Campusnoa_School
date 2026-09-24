@@ -52,68 +52,73 @@ export class AuthService {
   static async login(email, password, ipAddress, userAgent) {
     const rawEmail = (email || '').toLowerCase().trim();
     const EMAIL_ALIASES = {
-      // Principal
-      'principal@campusnoa.edu': 'principal@school.edu',
-      'principal@school.edu': 'principal@school.edu',
-      'principal': 'principal@school.edu',
+      // Principal (Dr. Neha Bhatnagar)
+      'nehabhatnagar@gmail.com': 'nehabhatnagar@gmail.com',
+      'neha.bhatnagar@campusnoa.edu': 'nehabhatnagar@gmail.com',
+      'neha.bhatnagar@school.edu': 'nehabhatnagar@gmail.com',
+      'principal@campusnoa.edu': 'principal@campusnoa.edu',
+      'principal@school.edu': 'principal@campusnoa.edu',
+      'principal': 'nehabhatnagar@gmail.com',
 
-      // Class Teacher
-      'teacher.9a@campusnoa.edu': 's.roy@school.edu',
-      'teacher@campusnoa.edu': 's.roy@school.edu',
-      'teacher@school.edu': 's.roy@school.edu',
-      'teacher': 's.roy@school.edu',
-      's.roy@school.edu': 's.roy@school.edu',
+      // Class Teacher (Mrs. Sunita Roy)
+      'teacher.9a@campusnoa.edu': 'teacher@campusnoa.edu',
+      'teacher@campusnoa.edu': 'teacher@campusnoa.edu',
+      'teacher@school.edu': 'teacher@campusnoa.edu',
+      'teacher': 'teacher@campusnoa.edu',
+      's.roy@school.edu': 'teacher@campusnoa.edu',
+      's.roy@campusnoa.edu': 'teacher@campusnoa.edu',
 
       // Admissions / Appointing Authority
-      'admissions@campusnoa.edu': 'admissions@school.edu',
-      'admissions@school.edu': 'admissions@school.edu',
-      'admin@school.edu': 'admissions@school.edu',
-      'admin@campusnoa.edu': 'admissions@school.edu',
-      'admissions': 'admissions@school.edu',
+      'admissions@campusnoa.edu': 'admissions@campusnoa.edu',
+      'admissions@school.edu': 'admissions@campusnoa.edu',
+      'admin@school.edu': 'admissions@campusnoa.edu',
+      'admin@campusnoa.edu': 'admissions@campusnoa.edu',
+      'admissions': 'admissions@campusnoa.edu',
 
       // Finance / Accountant
-      'accountant@campusnoa.edu': 'bursar@school.edu',
-      'accountant@school.edu': 'bursar@school.edu',
-      'bursar@school.edu': 'bursar@school.edu',
-      'accountant': 'bursar@school.edu',
+      'accountant@campusnoa.edu': 'accountant@campusnoa.edu',
+      'accountant@school.edu': 'accountant@campusnoa.edu',
+      'bursar@school.edu': 'accountant@campusnoa.edu',
+      'accountant': 'accountant@campusnoa.edu',
 
       // Parent
-      'parent.arav@campusnoa.edu': 'parent@gmail.com',
-      'parent@campusnoa.edu': 'parent@gmail.com',
-      'parent@school.edu': 'parent@gmail.com',
-      'parent@gmail.com': 'parent@gmail.com',
-      'parent': 'parent@gmail.com',
+      'parent.arav@campusnoa.edu': 'parent.arav@campusnoa.edu',
+      'parent@campusnoa.edu': 'parent.arav@campusnoa.edu',
+      'parent@school.edu': 'parent.arav@campusnoa.edu',
+      'parent@gmail.com': 'parent.arav@campusnoa.edu',
+      'parent': 'parent.arav@campusnoa.edu',
 
       // Student
-      'student.arav@campusnoa.edu': 'teen.student@school.edu',
-      'student@campusnoa.edu': 'teen.student@school.edu',
-      'student@school.edu': 'teen.student@school.edu',
-      'teen.student@school.edu': 'teen.student@school.edu',
-      'student': 'teen.student@school.edu',
+      'student.arav@campusnoa.edu': 'student@campusnoa.edu',
+      'student@campusnoa.edu': 'student@campusnoa.edu',
+      'student@school.edu': 'student@campusnoa.edu',
+      'teen.student@school.edu': 'student@campusnoa.edu',
+      'student': 'student@campusnoa.edu',
 
       // Counsellor
-      'counsellor@campusnoa.edu': 'counsellor@school.edu',
-      'counsellor@school.edu': 'counsellor@school.edu',
-      'counsellor': 'counsellor@school.edu',
+      'counsellor@campusnoa.edu': 'counsellor@campusnoa.edu',
+      'counsellor@school.edu': 'counsellor@campusnoa.edu',
+      'counsellor': 'counsellor@campusnoa.edu',
 
       // Vice Principal
-      'viceprincipal@campusnoa.edu': 'vp@school.edu',
-      'vp@campusnoa.edu': 'vp@school.edu',
-      'vp@school.edu': 'vp@school.edu',
-      'viceprincipal@school.edu': 'vp@school.edu',
-      'vp': 'vp@school.edu',
+      'viceprincipal@campusnoa.edu': 'viceprincipal@campusnoa.edu',
+      'vp@campusnoa.edu': 'viceprincipal@campusnoa.edu',
+      'vp@school.edu': 'viceprincipal@campusnoa.edu',
+      'viceprincipal@school.edu': 'viceprincipal@campusnoa.edu',
+      'vp': 'viceprincipal@campusnoa.edu',
 
       // HOD
-      'hod@campusnoa.edu': 'hod.science@school.edu',
-      'hod@school.edu': 'hod.science@school.edu',
-      'hod.science@school.edu': 'hod.science@school.edu',
-      'hod': 'hod.science@school.edu',
+      'hod@campusnoa.edu': 'hod@campusnoa.edu',
+      'hod@school.edu': 'hod@campusnoa.edu',
+      'hod.science@school.edu': 'hod@campusnoa.edu',
+      'hod': 'hod@campusnoa.edu',
 
       // School Management
-      'mgmt@campusnoa.edu': 'management@school.edu',
-      'mgmt@school.edu': 'management@school.edu',
-      'management@school.edu': 'management@school.edu',
-      'management': 'management@school.edu',
+      'mgmt@campusnoa.edu': 'board@campusnoa.edu',
+      'mgmt@school.edu': 'board@campusnoa.edu',
+      'management@school.edu': 'board@campusnoa.edu',
+      'management': 'board@campusnoa.edu',
+      'board@campusnoa.edu': 'board@campusnoa.edu',
 
       // Super Admin
       'superadmin@campusnoa.edu': 'superadmin@campusnoa.edu',

@@ -9,7 +9,7 @@ export async function runAuth0Tests(serverUrl) {
   const token = mintAuth0Token({
     sub: 'auth0|principal_delhi_test',
     email: 'principal@campusnoa.edu',
-    fullName: 'Dr. APJ Abdul Kalam',
+    fullName: 'Dr. Neha Bhatnagar',
     roleCode: 'PRINCIPAL',
     institutionId: 'INST-001'
   });

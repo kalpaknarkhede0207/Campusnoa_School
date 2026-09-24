@@ -5,7 +5,7 @@ import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginView() {
   const { login, googleLogin } = useAuth();
-  const [email, setEmail] = useState('principal@campusnoa.edu');
+  const [email, setEmail] = useState('nehabhatnagar@gmail.com');
   const [password, setPassword] = useState('CampusNoa@2026!');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export default function LoginView() {
 
   const quickLogins = [
     { role: 'School Management', email: 'board@campusnoa.edu', desc: 'Executive governance' },
-    { role: 'Principal', email: 'principal@campusnoa.edu', desc: 'Full institutional governance' },
+    { role: 'Principal (Dr. Neha Bhatnagar)', email: 'nehabhatnagar@gmail.com', desc: 'Full institutional governance' },
     { role: 'Vice Principal', email: 'viceprincipal@campusnoa.edu', desc: 'Appoint teachers & daily proxies' },
     { role: 'Class Teacher', email: 'teacher@campusnoa.edu', desc: 'Homeroom & fees' },
     { role: 'HOD Academics', email: 'hod@campusnoa.edu', desc: 'Curriculum delivery & audits' },

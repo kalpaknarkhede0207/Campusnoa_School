@@ -145,7 +145,10 @@ export default function VicePrincipalDashboard() {
         'STUDENT_DELETED', 
         'PROXY_ASSIGNED', 
         'FACULTY_APPOINTED', 
-        'FACULTY_UPDATED'
+        'FACULTY_UPDATED',
+        'LEAVE_APPLIED',
+        'DELEGATION_RESPONDED',
+        'LEAVE_ACTION_TAKEN'
       ].includes(event.type)) {
         loadData();
       }
@@ -156,9 +159,22 @@ export default function VicePrincipalDashboard() {
   }, []);
 
   // Handle Proxy Allocation
-  const handleAssignProxy = (id) => {
-    setSubstitutes(substitutes.map(s => s.id === id ? { ...s, substitute: 'Assigned Proxy Teacher', status: 'ASSIGNED' } : s));
-    showToast('Substitute teacher allocated and notified via SMS/Push', 'success');
+  const handleAssignProxy = async (id) => {
+    const sub = substitutes.find(s => s.id === id);
+    try {
+      await api.assignProxy({
+        absentTeacherName: sub?.absentTeacher || 'Faculty on Leave',
+        divisionName: sub?.section || 'Grade 1-A',
+        timeSlot: sub?.period || 'Period 1 (08:30 AM)',
+        assignedEmployeeCode: 'T-102',
+        lessonHandover: 'Supervised lesson coverage'
+      });
+      setSubstitutes(substitutes.map(s => s.id === id ? { ...s, substitute: s.substitute !== 'Unassigned' ? s.substitute : 'Assigned Proxy Teacher', status: 'ASSIGNED' } : s));
+      showToast('Substitute teacher allocated and notified via SMS/Push', 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to allocate proxy', 'error');
+    }
   };
 
   const handleAddProxy = async (e) => {

@@ -155,7 +155,7 @@ async function main() {
 
   const personaConfigs = [
     { email: 'management@school.edu', name: 'Dr. Vikram Sarabhai', role: 'SCHOOL_MGMT', phone: '+91 98221 00001' },
-    { email: 'principal@school.edu', name: 'Dr. APJ Abdul Kalam', role: 'PRINCIPAL', phone: '+91 98221 00002' },
+    { email: 'principal@school.edu', name: 'Dr. Neha Bhatnagar', role: 'PRINCIPAL', phone: '+91 98221 00002' },
     { email: 'vp@school.edu', name: 'Dr. K. Radhakrishnan', role: 'VICE_PRINCIPAL', phone: '+91 98221 00003' },
     { email: 'hod.science@school.edu', name: 'Prof. Yash Pal', role: 'HOD', phone: '+91 98221 00004' },
     { email: 's.roy@school.edu', name: 'Mrs. Sunita Roy', role: 'CLASS_TEACHER', phone: '+91 98901 23456' },

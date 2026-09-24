@@ -65,8 +65,8 @@ router.post('/google', async (req, res, next) => {
     const email = payload.email;
     const name = payload.name;
     
-    // Assign role based on email (as discussed)
-    const isPrincipal = email === 'kalpaknarkhede0207@gmail.com';
+    // Assign role based on email
+    const isPrincipal = ['kalpaknarkhede0207@gmail.com', 'nehabhatnagar@gmail.com', 'principal@campusnoa.edu', 'principal@school.edu'].includes(email?.toLowerCase());
     const roleCode = isPrincipal ? 'PRINCIPAL' : 'TEACHER';
 
     // Find or create user
@@ -75,11 +75,15 @@ router.post('/google', async (req, res, next) => {
     if (!user) {
       user = new User({
         email,
-        fullName: name,
+        fullName: isPrincipal && email === 'nehabhatnagar@gmail.com' ? 'Dr. Neha Bhatnagar' : name,
         roleCode,
         status: 'ACTIVE',
         passwordHash: 'GOOGLE_OAUTH_NO_PASSWORD' 
       });
+      await user.save();
+    } else if (isPrincipal && user.roleCode !== 'PRINCIPAL') {
+      user.roleCode = 'PRINCIPAL';
+      if (email === 'nehabhatnagar@gmail.com') user.fullName = 'Dr. Neha Bhatnagar';
       await user.save();
     }
 
@@ -103,6 +107,7 @@ router.post('/google', async (req, res, next) => {
 
     const safeUser = user.toObject();
     delete safeUser.passwordHash;
+    safeUser.role = user.roleCode === 'PRINCIPAL' ? 'principal' : (user.roleCode ? user.roleCode.toLowerCase() : 'teacher');
 
     res.json({
       success: true,
