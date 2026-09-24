@@ -988,14 +988,14 @@ export default function VicePrincipalDashboard() {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Target Application Scope</label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer text-xs">
+                  <label className="flex items-start gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer text-xs">
                     <input
                       type="radio"
                       name="targetMode"
                       value="class"
                       checked={assignForm.targetMode === 'class'}
                       onChange={() => setAssignForm({ ...assignForm, targetMode: 'class' })}
-                      className="text-indigo-600 focus:ring-indigo-500"
+                      className="text-indigo-600 focus:ring-indigo-500 mt-1"
                     />
                     <div>
                       <span className="font-bold text-slate-800">
@@ -1009,24 +1009,56 @@ export default function VicePrincipalDashboard() {
                     </div>
                   </label>
 
-                  {assignForm.selectedStudentIds.length > 0 && (
-                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer text-xs">
-                      <input
-                        type="radio"
-                        name="targetMode"
-                        value="selected"
-                        checked={assignForm.targetMode === 'selected'}
-                        onChange={() => setAssignForm({ ...assignForm, targetMode: 'selected' })}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <div>
-                        <span className="font-bold text-slate-800">Selected Student ({assignForm.selectedStudentIds[0]})</span>
-                        <p className="text-[11px] text-slate-500">
-                          Appoint this teacher specifically for the selected student.
-                        </p>
-                      </div>
-                    </label>
-                  )}
+                  <label className="flex items-start gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer text-xs">
+                    <input
+                      type="radio"
+                      name="targetMode"
+                      value="selected"
+                      checked={assignForm.targetMode === 'selected'}
+                      onChange={() => setAssignForm({ ...assignForm, targetMode: 'selected' })}
+                      className="text-indigo-600 focus:ring-indigo-500 mt-1"
+                    />
+                    <div className="flex-1">
+                      <span className="font-bold text-slate-800">
+                        Specific Student (Individual Appointment)
+                      </span>
+                      <p className="text-[11px] text-slate-500 mb-2">
+                        Appoint this teacher specifically for an individual student.
+                      </p>
+                      {assignForm.targetMode === 'selected' && (
+                        <select
+                          value={assignForm.selectedStudentIds[0] || ''}
+                          onChange={(e) => {
+                            const admNo = e.target.value;
+                            const st = admittedStudents.find(s => (s.admissionNumber || s.id) === admNo);
+                            if (st) {
+                              setAssignForm({
+                                ...assignForm,
+                                targetMode: 'selected',
+                                selectedStudentIds: [st.admissionNumber || st.id],
+                                grade: st.grade || assignForm.grade,
+                                section: st.section || assignForm.section
+                              });
+                            } else {
+                              setAssignForm({
+                                ...assignForm,
+                                targetMode: 'selected',
+                                selectedStudentIds: []
+                              });
+                            }
+                          }}
+                          className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white font-medium focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="">-- Choose Student from Enrolled Roster --</option>
+                          {admittedStudents.map((st) => (
+                            <option key={st.admissionNumber || st.id} value={st.admissionNumber || st.id}>
+                              {st.fullName || st.name} ({st.admissionNumber || st.id}) — {st.grade} Section {st.section}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </label>
                 </div>
               </div>
 
