@@ -4,6 +4,7 @@ import { authenticateToken } from '../middlewares/authenticate.js';
 import { enforceTenantScope } from '../middlewares/tenantScope.js';
 import { requireRoles } from '../middlewares/authorize.js';
 import { auditLogger } from '../middlewares/auditLogger.js';
+import { mutationRateLimiter } from '../middlewares/rateLimiter.js';
 import { Faculty } from '../models/Faculty.js';
 import { User } from '../models/User.js';
 import { Notification } from '../models/Notification.js';
@@ -210,8 +211,8 @@ const appointFacultyHandler = async (req, res, next) => {
   }
 };
 
-router.post('/appoint', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
-router.post('/', requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
+router.post('/appoint', mutationRateLimiter, requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
+router.post('/', mutationRateLimiter, requireRoles('ADMIN_OFFICER', 'HR', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FACULTY_APPOINTED', 'FACULTY'), appointFacultyHandler);
 
 // 3. Apply Leave with Workload Delegation
 router.post('/apply-leave-delegation', requireRoles('TEACHER', 'CLASS_TEACHER', 'HOD', 'FACULTY'), auditLogger('LEAVE_APPLIED', 'FACULTY'), async (req, res, next) => {

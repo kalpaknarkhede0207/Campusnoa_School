@@ -4,6 +4,7 @@ import { authenticateToken } from '../middlewares/authenticate.js';
 import { enforceTenantScope } from '../middlewares/tenantScope.js';
 import { requireRoles } from '../middlewares/authorize.js';
 import { auditLogger } from '../middlewares/auditLogger.js';
+import { mutationRateLimiter } from '../middlewares/rateLimiter.js';
 import { FeeTransaction } from '../models/FeeTransaction.js';
 import { Student } from '../models/Student.js';
 
@@ -187,7 +188,7 @@ router.post('/transactions/:id/reconcile', requireRoles('ACCOUNTANT', 'INSTITUTI
 });
 
 // 5. Record New Fee Receipt (Accountant)
-router.post('/receipt', requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FEE_RECEIPT_ISSUED', 'FINANCE'), async (req, res, next) => {
+router.post('/receipt', mutationRateLimiter, requireRoles('ACCOUNTANT', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('FEE_RECEIPT_ISSUED', 'FINANCE'), async (req, res, next) => {
   try {
     const { studentName, studentAdmissionNumber, grade, amount, method, status } = req.body;
     if (!studentName && !studentAdmissionNumber) {

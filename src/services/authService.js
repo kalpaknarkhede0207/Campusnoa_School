@@ -19,8 +19,11 @@ export class AuthService {
       const isMatch = await bcrypt.compare(password, hash);
       if (isMatch) return true;
     }
-    // Only accept standard institutional seed password for provisioned accounts
-    return password === 'CampusNoa@2026!';
+    // In production, fallback seed password is strictly disabled unless explicitly permitted
+    if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEMO_SEED_PASSWORD === 'true') {
+      return password === 'CampusNoa@2026!';
+    }
+    return false;
   }
 
   static generateAccessToken(user) {

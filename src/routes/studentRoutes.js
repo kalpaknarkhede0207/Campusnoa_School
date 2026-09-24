@@ -4,6 +4,7 @@ import { authenticateToken } from '../middlewares/authenticate.js';
 import { enforceTenantScope } from '../middlewares/tenantScope.js';
 import { requireRoles, requireRecordScope } from '../middlewares/authorize.js';
 import { auditLogger } from '../middlewares/auditLogger.js';
+import { mutationRateLimiter } from '../middlewares/rateLimiter.js';
 import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
 import { Attendance } from '../models/Attendance.js';
@@ -234,16 +235,21 @@ const admitStudentHandler = async (req, res, next) => {
   }
 };
 
-router.post('/admit', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), admitStudentHandler);
-router.post('/', requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), admitStudentHandler);
+router.post('/admit', mutationRateLimiter, requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), admitStudentHandler);
+router.post('/', mutationRateLimiter, requireRoles('ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'PRINCIPAL', 'SUPER_ADMIN', 'SCHOOL_MGMT'), auditLogger('STUDENT_ADMITTED', 'STUDENT'), admitStudentHandler);
 
-// 4. Principal Approval of Student Admission
-router.post('/principal-approval', requireRoles('PRINCIPAL', 'INSTITUTION_ADMIN'), auditLogger('STUDENT_APPROVED', 'STUDENT'), async (req, res, next) => {
+// 4. Principal / Admissions Approval of Student Admission
+const studentApprovalHandler = async (req, res, next) => {
   try {
-    const { studentId, action } = req.body;
+    const studentId = req.params.id || req.body?.studentId;
+    const action = req.body?.action || 'APPROVE';
     const status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
-    await Student.updateMany(
+    if (!studentId) {
+      return res.status(400).json({ success: false, error: 'Student ID required for approval.' });
+    }
+
+    const student = await Student.findOneAndUpdate(
       {
         institutionId: req.institutionId,
         $or: [
@@ -251,15 +257,31 @@ router.post('/principal-approval', requireRoles('PRINCIPAL', 'INSTITUTION_ADMIN'
           { _id: studentId.match(/^[0-9a-fA-F]{24}$/) ? studentId : null }
         ].filter(Boolean)
       },
-      { admissionStatus: status }
+      { admissionStatus: status },
+      { returnDocument: 'after' }
     );
 
-    NotificationService.broadcastInstitutionEvent(req.institutionId, 'STUDENT_UPDATED', { studentId, status });
+    if (!student) {
+      return res.status(404).json({ success: false, error: 'Student record not found.' });
+    }
 
-    res.json({ success: true, message: `Student admission ${status.toLowerCase()} successfully.` });
+    NotificationService.broadcastInstitutionEvent(req.institutionId, 'STUDENT_UPDATED', {
+      studentId: student.admissionNumber,
+      status
+    });
+
+    res.json({
+      success: true,
+      message: `Student admission ${status.toLowerCase()} successfully.`,
+      student
+    });
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.post('/:id/approve', requireRoles('PRINCIPAL', 'ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), auditLogger('STUDENT_APPROVED', 'STUDENT'), studentApprovalHandler);
+router.post('/approve', requireRoles('PRINCIPAL', 'ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), auditLogger('STUDENT_APPROVED', 'STUDENT'), studentApprovalHandler);
+router.post('/principal-approval', requireRoles('PRINCIPAL', 'ADMIN_OFFICER', 'ADMISSIONS', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), auditLogger('STUDENT_APPROVED', 'STUDENT'), studentApprovalHandler);
 
 export default router;

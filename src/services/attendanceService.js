@@ -42,8 +42,12 @@ export class AttendanceService {
       results.push(record);
 
       // Re-evaluate student term risk level
-      const totalAtt = await Attendance.countDocuments({ studentAdmissionNumber: student.admissionNumber });
+      const totalAtt = await Attendance.countDocuments({
+        institutionId,
+        studentAdmissionNumber: student.admissionNumber
+      });
       const presentCount = await Attendance.countDocuments({
+        institutionId,
         studentAdmissionNumber: student.admissionNumber,
         status: 'PRESENT'
       });
@@ -51,7 +55,7 @@ export class AttendanceService {
       const pct = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 100) : 0;
       const newRisk = pct < 75 ? 'HIGH' : (pct < 80 ? 'MODERATE' : 'LOW');
       await Student.updateOne(
-        { admissionNumber: student.admissionNumber },
+        { institutionId, admissionNumber: student.admissionNumber },
         { 
           overallAttendancePercentage: pct,
           riskLevel: totalAtt >= 3 ? newRisk : 'LOW'
@@ -62,8 +66,10 @@ export class AttendanceService {
     return { success: true, count: results.length };
   }
 
-  static async getDivisionAttendance(divisionName, date) {
-    return Attendance.find({ divisionName, date }).lean();
+  static async getDivisionAttendance(divisionName, date, institutionId) {
+    const query = { divisionName, date };
+    if (institutionId) query.institutionId = institutionId;
+    return Attendance.find(query).lean();
   }
 }
 export default AttendanceService;

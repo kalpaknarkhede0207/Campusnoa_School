@@ -50,34 +50,36 @@ export default function ClassTeacherDashboard() {
   const [showDelegationModal, setShowDelegationModal] = useState(null); // 'monitor', 'sportsCaptain', 'itIncharge'
   const [delegationTarget, setDelegationTarget] = useState('');
 
-  useEffect(() => {
-    async function fetchHomeroomData() {
-      try {
-        const [studentRes, counselRes] = await Promise.all([
-          api.getHomeroomStudents().catch(() => ({ students: [] })),
-          api.getCounsellingCases().catch(() => ({ cases: [] }))
-        ]);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [studentRes, counselRes] = await Promise.all([
+        api.getHomeroomStudents().catch(() => ({ students: [] })),
+        api.getCounsellingCases().catch(() => ({ cases: [] }))
+      ]);
 
-        const list = Array.isArray(studentRes?.students) ? studentRes.students : [];
-        setStudents(list);
+      const list = Array.isArray(studentRes?.students) ? studentRes.students : [];
+      setStudents(list);
 
-        const initialAttendance = {};
-        list.forEach(s => {
-          initialAttendance[s.id || s._id] = 'PRESENT';
-        });
-        setAttendanceState(initialAttendance);
+      const initialAttendance = {};
+      list.forEach(s => {
+        initialAttendance[s.id || s._id] = 'PRESENT';
+      });
+      setAttendanceState(initialAttendance);
 
-        if (counselRes?.cases && Array.isArray(counselRes.cases)) {
-          setCounsellingCases(counselRes.cases);
-        }
-      } catch (err) {
-        console.warn('Homeroom API load:', err);
-        setStudents([]);
-      } finally {
-        setLoading(false);
+      if (counselRes?.cases && Array.isArray(counselRes.cases)) {
+        setCounsellingCases(counselRes.cases);
       }
+    } catch (err) {
+      console.warn('Homeroom API load:', err);
+      setStudents([]);
+    } finally {
+      setLoading(false);
     }
-    fetchHomeroomData();
+  };
+
+  useEffect(() => {
+    loadData();
 
     const unsubscribe = api.subscribeSSE((event) => {
       if ([
@@ -88,7 +90,7 @@ export default function ClassTeacherDashboard() {
         'STUDENT_UPDATED', 
         'STUDENT_DELETED'
       ].includes(event.type)) {
-        fetchHomeroomData();
+        loadData();
       }
     });
 

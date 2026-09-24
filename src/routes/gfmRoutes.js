@@ -43,6 +43,22 @@ router.post('/notes', requireRoles('GFM', 'GFM_COORDINATOR', 'FACULTY', 'CLASS_T
   }
 });
 
+// 2b. GET Mentorship Notes (For Student or Institution)
+router.get('/notes', async (req, res, next) => {
+  try {
+    const { MentorshipNote } = await import('../models/MentorshipNote.js');
+    const { studentId } = req.query;
+    const query = { institutionId: req.institutionId };
+    if (studentId) {
+      query.studentAdmissionNumber = studentId;
+    }
+    const notes = await MentorshipNote.find(query).sort({ createdAt: -1 }).lean();
+    res.json({ success: true, count: notes.length, notes });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 3. GET Institution At-Risk Student Alerts
 router.get('/alerts', requireRoles('GFM_COORDINATOR', 'PRINCIPAL', 'VICE_PRINCIPAL', 'HOD'), async (req, res, next) => {
   try {

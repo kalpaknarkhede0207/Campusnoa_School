@@ -33,3 +33,33 @@ export const resetLoginAttempts = (ip) => {
     loginAttempts.delete(ip);
   }
 };
+
+// Mutation rate limiter for sensitive state modification routes (120 req/min)
+const mutationAttempts = new Map();
+
+export const mutationRateLimiter = (req, res, next) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxAttempts = 120;
+
+  const record = mutationAttempts.get(ip) || { count: 0, resetAt: now + windowMs };
+
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + windowMs;
+  }
+
+  if (record.count >= maxAttempts) {
+    const retryAfterSec = Math.ceil((record.resetAt - now) / 1000);
+    return res.status(429).json({
+      success: false,
+      error: 'RATE_LIMIT_EXCEEDED',
+      message: `Request rate limit reached. Please wait ${retryAfterSec} seconds before submitting more operations.`
+    });
+  }
+
+  record.count += 1;
+  mutationAttempts.set(ip, record);
+  next();
+};
