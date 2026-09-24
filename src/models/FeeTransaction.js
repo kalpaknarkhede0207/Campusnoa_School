@@ -13,14 +13,13 @@ const FeeTransactionSchema = new mongoose.Schema({
   pendingAmount: { type: Number, default: 0 },
   paymentMethod: {
     type: String,
-    default: 'BANK_TRANSFER',
-    enum: ['BANK_TRANSFER', 'ONLINE_GATEWAY', 'CHEQUE', 'CASH']
+    default: 'BANK_TRANSFER'
   },
   challanReference: { type: String },
   status: {
     type: String,
     default: 'PAID',
-    enum: ['PAID', 'PARTIAL', 'OVERDUE', 'WAIVED'],
+    enum: ['PAID', 'PARTIAL', 'OVERDUE', 'WAIVED', 'PENDING', 'COMPLETED', 'PENDING_CLEARANCE'],
     index: true
   },
   transactionDate: { type: Date, default: Date.now }

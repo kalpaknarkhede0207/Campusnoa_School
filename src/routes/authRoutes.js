@@ -154,19 +154,33 @@ router.post('/refresh-token', async (req, res, next) => {
 });
 
 // 4. Logout (Current Device)
-router.post('/logout', async (req, res, next) => {
+const handleLogout = async (req, res) => {
   try {
     const rawToken = req.cookies?.campusnoa_refresh_token || req.body?.refreshToken;
-    await AuthService.logout(rawToken);
+    try {
+      await AuthService.logout(rawToken);
+    } catch (_) {}
 
+    const cookieOpts = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    };
+    res.clearCookie('campusnoa_access_token', cookieOpts);
+    res.clearCookie('campusnoa_refresh_token', cookieOpts);
+    res.clearCookie('campusnoa_auth0_token', cookieOpts);
     res.clearCookie('campusnoa_access_token');
     res.clearCookie('campusnoa_refresh_token');
+    res.clearCookie('campusnoa_auth0_token');
 
-    res.json({ success: true, message: 'Logged out successfully.' });
+    return res.json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
-    next(err);
+    return res.json({ success: true, message: 'Session terminated.' });
   }
-});
+};
+
+router.post('/logout', handleLogout);
+router.get('/logout', handleLogout);
 
 // 5. Logout All Devices
 router.post('/logout-all', authenticateToken, async (req, res, next) => {

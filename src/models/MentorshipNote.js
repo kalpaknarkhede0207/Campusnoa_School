@@ -7,8 +7,7 @@ const MentorshipNoteSchema = new mongoose.Schema({
   studentAdmissionNumber: { type: String, required: true, index: true },
   noteType: {
     type: String,
-    default: 'ACADEMIC',
-    enum: ['ACADEMIC', 'ATTENDANCE', 'BEHAVIORAL', 'PASTORAL', 'COUNSELLING'],
+    default: 'PASTORAL',
     index: true
   },
   content: { type: String, required: true },

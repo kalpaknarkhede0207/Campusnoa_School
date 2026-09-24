@@ -79,7 +79,7 @@ const getKpisHandler = async (req, res, next) => {
 router.get('/kpis', requireRoles('SCHOOL_MGMT', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN'), getKpisHandler);
 
 // 2. GET HOD Syllabus & Moderation Audit
-router.get('/hod/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT'), async (req, res, next) => {
+const getSyllabusAuditHandler = async (req, res, next) => {
   try {
     const facultyList = await Faculty.find({ institutionId: req.institutionId }).lean();
     let auditData = [];
@@ -106,7 +106,10 @@ router.get('/hod/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIP
   } catch (err) {
     next(err);
   }
-});
+};
+
+router.get('/hod/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT'), getSyllabusAuditHandler);
+router.get('/syllabus-audit', requireRoles('HOD', 'VICE_PRINCIPAL', 'PRINCIPAL', 'INSTITUTION_ADMIN', 'SUPER_ADMIN', 'SCHOOL_MGMT'), getSyllabusAuditHandler);
 
 // 3. POST HOD Lesson Plan Action
 router.post('/hod/lesson-plan-action', requireRoles('HOD', 'INSTITUTION_ADMIN'), auditLogger('LESSON_PLAN_ACTION', 'ACADEMIC'), async (req, res, next) => {

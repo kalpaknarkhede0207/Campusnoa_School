@@ -11,7 +11,13 @@ export const requireRoles = (...allowedRoles) => {
       return res.status(401).json({ success: false, error: 'UNAUTHORIZED' });
     }
 
-    const userRole = (req.user.roleCode || req.user.role || '').toUpperCase();
+    const userRole = (
+      req.auth0?.['https://campusnoa.edu/role'] ||
+      req.auth0?.role ||
+      req.user.roleCode ||
+      req.user.role ||
+      ''
+    ).toUpperCase();
 
     if (userRole === 'SUPER_ADMIN' || userRole === 'SCHOOL_MGMT') {
       return next(); // Super Admin & School Management Board have full governance clearance

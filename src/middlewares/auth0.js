@@ -186,7 +186,13 @@ export const auth0Middleware = async (req, res, next) => {
     }
 
     req.user = user;
-    req.institutionId = user.institutionId;
+    const tokenRole = decoded['https://campusnoa.edu/role'] || decoded.role;
+    if (tokenRole) {
+      req.user.activeRole = tokenRole;
+      req.user.roleCode = tokenRole;
+      req.user.role = tokenRole;
+    }
+    req.institutionId = decoded['https://campusnoa.edu/institutionId'] || user.institutionId;
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
