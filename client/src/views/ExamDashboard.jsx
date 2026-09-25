@@ -23,11 +23,12 @@ export default function ExamDashboard() {
   const fetchSchedules = async () => {
     setLoading(true);
     try {
-      const res = await api.getExamSchedules();
-      setSchedules(res.schedules || res || []);
+      const res = await api.getExamSchedules().catch(() => ({ exams: [] }));
+      const loadedSchedules = res?.exams || res?.schedules || (Array.isArray(res) ? res : []);
+      setSchedules(Array.isArray(loadedSchedules) ? loadedSchedules : []);
     } catch (err) {
       showToast('Failed to load exam schedules', 'error');
-    } fontally: {
+    } finally {
       setLoading(false);
     }
   };
@@ -181,7 +182,7 @@ export default function ExamDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {schedules.map((item) => (
+            {(Array.isArray(schedules) ? schedules : []).map((item) => (
               <div key={item.id} className="p-5 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
                 <div className="flex items-start justify-between">
                   <div>

@@ -23,8 +23,9 @@ export default function EventDashboard() {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const res = await api.getEventCalendar();
-      setEvents(res.events || res || []);
+      const res = await api.getEventCalendar().catch(() => ({ events: [] }));
+      const loadedEvents = res?.events || (Array.isArray(res) ? res : []);
+      setEvents(Array.isArray(loadedEvents) ? loadedEvents : []);
     } catch (err) {
       showToast('Failed to load event calendar', 'error');
     } finally {

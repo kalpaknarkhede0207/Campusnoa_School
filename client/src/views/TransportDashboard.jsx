@@ -18,10 +18,11 @@ export default function TransportDashboard() {
     setLoading(true);
     try {
       const [routesRes, telemetryRes] = await Promise.all([
-        api.getTransportRoutes(),
-        api.getBusTelemetry()
+        api.getTransportRoutes().catch(() => ({ routes: [] })),
+        api.getBusTelemetry().catch(() => ({}))
       ]);
-      setRoutes(routesRes.routes || routesRes || []);
+      const loadedRoutes = routesRes?.routes || (Array.isArray(routesRes) ? routesRes : []);
+      setRoutes(Array.isArray(loadedRoutes) ? loadedRoutes : []);
       setTelemetry(telemetryRes);
     } catch (err) {
       showToast('Failed to load transport data', 'error');

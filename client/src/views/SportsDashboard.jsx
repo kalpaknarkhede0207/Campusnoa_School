@@ -16,8 +16,9 @@ export default function SportsDashboard() {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await api.getSportsInventory();
-      setItems(res.inventory || res || []);
+      const res = await api.getSportsInventory().catch(() => ({ inventory: [] }));
+      const loadedItems = res?.inventory || (Array.isArray(res) ? res : []);
+      setItems(Array.isArray(loadedItems) ? loadedItems : []);
     } catch (err) {
       showToast('Failed to load sports inventory', 'error');
     } finally {
