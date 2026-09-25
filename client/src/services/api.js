@@ -483,21 +483,36 @@ export const api = {
     return request(`/ai/leave-advice/${leaveId}`);
   },
 
-  // Real-time Server Sent Events
+  // Real-time Server Sent Events & Telemetry Sync
   subscribeSSE(onMessage, onError) {
+    let timer = null;
     const token = getAuthToken();
-    const eventSource = new EventSource(`/api/events/stream?token=${encodeURIComponent(token)}`);
-    eventSource.onmessage = (event) => {
+
+    const fetchLatestTelemetry = async () => {
       try {
-        const data = JSON.parse(event.data);
-        if (onMessage) onMessage(data);
+        const res = await fetch(`/api/events/stream?token=${encodeURIComponent(token)}`);
+        if (!res.ok) return;
+        const text = await res.text();
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.replace('data: ', '').trim();
+            if (dataStr) {
+              const data = JSON.parse(dataStr);
+              if (onMessage && data.type !== 'CONNECTED') onMessage(data);
+            }
+          }
+        }
       } catch (e) {
-        console.error('SSE JSON parse error:', e);
+        if (onError) onError(e);
       }
     };
-    eventSource.onerror = (err) => {
-      if (onError) onError(err);
+
+    // Poll lightweight SSE telemetry every 4 seconds without locking threads
+    timer = setInterval(fetchLatestTelemetry, 4000);
+
+    return () => {
+      if (timer) clearInterval(timer);
     };
-    return () => eventSource.close();
   }
 };
