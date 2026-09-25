@@ -403,6 +403,86 @@ export const api = {
     return request('/announcements');
   },
 
+  // AI & Domain Modules
+  async generateSyllabus(grade, subject) {
+    return request('/hod/generate-syllabus', {
+      method: 'POST',
+      body: JSON.stringify({ grade, subject }),
+    });
+  },
+
+  async allocateTeacher(data) {
+    return request('/students/allocate-teacher', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Library Management
+  async getLibraryBooks() {
+    return request('/library/books');
+  },
+
+  async issueLibraryBook(bookId, studentId) {
+    return request('/library/issue', {
+      method: 'POST',
+      body: JSON.stringify({ book_id: bookId, student_id: studentId }),
+    });
+  },
+
+  // Exam Management
+  async getExamSchedules() {
+    return request('/exams/schedule');
+  },
+
+  async createExamSchedule(data) {
+    return request('/exams/schedule', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Sports Management
+  async getSportsInventory() {
+    return request('/sports/inventory');
+  },
+
+  async updateSportsInventory(id, quantity) {
+    return request('/sports/inventory', {
+      method: 'POST',
+      body: JSON.stringify({ id, quantity }),
+    });
+  },
+
+  // Transport Management
+  async getTransportRoutes() {
+    return request('/transport/routes');
+  },
+
+  async updateTransportRoute(id, status) {
+    return request('/transport/routes', {
+      method: 'POST',
+      body: JSON.stringify({ id, status }),
+    });
+  },
+
+  // Event Management
+  async getEventCalendar() {
+    return request('/events/calendar');
+  },
+
+  async createEvent(data) {
+    return request('/events/calendar', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // AI intelligence endpoints
+  async getLeaveAdvice(leaveId) {
+    return request(`/ai/leave-advice/${leaveId}`);
+  },
+
   // Real-time Server Sent Events
   subscribeSSE(onMessage, onError) {
     const token = getAuthToken();

@@ -31,8 +31,12 @@ export default function ClassTeacherDashboard() {
     }
   };
 
-  // Dynamic state for other subtabs
-  const [assignedSubjects, setAssignedSubjects] = useState([]);
+  // Dynamic state for other subtabs (Subject Teacher with Grade Division details)
+  const [assignedSubjects, setAssignedSubjects] = useState([
+    { id: 1, subject: 'Mathematics', grade: 'Grade 5-B', division: 'Division B', schedule: 'Mon, Wed, Fri (10:00 AM)', progress: 75 },
+    { id: 2, subject: 'Science & STEM', grade: 'Grade 5-B', division: 'Division B', schedule: 'Tue, Thu (11:30 AM)', progress: 68 },
+    { id: 3, subject: 'Advanced Algebra', grade: 'Grade 6-A', division: 'Division A', schedule: 'Mon, Thu (02:00 PM)', progress: 82 }
+  ]);
   const [counsellingCases, setCounsellingCases] = useState([]);
   const [delegations, setDelegations] = useState({
     monitor: 'Unassigned',
@@ -658,8 +662,9 @@ export default function ClassTeacherDashboard() {
                 <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      <th className="py-3 px-4">Subject & Grade</th>
-                      <th className="py-3 px-4">Schedule</th>
+                      <th className="py-3 px-4">Subject Name</th>
+                      <th className="py-3 px-4">Grade &amp; Division</th>
+                      <th className="py-3 px-4">Schedule / Timetable</th>
                       <th className="py-3 px-4">Syllabus Progress</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
@@ -667,24 +672,30 @@ export default function ClassTeacherDashboard() {
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {assignedSubjects.map((s, i) => (
                       <tr key={s.id || i} className="hover:bg-slate-50/80 transition">
-                        <td className="py-3 px-4 font-bold text-slate-800">
-                          {s.subject} <span className="text-slate-500 font-medium">({s.grade})</span>
+                        <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-indigo-600" />
+                          {s.subject}
                         </td>
-                        <td className="py-3 px-4 text-slate-600">{s.schedule}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {s.grade || 'Grade 5-B'} {s.division ? `(${s.division})` : ''}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 font-medium">{s.schedule}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <div className="w-full bg-slate-200 rounded-full h-1.5 max-w-[100px]">
-                              <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${s.progress}%` }}></div>
+                              <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${s.progress}%` }}></div>
                             </div>
-                            <span className="text-[10px] font-bold text-slate-500">{s.progress}%</span>
+                            <span className="text-[10px] font-extrabold text-slate-800">{s.progress}%</span>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right">
                           <button 
                             onClick={() => showToast(`Opening Grade Book for ${s.grade} ${s.subject}`, 'info')}
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200"
+                            className="px-3 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition"
                           >
-                            Grade Book
+                            Open Grade Book
                           </button>
                         </td>
                       </tr>

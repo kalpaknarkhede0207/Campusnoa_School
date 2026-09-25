@@ -84,7 +84,7 @@ export default function SchoolMgmtDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-200 pb-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Board of Trustees &amp; Institutional Management</h1>
@@ -106,93 +106,136 @@ export default function SchoolMgmtDashboard() {
         </button>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 mb-6 overflow-x-auto scrollbar-none">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
-              activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <tab.icon className="w-3.5 h-3.5" />
-            {tab.label}
-            {tab.badge > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">{tab.badge}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* TAB: OVERVIEW */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="card-clean p-5 border-l-4 border-l-indigo-600">
-              <span className="text-xs font-bold uppercase text-slate-500">Annual Tuition Billed</span>
-              <p className="text-2xl font-black text-indigo-700 mt-1">{formatCurrency(billed)}</p>
-              <span className="text-xs text-slate-400">Collected: {formatCurrency(collected)} ({collectionRate}%)</span>
-            </div>
-            <div className="card-clean p-5 border-l-4 border-l-emerald-600">
-              <span className="text-xs font-bold uppercase text-slate-500">Active Student Body</span>
-              <p className="text-2xl font-black text-emerald-600 mt-1">{enrollment} Students</p>
-              <span className="text-xs text-slate-400">Capacity: {capacity} ({stats?.enrollmentAndCapacity?.utilizationPercentage || (capacity > 0 ? Math.round((enrollment / capacity) * 100) : 0)}% utilized)</span>
-            </div>
-            <div className="card-clean p-5 border-l-4 border-l-sky-600">
-              <span className="text-xs font-bold uppercase text-slate-500">Total Faculty &amp; Staff</span>
-              <p className="text-2xl font-black text-sky-600 mt-1">{totalFaculty} Staff</p>
-              <span className="text-xs text-slate-400">{teachingStaff} Teaching | {nonTeachingStaff} Non-Teaching</span>
-            </div>
-            <div className="card-clean p-5 border-l-4 border-l-amber-600">
-              <span className="text-xs font-bold uppercase text-slate-500">Pupil-Teacher Ratio</span>
-              <p className="text-2xl font-black text-amber-600 mt-1">{ptrRatio}</p>
-              <span className="text-xs text-slate-400">Accreditation: {accreditation}</span>
-            </div>
+      {/* Vertical Sidebar & Content Layout */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Left-Hand Vertical Navigation Sidebar */}
+        <div className="w-full md:w-64 shrink-0 space-y-1">
+          <div className="px-3 py-2 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+            Governance Navigation
           </div>
-
-          {/* Leave Snapshot */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="card-clean p-5 text-center border border-amber-200 bg-amber-50/30">
-              <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
-              <p className="text-2xl font-black text-amber-700">{pendingLeaves.length}</p>
-              <span className="text-xs font-bold text-amber-600">Leave Applications Pending</span>
-            </div>
-            <div className="card-clean p-5 text-center border border-emerald-200 bg-emerald-50/30">
-              <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
-              <p className="text-2xl font-black text-emerald-700">{approvedLeaves.length}</p>
-              <span className="text-xs font-bold text-emerald-600">Leaves Sanctioned This Term</span>
-            </div>
-            <div className="card-clean p-5 text-center border border-rose-200 bg-rose-50/30">
-              <ClipboardList className="w-6 h-6 text-rose-600 mx-auto mb-1" />
-              <p className="text-2xl font-black text-rose-700">{rejectedLeaves.length}</p>
-              <span className="text-xs font-bold text-rose-600">Leave Applications Rejected</span>
-            </div>
-          </div>
-
-          {/* Grade-Wise Enrollment */}
-          <div className="card-clean p-6">
-            <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-600" /> Grade-Wise Enrollment Distribution
-            </h3>
-            {students.length === 0 ? (
-              <p className="text-xs text-slate-500">No students enrolled yet. Admit students via the HR &amp; Admissions portal.</p>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'].map(grade => {
-                  const count = students.filter(s => (s.grade || '').includes(grade.replace('Grade ', '')) || (s.grade || '') === grade).length;
-                  return (
-                    <div key={grade} className="text-center p-3 rounded-xl bg-slate-50 border border-slate-200">
-                      <p className="text-lg font-black text-indigo-600">{count}</p>
-                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">{grade}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <div className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-visible">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between transition text-left ${
+                  activeTab === tab.id 
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' 
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <tab.icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </div>
+                {tab.badge > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    activeTab === tab.id ? 'bg-white text-indigo-700' : 'bg-amber-500 text-white'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* Right Content Area */}
+        <div className="flex-1 min-w-0">
+          {/* TAB: OVERVIEW */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button 
+                  onClick={() => setActiveTab('overview')}
+                  className="card-clean p-5 border-l-4 border-l-indigo-600 text-left hover:shadow-md transition-all cursor-pointer"
+                >
+                  <span className="text-xs font-bold uppercase text-slate-500">Annual Tuition Billed</span>
+                  <p className="text-2xl font-black text-indigo-700 mt-1">{formatCurrency(billed)}</p>
+                  <span className="text-xs text-slate-400">Collected: {formatCurrency(collected)} ({collectionRate}%)</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('overview')}
+                  className="card-clean p-5 border-l-4 border-l-emerald-600 text-left hover:shadow-md transition-all cursor-pointer"
+                >
+                  <span className="text-xs font-bold uppercase text-slate-500">Active Student Body</span>
+                  <p className="text-2xl font-black text-emerald-600 mt-1">{enrollment} Students</p>
+                  <span className="text-xs text-slate-400">Capacity: {capacity} ({stats?.enrollmentAndCapacity?.utilizationPercentage || (capacity > 0 ? Math.round((enrollment / capacity) * 100) : 0)}% utilized)</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('staff')}
+                  className="card-clean p-5 border-l-4 border-l-sky-600 text-left hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <span className="text-xs font-bold uppercase text-slate-500 group-hover:text-sky-700">Total Faculty &amp; Staff</span>
+                  <p className="text-2xl font-black text-sky-600 mt-1">{totalFaculty} Staff</p>
+                  <span className="text-xs text-slate-400">{teachingStaff} Teaching | {nonTeachingStaff} Non-Teaching</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('compliance')}
+                  className="card-clean p-5 border-l-4 border-l-amber-600 text-left hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <span className="text-xs font-bold uppercase text-slate-500 group-hover:text-amber-700">Pupil-Teacher Ratio</span>
+                  <p className="text-2xl font-black text-amber-600 mt-1">{ptrRatio}</p>
+                  <span className="text-xs text-slate-400">Accreditation: {accreditation}</span>
+                </button>
+              </div>
+
+              {/* Leave Snapshot */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <button 
+                  onClick={() => setActiveTab('leaves')}
+                  className="card-clean p-5 text-center border border-amber-200 bg-amber-50/30 hover:bg-amber-100/50 transition-all text-left cursor-pointer"
+                >
+                  <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-1" />
+                  <p className="text-2xl font-black text-amber-700 text-center">{pendingLeaves.length}</p>
+                  <span className="text-xs font-bold text-amber-600 block text-center">Leave Applications Pending</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('leaves')}
+                  className="card-clean p-5 text-center border border-emerald-200 bg-emerald-50/30 hover:bg-emerald-100/50 transition-all text-left cursor-pointer"
+                >
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                  <p className="text-2xl font-black text-emerald-700 text-center">{approvedLeaves.length}</p>
+                  <span className="text-xs font-bold text-emerald-600 block text-center">Leaves Sanctioned This Term</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('leaves')}
+                  className="card-clean p-5 text-center border border-rose-200 bg-rose-50/30 hover:bg-rose-100/50 transition-all text-left cursor-pointer"
+                >
+                  <ClipboardList className="w-6 h-6 text-rose-600 mx-auto mb-1" />
+                  <p className="text-2xl font-black text-rose-700 text-center">{rejectedLeaves.length}</p>
+                  <span className="text-xs font-bold text-rose-600 block text-center">Leave Applications Rejected</span>
+                </button>
+              </div>
+
+              {/* Grade-Wise Enrollment */}
+              <div className="card-clean p-6">
+                <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-indigo-600" /> Grade-Wise Enrollment Distribution (Grades 1–6)
+                </h3>
+                {students.length === 0 ? (
+                  <p className="text-xs text-slate-500">No students enrolled yet. Admit students via the HR &amp; Admissions portal.</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    {['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'].map(grade => {
+                      const count = students.filter(s => (s.grade || '').includes(grade.replace('Grade ', '')) || (s.grade || '') === grade).length;
+                      return (
+                        <div key={grade} className="text-center p-3 rounded-xl bg-slate-50 border border-slate-200">
+                          <p className="text-lg font-black text-indigo-600">{count}</p>
+                          <p className="text-[11px] text-slate-500 font-semibold mt-0.5">{grade}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
       {/* TAB: FACULTY & STAFF */}
       {activeTab === 'staff' && (
@@ -411,6 +454,8 @@ export default function SchoolMgmtDashboard() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

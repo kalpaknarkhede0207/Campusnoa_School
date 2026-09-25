@@ -1,7 +1,8 @@
 import React from 'react';
 import { 
   X, Shield, GraduationCap, Users, UserCheck, 
-  Briefcase, DollarSign, HeartHandshake, User, Building, Award
+  Briefcase, DollarSign, HeartHandshake, User, Building, Award,
+  BookOpen, FileCheck, Trophy, Bus, Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +16,11 @@ const ROLES = [
   { id: 'accountant', name: 'Accountant / Finance Staff', desc: 'Fee collections, dues & ledger reconciliation', icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-200' },
   { id: 'counsellor', name: 'Student Counsellor', desc: 'Confidential pastoral care & wellness cases', icon: HeartHandshake, color: 'text-rose-600 bg-rose-50 border-rose-200' },
   { id: 'parent', name: 'Parent & Guardian', desc: 'Student performance, fee receipts & live bus GPS', icon: Users, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
+  { id: 'librarian', name: 'Librarian', desc: 'Catalog Management, Issue / Return Tracking & Digital Repository', icon: BookOpen, color: 'text-teal-600 bg-teal-50 border-teal-200' },
+  { id: 'exam_controller', name: 'Exam Controller', desc: 'Schedules, Seating Plans, Question Papers & Results', icon: FileCheck, color: 'text-purple-600 bg-purple-50 border-purple-200' },
+  { id: 'sports_coordinator', name: 'Sports Coordinator', desc: 'Sports Gear, Tournaments, Team Roster & Athletic Events', icon: Trophy, color: 'text-orange-600 bg-orange-50 border-orange-200' },
+  { id: 'transport_coordinator', name: 'Transport Coordinator', desc: 'Route Mapping, Bus Maintenance, Driver Roster & Real-Time GPS', icon: Bus, color: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
+  { id: 'event_coordinator', name: 'Event Coordinator', desc: 'Annual Day, Cultural Meets, Guest Seminars & Venue Booking', icon: Calendar, color: 'text-pink-600 bg-pink-50 border-pink-200' },
 ];
 
 export default function RoleSwitcherModal({ isOpen, onClose }) {

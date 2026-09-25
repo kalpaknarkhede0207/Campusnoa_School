@@ -183,27 +183,36 @@ export default function ParentDashboard() {
         <div className="space-y-6">
           {/* Quick Metrics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="card-clean p-5 border-l-4 border-l-emerald-500">
+            <button 
+              onClick={() => setActiveTab('student')}
+              className="card-clean p-5 border-l-4 border-l-emerald-500 text-left hover:border-emerald-400 hover:shadow-sm transition cursor-pointer"
+            >
               <span className="text-xs font-bold uppercase text-slate-500">Term Attendance</span>
               <p className="text-2xl font-black text-emerald-600 mt-1">{student.attendance}</p>
-              <span className="text-xs text-slate-400">Regular attendance</span>
-            </div>
+              <span className="text-xs text-slate-400">Click to view breakdown</span>
+            </button>
 
-            <div className="card-clean p-5 border-l-4 border-l-indigo-500">
+            <button 
+              onClick={() => setActiveTab('student')}
+              className="card-clean p-5 border-l-4 border-l-indigo-500 text-left hover:border-indigo-400 hover:shadow-sm transition cursor-pointer"
+            >
               <span className="text-xs font-bold uppercase text-slate-500">Academic Standing</span>
               <p className="text-2xl font-black text-indigo-600 mt-1">{student.termGpa}</p>
               <span className="text-xs text-slate-400">{student.classRank}</span>
-            </div>
+            </button>
 
-            <div className="card-clean p-5 border-l-4 border-l-teal-500">
+            <button 
+              onClick={() => setActiveTab('student')}
+              className="card-clean p-5 border-l-4 border-l-teal-500 text-left hover:border-teal-400 hover:shadow-sm transition cursor-pointer"
+            >
               <span className="text-xs font-bold uppercase text-slate-500">Tuition Fee Status</span>
               <p className="text-2xl font-black text-teal-600 mt-1">{student.feeAmount} {student.feeStatus}</p>
               <span className="text-xs text-slate-400">Receipt: {student.receiptNo}</span>
-            </div>
+            </button>
 
             <button
               onClick={() => setActiveTab('bus')}
-              className="card-clean p-5 text-left border-l-4 border-l-sky-500 group hover:border-sky-300 transition"
+              className="card-clean p-5 text-left border-l-4 border-l-sky-500 group hover:border-sky-400 hover:shadow-sm transition cursor-pointer"
             >
               <span className="text-xs font-bold uppercase text-slate-500">Transport Tracking</span>
               <p className="text-2xl font-black text-sky-600 mt-1">Route Active</p>

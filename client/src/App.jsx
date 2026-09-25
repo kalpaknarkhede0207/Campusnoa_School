@@ -17,6 +17,11 @@ import ParentDashboard from './views/ParentDashboard';
 import VicePrincipalDashboard from './views/VicePrincipalDashboard';
 import HodDashboard from './views/HodDashboard';
 import SchoolMgmtDashboard from './views/SchoolMgmtDashboard';
+import LibraryDashboard from './views/LibraryDashboard';
+import ExamDashboard from './views/ExamDashboard';
+import SportsDashboard from './views/SportsDashboard';
+import TransportDashboard from './views/TransportDashboard';
+import EventDashboard from './views/EventDashboard';
 
 export default function App() {
   const { user, isAuthenticated, loading, showToast } = useAuth();
@@ -86,6 +91,16 @@ export default function App() {
         return <HodDashboard />;
       case 'school_mgmt':
         return <SchoolMgmtDashboard />;
+      case 'librarian':
+        return <LibraryDashboard />;
+      case 'exam_controller':
+        return <ExamDashboard />;
+      case 'sports_coordinator':
+        return <SportsDashboard />;
+      case 'transport_coordinator':
+        return <TransportDashboard />;
+      case 'event_coordinator':
+        return <EventDashboard />;
       default:
         return <PrincipalDashboard />;
     }
