@@ -23,11 +23,14 @@ export default function LibraryDashboard() {
     setLoading(true);
     try {
       const [bookRes, studentRes] = await Promise.all([
-        api.getLibraryBooks(),
-        api.getStudents()
+        api.getLibraryBooks().catch(() => ({ catalogue: [] })),
+        api.getStudents().catch(() => ({ students: [] }))
       ]);
-      setBooks(bookRes.books || bookRes || []);
-      setStudents(studentRes.students || studentRes || []);
+      const loadedBooks = bookRes?.catalogue || bookRes?.books || (Array.isArray(bookRes) ? bookRes : []);
+      setBooks(Array.isArray(loadedBooks) ? loadedBooks : []);
+
+      const loadedStudents = studentRes?.students || (Array.isArray(studentRes) ? studentRes : []);
+      setStudents(Array.isArray(loadedStudents) ? loadedStudents : []);
     } catch (err) {
       showToast('Failed to load library data', 'error');
     } finally {
@@ -55,7 +58,8 @@ export default function LibraryDashboard() {
     }
   };
 
-  const filteredBooks = books.filter(b => 
+  const safeBooks = Array.isArray(books) ? books : [];
+  const filteredBooks = safeBooks.filter(b => 
     b.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.isbn?.toLowerCase().includes(searchTerm.toLowerCase())
