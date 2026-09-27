@@ -1,20 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, CheckCircle2, XCircle, Clock, Save, 
-  DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award
+  DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useInstitutional } from '../context/InstitutionalContext';
 import StudentDetailModal from '../components/StudentDetailModal';
 
 export default function ClassTeacherDashboard() {
   const { user, showToast } = useAuth();
+  const { studentMarks, saveStudentMarks } = useInstitutional();
   const [activeSubtab, setActiveSubtab] = useState('students'); // 'students', 'exams', 'fees', 'subject', 'counsellor', 'delegation'
   const [students, setStudents] = useState([]);
   const [attendanceState, setAttendanceState] = useState({}); // { [studentId]: 'PRESENT' | 'ABSENT' | 'LATE' }
   const [loading, setLoading] = useState(true);
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Exam Score Evaluation State
+  const [examForm, setExamForm] = useState({
+    subject: 'Mathematics',
+    studentId: '',
+    score: 88,
+    maxMarks: 100,
+    examType: 'Term 1 Evaluation',
+    remarks: 'Strong conceptual grasp & logical clarity'
+  });
 
   const avgAttendanceRate = useMemo(() => {
     if (!students || students.length === 0) return 'N/A';
@@ -616,22 +628,185 @@ export default function ClassTeacherDashboard() {
 
       {/* SUBTAB EXAMS: EXAM MARKS & EVALUATION MATRIX */}
       {activeSubtab === 'exams' && (
-        <div className="space-y-4 animate-in fade-in">
-          <div className="card-clean p-4 border-l-4 border-l-indigo-500 flex items-center justify-between">
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Banner */}
+          <div className="card-clean p-6 bg-gradient-to-r from-emerald-50/70 via-white to-indigo-50/70 border-l-4 border-l-emerald-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Award className="w-4 h-4 text-indigo-600" /> Homeroom Examination Scorecard & Assessment Matrix
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Award className="w-5 h-5 text-emerald-600" /> Homeroom Examination Scorecard &amp; Assessment Console
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Subject-wise exam marks, term GPA, and grade breakdown for Grade 5-B
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                Enter, evaluate, and update student examination scores. Select the subject and student to register marks, recalculate GPA percentiles, and generate official grade transcripts.
               </p>
             </div>
-            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-200">
-              Term 1 Evaluation
+            <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200 shrink-0">
+              Grade 5-B • Term 1 Evaluation
             </span>
           </div>
 
+          {/* INTERACTIVE EXAM SCORE ENTRY FORM */}
+          <div className="card-clean p-6 bg-white border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-indigo-100 text-indigo-700">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Enter / Update Student Exam Marks</h4>
+                  <p className="text-xs text-slate-500">Subject-wise marks entry with automated grade calculations</p>
+                </div>
+              </div>
+              <span className="text-xs text-slate-400 font-mono hidden sm:block">
+                Auto-saves to institutional grade registry
+              </span>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!examForm.studentId) {
+                  showToast('Please select a student from the dropdown', 'error');
+                  return;
+                }
+                const st = students.find(s => (s.id || s._id) === examForm.studentId);
+                saveStudentMarks(examForm.studentId, examForm.subject, examForm.score, examForm.maxMarks, examForm.remarks);
+                showToast(`Exam marks saved for ${st?.name || 'Student'}: ${examForm.score}/${examForm.maxMarks} in ${examForm.subject}`, 'success');
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Subject Dropdown */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Select Subject *
+                  </label>
+                  <select
+                    value={examForm.subject}
+                    onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Science">Science &amp; STEM</option>
+                    <option value="English">English Language &amp; Literature</option>
+                    <option value="Social Studies">Social Studies &amp; Civics</option>
+                    <option value="Regional Language">Regional Language (Hindi / Sanskrit)</option>
+                    <option value="Computer Science">Computer Science &amp; Coding</option>
+                    <option value="Environmental Studies">Environmental Studies (EVS)</option>
+                  </select>
+                </div>
+
+                {/* 2. Student Dropdown */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Select Student *
+                  </label>
+                  <select
+                    required
+                    value={examForm.studentId}
+                    onChange={(e) => setExamForm({ ...examForm, studentId: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="">-- Choose Homeroom Student --</option>
+                    {students.map((st) => (
+                      <option key={st.id || st._id} value={st.id || st._id}>
+                        {st.name} (Roll #{st.rollNo || st.roll_no || '—'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 3. Mark Entry & Max Marks */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Marks Obtained
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={examForm.maxMarks || 100}
+                      required
+                      value={examForm.score}
+                      onChange={(e) => setExamForm({ ...examForm, score: Number(e.target.value) })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-indigo-700 focus:ring-2 focus:ring-emerald-500 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Max Marks
+                    </label>
+                    <input
+                      type="number"
+                      min="10"
+                      max="200"
+                      required
+                      value={examForm.maxMarks}
+                      onChange={(e) => setExamForm({ ...examForm, maxMarks: Number(e.target.value) })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Calculated Grade Preview */}
+                <div className="flex flex-col justify-end">
+                  {(() => {
+                    const pct = Math.round((Number(examForm.score) / (Number(examForm.maxMarks) || 100)) * 100);
+                    let grade = 'F';
+                    if (pct >= 90) grade = 'A+';
+                    else if (pct >= 80) grade = 'A';
+                    else if (pct >= 70) grade = 'B+';
+                    else if (pct >= 60) grade = 'B';
+                    else if (pct >= 50) grade = 'C';
+                    else if (pct >= 40) grade = 'D';
+
+                    return (
+                      <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Calculated Grade</span>
+                          <span className="text-xs font-mono font-bold text-slate-700">{pct}% Percentage</span>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black">
+                          {grade}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Remarks & Submit */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <input
+                  type="text"
+                  placeholder="Teacher remarks (e.g. Excellent problem-solving skills, consistent homework completion)..."
+                  value={examForm.remarks}
+                  onChange={(e) => setExamForm({ ...examForm, remarks: e.target.value })}
+                  className="w-full sm:flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <Save className="w-4 h-4" /> Save Student Marks
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* DYNAMIC SCORECARD & ASSESSMENT MATRIX */}
           <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-indigo-600" /> Grade 5-B Assessment Matrix &amp; Cumulative Grade Ledger
+                </h4>
+                <p className="text-xs text-slate-500">Live updated scores from daily class evaluation</p>
+              </div>
+              <span className="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                {students.length} Students Evaluated
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
                 <thead>
@@ -645,31 +820,53 @@ export default function ClassTeacherDashboard() {
                     <th className="py-3 px-4">Regional Lang</th>
                     <th className="py-3 px-4">Overall %</th>
                     <th className="py-3 px-4">Grade</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-mono">
                   {students.map((st) => {
-                    const marks = st.examMarks || [
-                      { subject: 'Mathematics', score: 92, grade: 'A+' },
-                      { subject: 'Science', score: 89, grade: 'A' },
-                      { subject: 'English', score: 94, grade: 'A+' },
-                      { subject: 'Social Studies', score: 88, grade: 'A' },
-                      { subject: 'Regional Language', score: 91, grade: 'A+' }
-                    ];
+                    const stId = st.id || st._id;
+                    const saved = studentMarks[stId] || {};
+                    const math = saved['Mathematics']?.score ?? st.examMarks?.[0]?.score ?? 92;
+                    const sci = saved['Science']?.score ?? st.examMarks?.[1]?.score ?? 89;
+                    const eng = saved['English']?.score ?? st.examMarks?.[2]?.score ?? 94;
+                    const sst = saved['Social Studies']?.score ?? st.examMarks?.[3]?.score ?? 88;
+                    const reg = saved['Regional Language']?.score ?? st.examMarks?.[4]?.score ?? 91;
+
+                    const avg = Math.round((math + sci + eng + sst + reg) / 5);
+                    let grade = 'F';
+                    if (avg >= 90) grade = 'A+';
+                    else if (avg >= 80) grade = 'A';
+                    else if (avg >= 70) grade = 'B+';
+                    else if (avg >= 60) grade = 'B';
+                    else if (avg >= 50) grade = 'C';
+                    else if (avg >= 40) grade = 'D';
+
                     return (
-                      <tr key={st.id || st._id} className="hover:bg-slate-50/80 transition">
-                        <td className="py-3 px-4 font-bold text-slate-700">{st.rollNo}</td>
+                      <tr key={stId} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3 px-4 font-bold text-slate-700">{st.rollNo || st.roll_no || '—'}</td>
                         <td className="py-3 px-4 font-sans font-bold text-slate-900">{st.name}</td>
-                        <td className="py-3 px-4 text-indigo-600 font-bold">{marks[0]?.score ?? 92}/100</td>
-                        <td className="py-3 px-4 text-emerald-600 font-bold">{marks[1]?.score ?? 89}/100</td>
-                        <td className="py-3 px-4 text-sky-600 font-bold">{marks[2]?.score ?? 94}/100</td>
-                        <td className="py-3 px-4 text-purple-600 font-bold">{marks[3]?.score ?? 88}/100</td>
-                        <td className="py-3 px-4 text-amber-600 font-bold">{marks[4]?.score ?? 91}/100</td>
-                        <td className="py-3 px-4 font-sans font-extrabold text-slate-900">{st.academicAverage || '91.5%'}</td>
+                        <td className="py-3 px-4 text-indigo-600 font-bold">{math}/100</td>
+                        <td className="py-3 px-4 text-emerald-600 font-bold">{sci}/100</td>
+                        <td className="py-3 px-4 text-sky-600 font-bold">{eng}/100</td>
+                        <td className="py-3 px-4 text-purple-600 font-bold">{sst}/100</td>
+                        <td className="py-3 px-4 text-amber-600 font-bold">{reg}/100</td>
+                        <td className="py-3 px-4 font-sans font-extrabold text-slate-900">{avg}%</td>
                         <td className="py-3 px-4 font-sans">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            {st.academicGrade || 'A+'}
+                            {grade}
                           </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-sans">
+                          <button
+                            onClick={() => {
+                              setExamForm(prev => ({ ...prev, studentId: stId }));
+                              window.scrollTo({ top: 180, behavior: 'smooth' });
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition"
+                          >
+                            Edit Marks
+                          </button>
                         </td>
                       </tr>
                     );

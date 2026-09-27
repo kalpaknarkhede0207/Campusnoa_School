@@ -3,10 +3,11 @@ import {
   Users, UserCheck, GraduationCap, DollarSign, 
   TrendingUp, AlertCircle, Search, Filter, 
   Grid, List as ListIcon, CheckCircle2, ChevronRight, Eye, RefreshCw,
-  Megaphone, Clock, Send, Trash2
+  Megaphone, Clock, Send, Trash2, FileCheck, Calendar, BookOpen, Check, X, Shield
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useInstitutional } from '../context/InstitutionalContext';
 import StudentDetailModal from '../components/StudentDetailModal';
 import FacultyDetailModal from '../components/FacultyDetailModal';
 import UrgentBanner from '../components/UrgentBanner';
@@ -40,7 +41,17 @@ ChartJS.register(
 
 export default function PrincipalDashboard() {
   const { user, showToast } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview'); // overview, students, staff, finance
+  const { 
+    broadcastTargetedAnnouncement, 
+    examApprovals, 
+    actionExamApproval, 
+    eventApprovals, 
+    actionEventApproval, 
+    bookApprovals, 
+    actionBookApproval 
+  } = useInstitutional();
+
+  const [activeTab, setActiveTab] = useState('overview'); // overview, students, staff, finance, approvals, broadcast
   const [staffCategory, setStaffCategory] = useState('teaching'); // teaching vs non_teaching
   const [staffViewMode, setStaffViewMode] = useState('list'); // 'list' or 'grid' (list requested by user)
   
@@ -53,6 +64,12 @@ export default function PrincipalDashboard() {
   const [loading, setLoading] = useState(true);
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Pending Approvals Calculation
+  const pendingExams = examApprovals.filter(e => !e.principalApproved && e.status !== 'REJECTED');
+  const pendingEvents = eventApprovals.filter(e => !e.principalApproved && e.status !== 'REJECTED');
+  const pendingBooks = bookApprovals.filter(b => b.status === 'PENDING');
+  const totalPendingApprovals = pendingExams.length + pendingEvents.length + pendingBooks.length;
 
   // Selected modals
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -130,16 +147,33 @@ export default function PrincipalDashboard() {
     const form = e.target;
     const title = form.title.value;
     const message = form.message.value;
-    const audience = form.audience.value;
+    const targetAuthority = form.targetAuthority?.value || form.audience?.value || 'ALL_AUTHORITIES';
     const isUrgent = form.urgent?.checked;
 
     try {
       setBroadcastLoading(true);
+      
+      // 1. Dispatch in InstitutionalContext (real-time notification to specified authority or all authorities)
+      broadcastTargetedAnnouncement({
+        title: isUrgent ? `[URGENT] ${title}` : title,
+        message,
+        targetRoles: targetAuthority === 'ALL' ? ['ALL'] : targetAuthority === 'ALL_AUTHORITIES' ? ['ALL_AUTHORITIES'] : [targetAuthority],
+        isUrgent
+      });
+
+      // 2. Dispatch to backend API
       const res = await api.broadcastAnnouncement({
         title: isUrgent ? `[URGENT] ${title}` : title,
-        message: `${message} (Audience: ${audience})`
-      });
-      showToast(res?.message || 'Announcement broadcasted in real-time!', 'success');
+        message: `${message} (Target Authority: ${targetAuthority})`
+      }).catch(() => null);
+
+      const targetLabel = targetAuthority === 'ALL_AUTHORITIES' 
+        ? 'all institutional authorities' 
+        : targetAuthority === 'ALL' 
+        ? 'all campus stakeholders' 
+        : `${targetAuthority} desk`;
+
+      showToast(`Announcement successfully dispatched to ${targetLabel}!`, 'success');
       form.reset();
       const annRes = await api.getAnnouncements().catch(() => null);
       if (annRes?.announcements) {
@@ -269,6 +303,7 @@ export default function PrincipalDashboard() {
             { id: 'students', label: `Students (${students.length})`, icon: Users },
             { id: 'staff', label: `Faculty & Staff (${faculty.length})`, icon: GraduationCap },
             { id: 'finance', label: 'Institutional Finance', icon: DollarSign },
+            { id: 'approvals', label: 'Approvals Desk', icon: FileCheck, badge: totalPendingApprovals },
             { id: 'broadcast', label: 'Announcements', icon: Megaphone },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -284,6 +319,13 @@ export default function PrincipalDashboard() {
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
+                {tab.badge > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    activeTab === tab.id ? 'bg-indigo-600 text-white' : 'bg-rose-500 text-white'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -1125,6 +1167,317 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
+      {/* APPROVALS DESK SUBTAB */}
+      {activeTab === 'approvals' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Banner */}
+          <div className="card-clean p-6 bg-gradient-to-r from-indigo-50/70 via-white to-purple-50/70 border-l-4 border-l-indigo-600">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-indigo-600" /> Executive Approvals &amp; Sanctions Desk
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                  Multi-tier institutional governance: Review, sanction, or reject newly scheduled examinations, cultural and inter-school events, and library book procurement requests in real-time.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-600" /> {totalPendingApprovals} Pending Actions
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 1: EXAM SCHEDULE APPROVALS */}
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-amber-600" /> Examination Timetable Sanctions
+                </h4>
+                <p className="text-xs text-slate-500">Requires dual concurrence from Principal &amp; Vice Principal before publishing</p>
+              </div>
+              <span className="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                {pendingExams.length} Pending
+              </span>
+            </div>
+
+            {examApprovals.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">
+                <p className="text-xs">No examination schedules submitted for approval</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500">
+                      <th className="py-3 px-4">Exam Assessment Title</th>
+                      <th className="py-3 px-4">Grade &amp; Subject</th>
+                      <th className="py-3 px-4">Exam Date &amp; Session</th>
+                      <th className="py-3 px-4">VP Status</th>
+                      <th className="py-3 px-4">Principal Status</th>
+                      <th className="py-3 px-4 text-right">Principal Sanction</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {examApprovals.map((ex) => (
+                      <tr key={ex.id} className="hover:bg-slate-50/80">
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-slate-900">{ex.title}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">Submitted by {ex.submittedBy}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-indigo-700">{ex.grade}</span>
+                          <span className="text-slate-500 block text-[11px]">{ex.subject}</span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-700">
+                          <p className="font-bold">{ex.examDate}</p>
+                          <p className="text-slate-400 text-[10px]">{ex.session}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            ex.vpApproved ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {ex.vpApproved ? 'VP Sanctioned ✓' : 'Awaiting VP'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            ex.principalApproved 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                              : ex.status === 'REJECTED' 
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200' 
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {ex.principalApproved ? 'Approved ✓' : ex.status === 'REJECTED' ? 'Rejected ✕' : 'Pending Review'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {!ex.principalApproved && ex.status !== 'REJECTED' ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  actionExamApproval(ex.id, 'principal', 'APPROVE');
+                                  showToast(`Exam schedule "${ex.title}" approved!`, 'success');
+                                }}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
+                              >
+                                <Check className="w-3 h-3" /> Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  actionExamApproval(ex.id, 'principal', 'REJECT');
+                                  showToast(`Exam schedule "${ex.title}" rejected`, 'error');
+                                }}
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                              >
+                                <X className="w-3 h-3" /> Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-400">
+                              {ex.principalApproved ? 'Sanction Recorded' : 'Action Completed'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 2: EVENT APPROVALS */}
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-pink-600" /> Institutional Event Sanctions
+                </h4>
+                <p className="text-xs text-slate-500">Requires tri-party concurrence from Principal, Vice Principal &amp; HOD</p>
+              </div>
+              <span className="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                {pendingEvents.length} Pending
+              </span>
+            </div>
+
+            {eventApprovals.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">
+                <p className="text-xs">No event requests pending sanction</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500">
+                      <th className="py-3 px-4">Event Details &amp; Budget</th>
+                      <th className="py-3 px-4">Venue &amp; Target Date</th>
+                      <th className="py-3 px-4">Sanction Matrix</th>
+                      <th className="py-3 px-4">Principal Status</th>
+                      <th className="py-3 px-4 text-right">Principal Sanction</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {eventApprovals.map((ev) => (
+                      <tr key={ev.id} className="hover:bg-slate-50/80">
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-slate-900">{ev.title}</p>
+                          <p className="text-[11px] text-slate-500 truncate max-w-xs">{ev.description}</p>
+                          <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 inline-block">
+                            Budget: {ev.estimatedBudget}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-slate-800">{ev.venue}</p>
+                          <p className="font-mono text-[11px] text-slate-500">{ev.eventDate}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                            <span className={`px-2 py-0.5 rounded-full ${ev.vpApproved ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                              VP: {ev.vpApproved ? '✓' : '⏳'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full ${ev.hodApproved ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                              HOD: {ev.hodApproved ? '✓' : '⏳'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            ev.principalApproved ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ev.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {ev.principalApproved ? 'Sanctioned ✓' : ev.status === 'REJECTED' ? 'Declined ✕' : 'Pending Review'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {!ev.principalApproved && ev.status !== 'REJECTED' ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  actionEventApproval(ev.id, 'principal', 'APPROVE');
+                                  showToast(`Event "${ev.title}" sanctioned!`, 'success');
+                                }}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
+                              >
+                                <Check className="w-3 h-3" /> Sanction
+                              </button>
+                              <button
+                                onClick={() => {
+                                  actionEventApproval(ev.id, 'principal', 'REJECT');
+                                  showToast(`Event "${ev.title}" declined`, 'error');
+                                }}
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                              >
+                                <X className="w-3 h-3" /> Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-400">
+                              {ev.principalApproved ? 'Sanctioned' : 'Action Completed'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 3: LIBRARY BOOK PROCUREMENT APPROVALS */}
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-teal-600" /> Library Book Procurement Sanctions
+                </h4>
+                <p className="text-xs text-slate-500">Requested by Head Librarian for addition into active library catalog</p>
+              </div>
+              <span className="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                {pendingBooks.length} Pending
+              </span>
+            </div>
+
+            {bookApprovals.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">
+                <p className="text-xs">No library procurement requests pending</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500">
+                      <th className="py-3 px-4">Book Title &amp; Author</th>
+                      <th className="py-3 px-4">Category &amp; Grade</th>
+                      <th className="py-3 px-4">Copies &amp; Cost</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Principal Sanction</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {bookApprovals.map((bk) => (
+                      <tr key={bk.id} className="hover:bg-slate-50/80">
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-slate-900">{bk.title}</p>
+                          <p className="text-[11px] text-slate-500">{bk.author} (ISBN: {bk.isbn})</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[10px]">
+                            {bk.category}
+                          </span>
+                          <span className="text-[11px] text-slate-500 block mt-0.5">{bk.targetGrade}</span>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px]">
+                          <span className="font-bold text-slate-900">{bk.quantity} copies</span>
+                          <span className="text-emerald-700 block font-bold">{bk.estimatedCost}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            bk.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : bk.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {bk.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {bk.status === 'PENDING' ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  actionBookApproval(bk.id, 'APPROVE');
+                                  showToast(`Book procurement for "${bk.title}" sanctioned!`, 'success');
+                                }}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
+                              >
+                                <Check className="w-3 h-3" /> Approve
+                              </button>
+                              <button
+                                onClick={() => {
+                                  actionBookApproval(bk.id, 'REJECT');
+                                  showToast(`Book procurement for "${bk.title}" rejected`, 'error');
+                                }}
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                              >
+                                <X className="w-3 h-3" /> Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-400">
+                              {bk.status === 'APPROVED' ? 'Approved & Enrolled' : 'Declined'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* BROADCAST SUBTAB */}
       {activeTab === 'broadcast' && (
         <div className="space-y-6 animate-in fade-in">
@@ -1135,13 +1488,31 @@ export default function PrincipalDashboard() {
               </h3>
               <form onSubmit={handleBroadcast} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Audience</label>
-                  <select name="audience" className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="All Staff & Students">All Staff & Students</option>
-                    <option value="Teaching Faculty Only">Teaching Faculty Only</option>
-                    <option value="Parents & Guardians Only">Parents & Guardians Only</option>
-                    <option value="School Board Only">School Board Only</option>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Select Target Authority (Broadcast Scope)
+                  </label>
+                  <select 
+                    name="targetAuthority" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="ALL_AUTHORITIES">Every Authority Dashboard (All Institutional Authorities)</option>
+                    <option value="ALL">All Stakeholders (Global Campus Broadcast)</option>
+                    <option value="vice_principal">Vice Principal Desk Only</option>
+                    <option value="hod">Head of Department (HOD) Only</option>
+                    <option value="class_teacher">Class Teachers Only</option>
+                    <option value="admissions_officer">Admissions &amp; Staffing Desk Only</option>
+                    <option value="accountant">Finance &amp; Accounts Desk Only</option>
+                    <option value="librarian">Library &amp; Learning Resources Only</option>
+                    <option value="exam_controller">Examinations Control Room Only</option>
+                    <option value="event_coordinator">Institutional Event Coordinator Only</option>
+                    <option value="sports_coordinator">Sports &amp; Athletics Department Only</option>
+                    <option value="transport_officer">Transport Supervisor Only</option>
+                    <option value="counsellor">Student Counsellor Only</option>
+                    <option value="school_mgmt">Board of Trustees &amp; Management Only</option>
                   </select>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Choose whether this announcement broadcasts to all authorities or only the chosen specific authority portal.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Message Subject</label>

@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Building2, ChevronDown, LogOut, UserCheck, Shield, GraduationCap, 
-  Repeat, School, Sparkles 
+  Repeat, School, Sparkles, Bell, Check, X, Megaphone, FileCheck, Calendar, BookOpen
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useInstitutional } from '../context/InstitutionalContext';
 import RoleSwitcherModal from './RoleSwitcherModal';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { getNotificationsForUser, readNotifications, markNotificationRead, markAllNotificationsRead } = useInstitutional();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setIsNotifOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!user) return null;
 
@@ -27,9 +41,25 @@ export default function Navbar() {
 
   const currentRoleLabel = roleNameMap[user.role] || user.role;
 
+  // Compute notifications for current user role
+  const userNotifs = getNotificationsForUser(user.role);
+  const unreadNotifs = userNotifs.filter(n => !readNotifications.includes(n.id));
+  const unreadCount = unreadNotifs.length;
+
+  const getIcon = (type) => {
+    switch (type) {
+      case 'POLICY': return <Shield className="w-4 h-4 text-purple-600" />;
+      case 'ANNOUNCEMENT': return <Megaphone className="w-4 h-4 text-indigo-600" />;
+      case 'APPROVAL_EXAM': return <FileCheck className="w-4 h-4 text-amber-600" />;
+      case 'APPROVAL_EVENT': return <Calendar className="w-4 h-4 text-pink-600" />;
+      case 'APPROVAL_BOOK': return <BookOpen className="w-4 h-4 text-teal-600" />;
+      default: return <Bell className="w-4 h-4 text-slate-600" />;
+    }
+  };
+
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-slate-200">
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand Logo & Tagline */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -51,6 +81,98 @@ export default function Navbar() {
 
           {/* Right: Persona Switcher & User Actions */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Notification Bell Dropdown */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setIsNotifOpen(prev => !prev)}
+                className={`relative p-2 rounded-xl border transition flex items-center justify-center ${
+                  unreadCount > 0 
+                    ? 'border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100' 
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Institutional Notifications & Approvals"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-extrabold text-white shadow-xs animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover Drawer */}
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-xs font-bold text-slate-900">Institutional Notifications</h4>
+                      {unreadCount > 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold rounded-full bg-indigo-100 text-indigo-700">
+                          {unreadCount} unread
+                        </span>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAllNotificationsRead(userNotifs.map(n => n.id))}
+                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        <Check className="w-3 h-3" /> Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
+                    {userNotifs.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400">
+                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-xs font-medium">No institutional notices right now</p>
+                      </div>
+                    ) : (
+                      userNotifs.map((n) => {
+                        const isRead = readNotifications.includes(n.id);
+                        return (
+                          <div 
+                            key={n.id}
+                            onClick={() => markNotificationRead(n.id)}
+                            className={`p-3.5 hover:bg-slate-50/80 transition cursor-pointer flex gap-3 items-start ${
+                              !isRead ? 'bg-indigo-50/30' : ''
+                            }`}
+                          >
+                            <div className="p-2 rounded-xl bg-slate-100 shrink-0 mt-0.5">
+                              {getIcon(n.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${n.badgeColor}`}>
+                                  {n.source}
+                                </span>
+                                {!isRead && (
+                                  <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
+                                )}
+                              </div>
+                              <h5 className="text-xs font-bold text-slate-900 leading-snug line-clamp-1">{n.title}</h5>
+                              <p className="text-[11px] text-slate-600 leading-relaxed mt-0.5 line-clamp-2">{n.message}</p>
+                              <span className="text-[10px] text-slate-400 font-mono mt-1 block">
+                                {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(n.timestamp).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50 border-t border-slate-200 text-center">
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Real-time synchronized across Board, Principal, &amp; Faculty desks
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Role Switcher Pill */}
             <button
               onClick={() => setIsSwitcherOpen(true)}
