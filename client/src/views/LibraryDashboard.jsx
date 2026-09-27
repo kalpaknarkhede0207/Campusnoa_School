@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Search, Plus, CheckCircle, AlertCircle, Bookmark, RefreshCw, UserCheck } from 'lucide-react';
+import { BookOpen, Search, Plus, CheckCircle, AlertCircle, Bookmark, RefreshCw, UserCheck, Clock, ArrowLeftRight } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,7 @@ export default function LibraryDashboard() {
   const { showToast } = useAuth();
   const [activeTab, setActiveTab] = useState('catalog'); // 'catalog', 'issue', 'digital'
   const [books, setBooks] = useState([]);
+  const [issues, setIssues] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +15,7 @@ export default function LibraryDashboard() {
   const [selectedBook, setSelectedBook] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [issuing, setIssuing] = useState(false);
+  const [returningId, setReturningId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -23,11 +25,12 @@ export default function LibraryDashboard() {
     setLoading(true);
     try {
       const [bookRes, studentRes] = await Promise.all([
-        api.getLibraryBooks().catch(() => ({ catalogue: [] })),
+        api.getLibraryBooks().catch(() => ({ catalogue: [], issues: [] })),
         api.getStudents().catch(() => ({ students: [] }))
       ]);
       const loadedBooks = bookRes?.catalogue || bookRes?.books || (Array.isArray(bookRes) ? bookRes : []);
       setBooks(Array.isArray(loadedBooks) ? loadedBooks : []);
+      setIssues(Array.isArray(bookRes?.issues) ? bookRes.issues : []);
 
       const loadedStudents = studentRes?.students || (Array.isArray(studentRes) ? studentRes : []);
       setStudents(Array.isArray(loadedStudents) ? loadedStudents : []);
@@ -58,12 +61,27 @@ export default function LibraryDashboard() {
     }
   };
 
+  const handleReturnBook = async (issueId) => {
+    setReturningId(issueId);
+    try {
+      const res = await api.returnLibraryBook(issueId);
+      showToast(res.message || 'Book returned and checked back into library catalog!', 'success');
+      fetchData();
+    } catch (err) {
+      showToast(err.message || 'Failed to return book', 'error');
+    } finally {
+      setReturningId(null);
+    }
+  };
+
   const safeBooks = Array.isArray(books) ? books : [];
   const filteredBooks = safeBooks.filter(b => 
     b.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     b.isbn?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const activeIssuesCount = issues.filter(i => i.status === 'ISSUED' || i.status === 'OVERDUE').length;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -76,7 +94,7 @@ export default function LibraryDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Library & Learning Resources Portal</h1>
-              <p className="text-sm text-teal-200/80">Manage physical catalog, issue/return cycles & e-learning archives for Grades 1–6</p>
+              <p className="text-sm text-teal-200/80">Manage physical catalog, circulation logs, class teacher tracking & return cycles</p>
             </div>
           </div>
         </div>
@@ -90,7 +108,7 @@ export default function LibraryDashboard() {
         </div>
       </div>
 
-      {/* KPI Stats Grid - Clickable */}
+      {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <button 
           onClick={() => setActiveTab('catalog')}
@@ -121,9 +139,9 @@ export default function LibraryDashboard() {
             </div>
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">
-            {books.filter(b => b.status === 'Issued').length || 42}
+            {activeIssuesCount}
           </div>
-          <p className="text-xs text-emerald-600 mt-1 font-medium">Click to issue or return books</p>
+          <p className="text-xs text-emerald-600 mt-1 font-medium">Click to view active circulation</p>
         </button>
 
         <button 
@@ -137,7 +155,7 @@ export default function LibraryDashboard() {
             </div>
           </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">
-            {books.filter(b => b.status !== 'Issued').length || 308}
+            {Math.max(0, (books.length || 5) - activeIssuesCount)}
           </div>
           <p className="text-xs text-sky-600 mt-1 font-medium">Ready for checkout</p>
         </button>
@@ -175,7 +193,7 @@ export default function LibraryDashboard() {
             activeTab === 'issue' ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          Issue / Return Desk
+          Issue / Return Circulation Desk
         </button>
         <button
           onClick={() => setActiveTab('digital')}
@@ -258,59 +276,157 @@ export default function LibraryDashboard() {
 
       {/* Tab 2: Issue / Return Desk */}
       {activeTab === 'issue' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h2 className="text-lg font-bold text-slate-900">Issue Book to Student</h2>
-            <p className="text-xs text-slate-500">Assign a physical copy from the library catalog to a student in Grade 1–6</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Issue Book Form */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4 lg:col-span-1">
+              <div className="border-b border-slate-100 pb-3">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-teal-600" /> New Book Issue
+                </h2>
+                <p className="text-xs text-slate-500">Checkout book copy to student</p>
+              </div>
+
+              <form onSubmit={handleIssueBook} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Select Book Title
+                  </label>
+                  <select
+                    value={selectedBook}
+                    onChange={(e) => setSelectedBook(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none font-medium"
+                  >
+                    <option value="">-- Select Book from Catalog --</option>
+                    {books.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.title} ({b.author})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Select Borrowing Student
+                  </label>
+                  <select
+                    value={selectedStudent}
+                    onChange={(e) => setSelectedStudent(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none font-medium"
+                  >
+                    <option value="">-- Choose Student (Grade 1–6) --</option>
+                    {students.map(s => (
+                      <option key={s.id || s._id} value={s.id || s._id}>
+                        {s.name} ({s.rollNo || s.roll_no ? `Roll #${s.rollNo || s.roll_no}` : 'Student'}) - {s.grade || 'Grade 5-B'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={issuing}
+                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    {issuing ? 'Logging Book Checkout...' : 'Confirm Book Issue'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Active Circulation & Issue Records Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <ArrowLeftRight className="w-5 h-5 text-indigo-600" /> Active Circulation & Book Issue Ledger
+                  </h2>
+                  <p className="text-xs text-slate-500">Track borrower identity, homeroom class teacher, issue date & return deadlines</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                  {issues.length} Total Records
+                </span>
+              </div>
+
+              {issues.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
+                  <Bookmark className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-700">No Active Circulation Records</p>
+                  <p className="text-[11px] text-slate-500">Issued books will appear here with full student & class teacher details.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-700 border-collapse whitespace-nowrap">
+                    <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Issued Book</th>
+                        <th className="py-2.5 px-3">Borrowed By (Student)</th>
+                        <th className="py-2.5 px-3">Class & Teacher</th>
+                        <th className="py-2.5 px-3">Issue Date</th>
+                        <th className="py-2.5 px-3">Returning / Due Date</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3 text-right">Circulation Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {issues.map((i) => {
+                        const isReturning = returningId === (i.id || i._id);
+                        return (
+                          <tr key={i.id || i._id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-3">
+                              <span className="font-bold text-slate-900 block">{i.bookTitle}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{i.bookAuthor || 'Library Copy'}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="font-bold text-indigo-700 block">{i.studentName}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{i.admissionNumber || 'ADM-2026-REG'}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="font-semibold text-slate-800 block">{i.gradeSection || i.grade}</span>
+                              <span className="text-[10px] text-slate-500">Teacher: <strong className="text-slate-700">{i.classTeacher || i.classTeacherName || 'Anita Verma'}</strong></span>
+                            </td>
+                            <td className="py-3 px-3 font-mono text-slate-600 text-[11px]">
+                              {i.issueDate}
+                            </td>
+                            <td className="py-3 px-3 font-mono text-[11px] font-bold text-slate-800">
+                              {i.returningDate || i.dueDate}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                i.status === 'RETURNED'
+                                  ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                                  : i.status === 'OVERDUE'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}>
+                                {i.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              {i.status !== 'RETURNED' ? (
+                                <button
+                                  disabled={isReturning}
+                                  onClick={() => handleReturnBook(i.id || i._id)}
+                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200 transition disabled:opacity-50"
+                                >
+                                  {isReturning ? 'Returning...' : 'Mark Returned'}
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 italic">Checked In</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-
-          <form onSubmit={handleIssueBook} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Select Book
-              </label>
-              <select
-                value={selectedBook}
-                onChange={(e) => setSelectedBook(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
-              >
-                <option value="">-- Choose Book from Catalog --</option>
-                {books.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.title} ({b.author}) - Status: {b.status || 'Available'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Select Student
-              </label>
-              <select
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
-              >
-                <option value="">-- Choose Student (Grade 1–6) --</option>
-                {students.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.roll_no || s.student_id}) - Grade {s.grade}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={issuing}
-                className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-teal-600/20 transition-all disabled:opacity-50"
-              >
-                {issuing ? 'Processing Issue Request...' : 'Confirm Book Checkout'}
-              </button>
-            </div>
-          </form>
         </div>
       )}
 

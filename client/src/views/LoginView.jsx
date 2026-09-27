@@ -53,44 +53,48 @@ export default function LoginView() {
             </div>
           )}
 
-          {/* Option 1: Google OAuth */}
-          <div className="flex flex-col items-center justify-center">
-            <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
-              Fast Sign In
-            </p>
-            <div className="w-full flex justify-center">
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
-                  setError('');
-                  setLoading(true);
-                  try {
-                    await googleLogin(credentialResponse.credential);
-                  } catch (err) {
-                    setError('Google Authentication failed. Please try again.');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                onError={() => {
-                  setError('Google Authentication was cancelled or failed.');
-                }}
-                theme="filled_black"
-                shape="pill"
-              />
-            </div>
-          </div>
+          {/* Option 1: Google OAuth (Rendered only when valid Google Client ID is provided) */}
+          {Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID && !import.meta.env.VITE_GOOGLE_CLIENT_ID.includes('your-google-client-id')) && (
+            <>
+              <div className="flex flex-col items-center justify-center">
+                <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
+                  Fast Sign In
+                </p>
+                <div className="w-full flex justify-center">
+                  <GoogleLogin
+                    onSuccess={async (credentialResponse) => {
+                      setError('');
+                      setLoading(true);
+                      try {
+                        await googleLogin(credentialResponse.credential);
+                      } catch (err) {
+                        setError('Google Authentication failed. Please try again.');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    onError={() => {
+                      setError('Google Authentication was cancelled or failed.');
+                    }}
+                    theme="filled_black"
+                    shape="pill"
+                  />
+                </div>
+              </div>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/15" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-slate-900/80 px-3 text-slate-400 font-semibold tracking-wider rounded-md">
-                Or sign in with email
-              </span>
-            </div>
-          </div>
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-slate-900/80 px-2 text-slate-400 font-semibold tracking-wider">
+                    Or Continue With Email
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Option 2: Email & Password Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>

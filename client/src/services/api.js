@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export function getAuthToken() {
   return localStorage.getItem('campusnoa_access_token') || '';
@@ -209,6 +209,13 @@ export const api = {
 
   async admitStudent(data) {
     return request('/students', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async uploadStudentDocument(studentId, data) {
+    return request(`/students/${studentId}/documents`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -427,6 +434,13 @@ export const api = {
     return request('/library/issue', {
       method: 'POST',
       body: JSON.stringify({ book_id: bookId, student_id: studentId }),
+    });
+  },
+
+  async returnLibraryBook(issueId) {
+    return request('/library/return', {
+      method: 'POST',
+      body: JSON.stringify({ issue_id: issueId, issueId }),
     });
   },
 

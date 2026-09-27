@@ -76,9 +76,17 @@ export default function PrincipalDashboard() {
   };
 
   const handleActionLeave = async (leaveId, action) => {
+    let rejectionReason = '';
+    if (action === 'REJECT') {
+      rejectionReason = window.prompt(
+        'Please state the official reason for rejecting this leave / workload delegation request:',
+        'Institutional class coverage constraint'
+      );
+      if (rejectionReason === null) return;
+    }
     setActingLeaveId(leaveId);
     try {
-      await api.actionLeave({ leaveId, action });
+      await api.actionLeave({ leaveId, action, rejectionReason });
       showToast(`Leave application ${action === 'APPROVE' ? 'approved' : 'rejected'} successfully!`, 'success');
       loadData();
     } catch (err) {

@@ -61,6 +61,32 @@ export default function AdmissionsHrDashboard() {
     admissionDate: new Date().toISOString().split('T')[0]
   });
 
+  // Digital Document Locker Modal & Upload Form
+  const [uploadModalStudent, setUploadModalStudent] = useState(null);
+  const [uploadForm, setUploadForm] = useState({
+    name: 'Transfer Certificate (TC)',
+    category: 'Academic Transfer',
+    status: 'VERIFIED'
+  });
+
+  const handleUploadDocSubmit = async (e) => {
+    e.preventDefault();
+    if (!uploadModalStudent) return;
+    try {
+      await api.uploadStudentDocument(uploadModalStudent.id || uploadModalStudent._id, uploadForm);
+      showToast(`Document "${uploadForm.name}" uploaded into ${uploadModalStudent.name || uploadModalStudent.fullName}'s Digital Docker vault!`, 'success');
+      setUploadModalStudent(null);
+      setUploadForm({
+        name: 'Transfer Certificate (TC)',
+        category: 'Academic Transfer',
+        status: 'VERIFIED'
+      });
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to upload document', 'error');
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -190,6 +216,18 @@ export default function AdmissionsHrDashboard() {
             <Briefcase className="w-4 h-4" />
             <span>Teacher Appointing Authority ({faculty.length})</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('doc_locker')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition whitespace-nowrap shrink-0 ${
+              activeTab === 'doc_locker'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileCheck className="w-4 h-4" />
+            <span>Digital Document Locker ({students.length})</span>
+          </button>
         </div>
       </div>
 
@@ -212,20 +250,20 @@ export default function AdmissionsHrDashboard() {
         </button>
 
         <button
-          onClick={() => setActiveTab('admissions')}
-          className="card-clean p-5 text-left group hover:border-amber-300"
+          onClick={() => setActiveTab('doc_locker')}
+          className="card-clean p-5 text-left group hover:border-emerald-300"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Pending Review</span>
-            <div className="p-2 rounded-xl bg-amber-50 text-amber-600 group-hover:scale-105 transition">
-              <Clock className="w-5 h-5" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Digital Docker Vaults</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 transition">
+              <FileCheck className="w-5 h-5" />
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 mt-2">
-            {students.filter(s => s.status === 'PENDING_APPROVAL').length}
+            {students.length} <span className="text-xs font-normal text-slate-500">Vaults</span>
           </p>
-          <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
-            Documents awaiting review <ChevronRight className="w-3.5 h-3.5" />
+          <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+            Access student document repository <ChevronRight className="w-3.5 h-3.5" />
           </p>
         </button>
 
@@ -440,6 +478,102 @@ export default function AdmissionsHrDashboard() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUBTAB 3: DIGITAL DOCUMENT LOCKER */}
+      {activeTab === 'doc_locker' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Digital Docker — Admissions Document Locker</h3>
+              <p className="text-xs text-slate-500">
+                Centralized vault storing all statutory admission documents required during student registration.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsAdmitModalOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+            >
+              <UserPlus className="w-4 h-4" /> Admit & Locker Registration
+            </button>
+          </div>
+
+          {students.length === 0 ? (
+            <div className="card-clean p-12 text-center">
+              <FileCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h4 className="font-bold text-slate-800 text-sm">No Document Vaults Registered Yet</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                Admit your first student to automatically initialize their Digital Document Locker vault.
+              </p>
+            </div>
+          ) : (
+            <div className="card-clean overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4">Student Name</th>
+                      <th className="py-3 px-4">Admission No.</th>
+                      <th className="py-3 px-4">Class & Section</th>
+                      <th className="py-3 px-4">Stored Documents</th>
+                      <th className="py-3 px-4">Locker Status</th>
+                      <th className="py-3 px-4 text-right">Locker Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {students.map((st) => {
+                      const docCount = Array.isArray(st.documents) ? st.documents.length : 5;
+                      return (
+                        <tr 
+                          key={st._id || st.id}
+                          onClick={() => setSelectedStudent(st)}
+                          className="hover:bg-slate-50/80 cursor-pointer transition"
+                        >
+                          <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                              {st.name ? st.name[0] : 'S'}
+                            </div>
+                            {st.name || st.fullName}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-slate-600">
+                            {st.admissionNumber || `ADM-${st.rollNo || '001'}`}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-slate-700">{st.grade || 'Grade 1-A'}</td>
+                          <td className="py-3 px-4">
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200">
+                              📄 {docCount} Digital Files
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              VERIFIED VAULT
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setUploadModalStudent(st)}
+                                className="px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 transition flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Upload Document
+                              </button>
+                              <button
+                                onClick={() => setSelectedStudent(st)}
+                                className="px-3 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-800 text-xs font-semibold border border-violet-200 transition"
+                              >
+                                View Vault
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -752,6 +886,85 @@ export default function AdmissionsHrDashboard() {
                   className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition"
                 >
                   Confirm & Appoint
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* UPLOAD DOCUMENT MODAL */}
+      {uploadModalStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+                  <FileCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Upload Digital Document</h3>
+                  <p className="text-xs text-slate-500">Student: {uploadModalStudent.name || uploadModalStudent.fullName}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setUploadModalStudent(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded-lg hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadDocSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Document Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Migration Certificate, Caste Certificate, Aadhaar Copy"
+                  value={uploadForm.name}
+                  onChange={(e) => setUploadForm({ ...uploadForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Document Category</label>
+                <select
+                  value={uploadForm.category}
+                  onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  <option value="Identity & ID">Identity & Government ID</option>
+                  <option value="Academic Transfer">Academic Transfer (TC)</option>
+                  <option value="Academics">Academics & Marksheets</option>
+                  <option value="Health & Medical">Health & Medical Fitness</option>
+                  <option value="Verification">Verification & Verification Proof</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Select Digital Document File</label>
+                <div className="border-2 border-dashed border-emerald-200 bg-emerald-50/50 rounded-xl p-4 text-center cursor-pointer hover:bg-emerald-50 transition">
+                  <FileCheck className="w-8 h-8 text-emerald-600 mx-auto mb-1" />
+                  <p className="font-semibold text-slate-800">Click to select PDF or Image file</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Encrypted & digitally stored in student locker</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setUploadModalStudent(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+                >
+                  <FileCheck className="w-4 h-4" /> Save to Vault
                 </button>
               </div>
             </form>

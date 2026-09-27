@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, Shield, GraduationCap, Users, UserCheck, 
   Briefcase, DollarSign, HeartHandshake, User, Building, Award,
-  BookOpen, FileCheck, Trophy, Bus, Calendar
+  BookOpen, FileCheck, Trophy, Bus, Calendar, Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,14 +25,20 @@ const ROLES = [
 
 export default function RoleSwitcherModal({ isOpen, onClose }) {
   const { user, switchRole } = useAuth();
+  const [loadingRole, setLoadingRole] = useState(null);
+  
   if (!isOpen) return null;
 
   const handleSelectRole = async (roleId) => {
+    if (loadingRole) return;
     try {
+      setLoadingRole(roleId);
       await switchRole(roleId);
       onClose();
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoadingRole(null);
     }
   };
 
@@ -49,7 +55,8 @@ export default function RoleSwitcherModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            disabled={!!loadingRole}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -60,18 +67,25 @@ export default function RoleSwitcherModal({ isOpen, onClose }) {
           {ROLES.map((r) => {
             const Icon = r.icon;
             const isCurrent = user?.role === r.id;
+            const isLoading = loadingRole === r.id;
+            
             return (
               <button
                 key={r.id}
                 onClick={() => handleSelectRole(r.id)}
+                disabled={!!loadingRole}
                 className={`w-full flex items-center gap-4 p-3.5 rounded-xl border text-left transition-all ${
                   isCurrent
                     ? 'border-indigo-600 bg-indigo-50/50 shadow-sm'
                     : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
+                } ${loadingRole ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                <div className={`p-2.5 rounded-xl border ${r.color}`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`p-2.5 rounded-xl border ${r.color} flex items-center justify-center`}>
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
