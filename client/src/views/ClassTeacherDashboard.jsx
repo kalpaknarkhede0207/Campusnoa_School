@@ -22,11 +22,87 @@ export default function ClassTeacherDashboard() {
   const [examForm, setExamForm] = useState({
     subject: 'Mathematics',
     studentId: '',
-    score: 88,
+    score: 85,
     maxMarks: 100,
     examType: 'Term 1 Evaluation',
     remarks: 'Strong conceptual grasp & logical clarity'
   });
+
+  // Helper to fetch saved marks for a student & subject
+  const getStudentSubjectMark = (stId, subject) => {
+    if (!stId) return null;
+    const marksObj = studentMarks[stId] || {};
+    return marksObj[subject] || null;
+  };
+
+  // Synchronize score & remarks when choosing student in exam console
+  const handleSelectStudentForExam = (studentId) => {
+    const existing = getStudentSubjectMark(studentId, examForm.subject);
+    setExamForm(prev => ({
+      ...prev,
+      studentId,
+      score: existing?.score !== undefined ? existing.score : 85,
+      maxMarks: existing?.maxMarks || 100,
+      remarks: existing?.remarks || 'Consistent academic performance & active classroom engagement'
+    }));
+  };
+
+  // Synchronize score & remarks when switching subjects
+  const handleSelectSubjectForExam = (subject) => {
+    const existing = examForm.studentId ? getStudentSubjectMark(examForm.studentId, subject) : null;
+    setExamForm(prev => ({
+      ...prev,
+      subject,
+      score: existing?.score !== undefined ? existing.score : 85,
+      maxMarks: existing?.maxMarks || 100,
+      remarks: existing?.remarks || 'Consistent academic performance & active classroom engagement'
+    }));
+  };
+
+  // Compute live cumulative GPA and subject breakdown for any student
+  const getStudentOverallEvaluation = (st) => {
+    const stId = st.id || st._id || st.admissionNumber;
+    const saved = studentMarks[stId] || studentMarks[st.admissionNumber] || studentMarks[st.id] || {};
+
+    const subjects = ['Mathematics', 'Science', 'English', 'Social Studies', 'Regional Language', 'Computer Science'];
+    let totalScore = 0;
+    let totalMax = 0;
+    let customCount = 0;
+
+    const breakdown = {
+      Mathematics: saved['Mathematics']?.score ?? st.examMarks?.[0]?.score ?? 90,
+      Science: saved['Science']?.score ?? st.examMarks?.[1]?.score ?? 88,
+      English: saved['English']?.score ?? st.examMarks?.[2]?.score ?? 92,
+      'Social Studies': saved['Social Studies']?.score ?? st.examMarks?.[3]?.score ?? 86,
+      'Regional Language': saved['Regional Language']?.score ?? st.examMarks?.[4]?.score ?? 89,
+      'Computer Science': saved['Computer Science']?.score ?? 94
+    };
+
+    subjects.forEach((sub) => {
+      if (saved[sub]?.score !== undefined) {
+        customCount++;
+      }
+      totalScore += breakdown[sub];
+      totalMax += 100;
+    });
+
+    const pct = Math.round((totalScore / totalMax) * 100);
+    let grade = 'F';
+    if (pct >= 90) grade = 'A+';
+    else if (pct >= 80) grade = 'A';
+    else if (pct >= 70) grade = 'B+';
+    else if (pct >= 60) grade = 'B';
+    else if (pct >= 50) grade = 'C';
+    else if (pct >= 40) grade = 'D';
+
+    return {
+      percentage: pct,
+      grade,
+      hasCustomMarks: customCount > 0,
+      customCount,
+      breakdown
+    };
+  };
 
   const avgAttendanceRate = useMemo(() => {
     if (!students || students.length === 0) return 'N/A';
@@ -543,16 +619,34 @@ export default function ClassTeacherDashboard() {
                           {st.name}
                         </td>
                         <td className="py-3 px-4 font-medium text-slate-800">
-                          <div className="flex items-center gap-1.5">
-                            <Award className="w-3.5 h-3.5 text-indigo-600" />
-                            <span className="font-bold text-slate-900">{st.academicAverage || '91.5%'}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
-                              {st.academicGrade || 'A+'}
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                            Math: {st.examMarks?.[0]?.score || 92} | Sci: {st.examMarks?.[1]?.score || 89} | Eng: {st.examMarks?.[2]?.score || 94}
-                          </div>
+                          {(() => {
+                            const evalData = getStudentOverallEvaluation(st);
+                            return (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Award className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span className="font-bold text-slate-900">{evalData.percentage}%</span>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                                    evalData.grade === 'A+' || evalData.grade === 'A'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : evalData.grade === 'B+' || evalData.grade === 'B'
+                                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {evalData.grade}
+                                  </span>
+                                  {evalData.hasCustomMarks && (
+                                    <span className="text-[9px] px-1 bg-emerald-100 text-emerald-800 rounded font-bold">
+                                      Evaluated
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-mono">
+                                  Math: {evalData.breakdown['Mathematics']} | Sci: {evalData.breakdown['Science']} | Eng: {evalData.breakdown['English']}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
@@ -600,6 +694,16 @@ export default function ClassTeacherDashboard() {
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                handleSelectStudentForExam(sId);
+                                setActiveSubtab('exams');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs"
+                              title="Evaluate Student Exam Scores"
+                            >
+                              <Award className="w-3.5 h-3.5" /> Grade
+                            </button>
                             <button
                               onClick={() => setSelectedStudent(st)}
                               className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
@@ -682,7 +786,7 @@ export default function ClassTeacherDashboard() {
                   </label>
                   <select
                     value={examForm.subject}
-                    onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
+                    onChange={(e) => handleSelectSubjectForExam(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                   >
                     <option value="Mathematics">Mathematics</option>
@@ -703,7 +807,7 @@ export default function ClassTeacherDashboard() {
                   <select
                     required
                     value={examForm.studentId}
-                    onChange={(e) => setExamForm({ ...examForm, studentId: e.target.value })}
+                    onChange={(e) => handleSelectStudentForExam(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                   >
                     <option value="">-- Choose Homeroom Student --</option>
@@ -774,6 +878,29 @@ export default function ClassTeacherDashboard() {
                 </div>
               </div>
 
+              {/* Active candidate quick snapshot banner */}
+              {(() => {
+                const activeSt = students.find(s => (s.id || s._id) === examForm.studentId);
+                if (!activeSt) return null;
+                const evalSummary = getStudentOverallEvaluation(activeSt);
+                return (
+                  <div className="p-3 bg-indigo-50/60 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4 text-indigo-600" />
+                      <span className="font-bold text-slate-900">
+                        Active Candidate: {activeSt.name} (Roll #{activeSt.rollNo || activeSt.roll_no || '—'})
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-[10px]">
+                        Overall GPA: {evalSummary.percentage}% ({evalSummary.grade})
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      Evaluating: {examForm.subject} ({examForm.score}/{examForm.maxMarks})
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* Remarks & Submit */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                 <input
@@ -818,6 +945,7 @@ export default function ClassTeacherDashboard() {
                     <th className="py-3 px-4">English</th>
                     <th className="py-3 px-4">Social Studies</th>
                     <th className="py-3 px-4">Regional Lang</th>
+                    <th className="py-3 px-4">Coding</th>
                     <th className="py-3 px-4">Overall %</th>
                     <th className="py-3 px-4">Grade</th>
                     <th className="py-3 px-4 text-right">Action</th>
@@ -826,46 +954,48 @@ export default function ClassTeacherDashboard() {
                 <tbody className="divide-y divide-slate-100 font-mono">
                   {students.map((st) => {
                     const stId = st.id || st._id;
-                    const saved = studentMarks[stId] || {};
-                    const math = saved['Mathematics']?.score ?? st.examMarks?.[0]?.score ?? 92;
-                    const sci = saved['Science']?.score ?? st.examMarks?.[1]?.score ?? 89;
-                    const eng = saved['English']?.score ?? st.examMarks?.[2]?.score ?? 94;
-                    const sst = saved['Social Studies']?.score ?? st.examMarks?.[3]?.score ?? 88;
-                    const reg = saved['Regional Language']?.score ?? st.examMarks?.[4]?.score ?? 91;
-
-                    const avg = Math.round((math + sci + eng + sst + reg) / 5);
-                    let grade = 'F';
-                    if (avg >= 90) grade = 'A+';
-                    else if (avg >= 80) grade = 'A';
-                    else if (avg >= 70) grade = 'B+';
-                    else if (avg >= 60) grade = 'B';
-                    else if (avg >= 50) grade = 'C';
-                    else if (avg >= 40) grade = 'D';
+                    const evalSummary = getStudentOverallEvaluation(st);
+                    const isSelected = stId === examForm.studentId;
 
                     return (
-                      <tr key={stId} className="hover:bg-slate-50/80 transition">
+                      <tr 
+                        key={stId} 
+                        className={`transition ${isSelected ? 'bg-indigo-50/70 ring-1 ring-inset ring-indigo-400 font-bold' : 'hover:bg-slate-50/80'}`}
+                      >
                         <td className="py-3 px-4 font-bold text-slate-700">{st.rollNo || st.roll_no || '—'}</td>
-                        <td className="py-3 px-4 font-sans font-bold text-slate-900">{st.name}</td>
-                        <td className="py-3 px-4 text-indigo-600 font-bold">{math}/100</td>
-                        <td className="py-3 px-4 text-emerald-600 font-bold">{sci}/100</td>
-                        <td className="py-3 px-4 text-sky-600 font-bold">{eng}/100</td>
-                        <td className="py-3 px-4 text-purple-600 font-bold">{sst}/100</td>
-                        <td className="py-3 px-4 text-amber-600 font-bold">{reg}/100</td>
-                        <td className="py-3 px-4 font-sans font-extrabold text-slate-900">{avg}%</td>
+                        <td className="py-3 px-4 font-sans font-bold text-slate-900 flex items-center gap-1.5">
+                          {isSelected && <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />}
+                          {st.name}
+                        </td>
+                        <td className="py-3 px-4 text-indigo-600 font-bold">{evalSummary.breakdown['Mathematics']}/100</td>
+                        <td className="py-3 px-4 text-emerald-600 font-bold">{evalSummary.breakdown['Science']}/100</td>
+                        <td className="py-3 px-4 text-sky-600 font-bold">{evalSummary.breakdown['English']}/100</td>
+                        <td className="py-3 px-4 text-purple-600 font-bold">{evalSummary.breakdown['Social Studies']}/100</td>
+                        <td className="py-3 px-4 text-amber-600 font-bold">{evalSummary.breakdown['Regional Language']}/100</td>
+                        <td className="py-3 px-4 text-teal-600 font-bold">{evalSummary.breakdown['Computer Science']}/100</td>
+                        <td className="py-3 px-4 font-sans font-extrabold text-slate-900">{evalSummary.percentage}%</td>
                         <td className="py-3 px-4 font-sans">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            {grade}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            evalSummary.grade === 'A+' || evalSummary.grade === 'A'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          }`}>
+                            {evalSummary.grade}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-sans">
                           <button
                             onClick={() => {
-                              setExamForm(prev => ({ ...prev, studentId: stId }));
+                              handleSelectStudentForExam(stId);
                               window.scrollTo({ top: 180, behavior: 'smooth' });
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition"
+                            className={`px-2.5 py-1 rounded-lg font-semibold text-xs transition ${
+                              isSelected 
+                                ? 'bg-indigo-600 text-white shadow-xs' 
+                                : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+                            }`}
                           >
-                            Edit Marks
+                            {isSelected ? 'Editing' : 'Edit Marks'}
                           </button>
                         </td>
                       </tr>

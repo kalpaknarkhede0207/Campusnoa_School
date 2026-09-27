@@ -341,9 +341,21 @@ export default function SchoolMgmtDashboard() {
                     <TrendingUp className="w-3.5 h-3.5" />
                     <span>+24.2% YoY growth vs 2025</span>
                   </div>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">
-                    Licensed Intake: {capacity} ({Math.round((admissionsThisYear / capacity) * 100)}% filled)
-                  </span>
+                  <div className="mt-3 pt-2.5 border-t border-emerald-100">
+                    <div className="flex justify-between text-[11px] text-slate-500 font-medium mb-1">
+                      <span>Seat Capacity Fill</span>
+                      <span className="font-bold text-slate-800">{Math.round((admissionsThisYear / capacity) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200/60">
+                      <div 
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.min(100, Math.round((admissionsThisYear / capacity) * 100))}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      {admissionsThisYear} enrolled / {capacity} sanctioned capacity
+                    </span>
+                  </div>
                 </div>
 
                 {/* Annual Tuition Revenue */}
@@ -358,9 +370,21 @@ export default function SchoolMgmtDashboard() {
                   <span className="text-xs text-slate-500 font-semibold mt-1 block">
                     Realized: <strong className="text-slate-800">{formatCurrency(collected)}</strong> ({collectionRate}%)
                   </span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">
-                    Avg fee per student: ₹45,000/yr
-                  </span>
+                  <div className="mt-3 pt-2.5 border-t border-indigo-100">
+                    <div className="flex justify-between text-[11px] text-slate-500 font-medium mb-1">
+                      <span>Fee Realization Pace</span>
+                      <span className="font-bold text-indigo-700">{collectionRate}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200/60">
+                      <div 
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.min(100, collectionRate)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
+                      Avg student fee: ₹45,000 / annum
+                    </span>
+                  </div>
                 </div>
 
                 {/* Faculty & PTR Ratio */}

@@ -219,7 +219,7 @@ export default function VicePrincipalDashboard() {
       customSubject: '',
       grade: studentGrade,
       section: studentSection,
-      targetMode: 'class',
+      targetMode: 'selected',
       selectedStudentIds: [student.admissionNumber || student.id]
     });
     setShowAssignModal(true);
@@ -237,6 +237,7 @@ export default function VicePrincipalDashboard() {
       t => t.id === assignForm.teacherId || t.code === assignForm.teacherId
     );
 
+    const assignedName = selectedTeacherObj ? selectedTeacherObj.fullName : assignForm.teacherName;
     const subjectToSubmit = assignForm.roleType === 'SUBJECT_TEACHER'
       ? (assignForm.subject === 'Other' ? (assignForm.customSubject.trim() || 'General') : assignForm.subject)
       : 'Homeroom';
@@ -245,13 +246,43 @@ export default function VicePrincipalDashboard() {
     try {
       const payload = {
         teacherId: assignForm.teacherId,
-        teacherName: selectedTeacherObj ? selectedTeacherObj.fullName : assignForm.teacherName,
+        teacherName: assignedName,
         roleType: assignForm.roleType,
         subject: subjectToSubmit,
         grade: assignForm.grade,
         section: assignForm.section,
         studentIds: assignForm.targetMode === 'selected' ? assignForm.selectedStudentIds : undefined
       };
+
+      // Optimistic instant local state update for student roster and appointed faculty
+      const targetDiv = `${assignForm.grade}-${assignForm.section}`;
+      if (assignForm.roleType === 'CLASS_TEACHER') {
+        setAdmittedStudents(prev => prev.map(st => {
+          const stMatch = assignForm.targetMode === 'selected'
+            ? (assignForm.selectedStudentIds.includes(st.admissionNumber) || assignForm.selectedStudentIds.includes(st.id) || assignForm.selectedStudentIds.includes(st._id))
+            : ((st.grade === assignForm.grade || st.grade === targetDiv) && (st.section === assignForm.section || !st.section));
+
+          if (!stMatch) return st;
+
+          return {
+            ...st,
+            grade: assignForm.grade,
+            section: assignForm.section,
+            classTeacher: assignedName,
+            classTeacherName: assignedName
+          };
+        }));
+
+        setAppointedTeachers(prev => prev.map(t => {
+          if (t.id === assignForm.teacherId || t.code === assignForm.teacherId) {
+            return { ...t, homeroomAssignment: targetDiv };
+          }
+          if (t.homeroomAssignment === targetDiv) {
+            return { ...t, homeroomAssignment: 'None' };
+          }
+          return t;
+        }));
+      }
 
       const res = await api.assignTeacher(payload);
       showToast(res.message || 'Teacher appointment recorded and synced to database!', 'success');
