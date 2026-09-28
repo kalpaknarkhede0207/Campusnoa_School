@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, CheckCircle2, XCircle, Clock, Save, 
   DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap,
-  Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck
+  Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck, ShieldCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
