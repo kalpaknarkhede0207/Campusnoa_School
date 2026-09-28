@@ -492,6 +492,69 @@ export const api = {
     });
   },
 
+  // Homework & Classwork Diary
+  async getHomework(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/homework${qs ? `?${qs}` : ''}`);
+  },
+
+  async createHomework(data) {
+    return request('/homework', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteHomework(id) {
+    return request(`/homework/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Safe Parent-Teacher Queries
+  async getQueries(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/queries${qs ? `?${qs}` : ''}`);
+  },
+
+  async createQuery(data) {
+    return request('/queries', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async replyQuery(id, reply) {
+    return request(`/queries/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ reply }),
+    });
+  },
+
+  // Gate Security & Child Pick-up Passes
+  async getActiveGatePasses() {
+    return request('/gate-pass/active');
+  },
+
+  async generateGatePass(data) {
+    return request('/gate-pass/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async verifyGatePass(data) {
+    return request('/gate-pass/verify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Sibling Linked Wards
+  async getLinkedWards() {
+    return request('/students/linked-wards');
+  },
+
   // AI intelligence endpoints
   async getLeaveAdvice(leaveId) {
     return request(`/ai/leave-advice/${leaveId}`);

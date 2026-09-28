@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { 
   X, User, Mail, Phone, Calendar, MapPin, 
-  CheckCircle, AlertTriangle, ShieldAlert, FileText, DollarSign, Award, Check, Trash2, BookOpen, GraduationCap
+  CheckCircle, AlertTriangle, ShieldAlert, FileText, DollarSign, Award, Check, Trash2, BookOpen, GraduationCap, Printer
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
 import { api } from '../services/api';
+import PrintableReportCardModal from './PrintableReportCardModal';
 
 export default function StudentDetailModal({ student, isOpen, onClose, onRefresh }) {
   const { user, showToast } = useAuth();
   const { studentMarks } = useInstitutional();
   const [approving, setApproving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isReportCardOpen, setIsReportCardOpen] = useState(false);
 
   if (!isOpen || !student) return null;
 
@@ -394,6 +396,13 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
               </button>
             )}
             <button
+              onClick={() => setIsReportCardOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition flex items-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Official Report Card
+            </button>
+            <button
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
             >
@@ -402,6 +411,13 @@ export default function StudentDetailModal({ student, isOpen, onClose, onRefresh
           </div>
         </div>
       </div>
+
+      <PrintableReportCardModal
+        isOpen={isReportCardOpen}
+        onClose={() => setIsReportCardOpen(false)}
+        student={student}
+        studentMarks={studentMarks}
+      />
     </div>
   );
 }

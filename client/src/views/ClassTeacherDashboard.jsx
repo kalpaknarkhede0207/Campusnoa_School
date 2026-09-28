@@ -1,22 +1,45 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, CheckCircle2, XCircle, Clock, Save, 
-  DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap
+  DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap,
+  Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
 import StudentDetailModal from '../components/StudentDetailModal';
+import PrintableReportCardModal from '../components/PrintableReportCardModal';
 
 export default function ClassTeacherDashboard() {
   const { user, showToast } = useAuth();
   const { studentMarks, saveStudentMarks } = useInstitutional();
-  const [activeSubtab, setActiveSubtab] = useState('students'); // 'students', 'exams', 'fees', 'subject', 'counsellor', 'delegation'
+  const [activeSubtab, setActiveSubtab] = useState('students'); // 'students', 'exams', 'homework', 'queries', 'fees', 'subject', 'counsellor', 'delegation'
   const [students, setStudents] = useState([]);
   const [attendanceState, setAttendanceState] = useState({}); // { [studentId]: 'PRESENT' | 'ABSENT' | 'LATE' }
   const [loading, setLoading] = useState(true);
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Homework & Digital Diary State
+  const [homeworkList, setHomeworkList] = useState([]);
+  const [showHomeworkModal, setShowHomeworkModal] = useState(false);
+  const [homeworkForm, setHomeworkForm] = useState({
+    subject: 'Mathematics',
+    title: '',
+    description: '',
+    dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    grade: user?.homeroomGrade || 'Grade 5',
+    section: user?.homeroomSection || 'B'
+  });
+  const [submittingHomework, setSubmittingHomework] = useState(false);
+
+  // Safe Parent-Teacher Query Desk State
+  const [queriesList, setQueriesList] = useState([]);
+  const [replyTextMap, setReplyTextMap] = useState({});
+  const [submittingReplyId, setSubmittingReplyId] = useState(null);
+
+  // Official CBSE Holistic Report Card Modal State
+  const [reportCardStudent, setReportCardStudent] = useState(null);
 
   // Exam Score Evaluation State
   const [examForm, setExamForm] = useState({
@@ -175,12 +198,14 @@ export default function ClassTeacherDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [studentRes, counselRes, dutiesRes, delegRes, facRes] = await Promise.all([
+      const [studentRes, counselRes, dutiesRes, delegRes, facRes, hwRes, qRes] = await Promise.all([
         api.getHomeroomStudents().catch(() => ({ students: [] })),
         api.getCounsellingCases().catch(() => ({ cases: [] })),
         api.getHomeroomDuties().catch(() => ({ duties: {} })),
         api.getFacultyDelegations().catch(() => ({ incoming: [], outgoing: [] })),
-        api.getFaculty().catch(() => ({ teachers: [] }))
+        api.getFaculty().catch(() => ({ teachers: [] })),
+        api.getHomework().catch(() => ({ homework: [] })),
+        api.getQueries().catch(() => ({ queries: [] }))
       ]);
 
       const list = Array.isArray(studentRes?.students) ? studentRes.students : [];
@@ -208,6 +233,9 @@ export default function ClassTeacherDashboard() {
 
       const teacherList = facRes?.teachers || (facRes?.faculty || []).filter(f => f.type === 'teaching');
       setColleagues(teacherList);
+
+      setHomeworkList(Array.isArray(hwRes?.homework) ? hwRes.homework : []);
+      setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
     } catch (err) {
       console.warn('Homeroom API load:', err);
       setStudents([]);
@@ -230,7 +258,11 @@ export default function ClassTeacherDashboard() {
         'LEAVE_APPLIED',
         'DELEGATION_RESPONDED',
         'LEAVE_ACTION_TAKEN',
-        'HOMEROOM_DUTIES_UPDATED'
+        'HOMEROOM_DUTIES_UPDATED',
+        'HOMEWORK_PUBLISHED',
+        'HOMEWORK_DELETED',
+        'PARENT_QUERY_SUBMITTED',
+        'PARENT_QUERY_REPLIED'
       ].includes(event.type)) {
         loadData();
       }
@@ -240,6 +272,69 @@ export default function ClassTeacherDashboard() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  const handleCreateHomework = async (e) => {
+    e.preventDefault();
+    if (!homeworkForm.title.trim()) {
+      showToast('Please provide an assignment title', 'error');
+      return;
+    }
+    setSubmittingHomework(true);
+    try {
+      await api.createHomework({
+        ...homeworkForm,
+        grade: user?.homeroomGrade || homeworkForm.grade || 'Grade 5',
+        section: user?.homeroomSection || homeworkForm.section || 'B'
+      });
+      showToast('Daily homework published successfully!', 'success');
+      setShowHomeworkModal(false);
+      setHomeworkForm({
+        subject: 'Mathematics',
+        title: '',
+        description: '',
+        dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        grade: user?.homeroomGrade || 'Grade 5',
+        section: user?.homeroomSection || 'B'
+      });
+      const hwRes = await api.getHomework().catch(() => ({ homework: [] }));
+      setHomeworkList(Array.isArray(hwRes?.homework) ? hwRes.homework : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to publish homework', 'error');
+    } finally {
+      setSubmittingHomework(false);
+    }
+  };
+
+  const handleDeleteHomework = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this homework assignment?')) return;
+    try {
+      await api.deleteHomework(id);
+      showToast('Homework assignment removed', 'success');
+      setHomeworkList(prev => prev.filter(h => h.id !== id));
+    } catch (err) {
+      showToast(err.message || 'Failed to remove homework', 'error');
+    }
+  };
+
+  const handleReplyQuery = async (queryId) => {
+    const text = replyTextMap[queryId];
+    if (!text || !text.trim()) {
+      showToast('Please type a response before sending', 'error');
+      return;
+    }
+    setSubmittingReplyId(queryId);
+    try {
+      await api.replyQuery(queryId, text.trim());
+      showToast('Official response sent to parent', 'success');
+      setReplyTextMap(prev => ({ ...prev, [queryId]: '' }));
+      const qRes = await api.getQueries().catch(() => ({ queries: [] }));
+      setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to send reply', 'error');
+    } finally {
+      setSubmittingReplyId(null);
+    }
+  };
 
   const handleAttendanceChange = (studentId, status) => {
     setAttendanceState(prev => ({
@@ -425,6 +520,30 @@ export default function ClassTeacherDashboard() {
           >
             <Award className="w-3.5 h-3.5" />
             <span>Exam Scores & Evaluation</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubtab('homework')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
+              activeSubtab === 'homework'
+                ? 'bg-white text-emerald-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Class Diary &amp; Homework ({homeworkList.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubtab('queries')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
+              activeSubtab === 'queries'
+                ? 'bg-white text-emerald-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Parent Inquiries {queriesList.filter(q => q.status === 'PENDING').length > 0 ? `(${queriesList.filter(q => q.status === 'PENDING').length})` : ''}</span>
           </button>
 
           <button
@@ -703,6 +822,13 @@ export default function ClassTeacherDashboard() {
                               title="Evaluate Student Exam Scores"
                             >
                               <Award className="w-3.5 h-3.5" /> Grade
+                            </button>
+                            <button
+                              onClick={() => setReportCardStudent(st)}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs"
+                              title="Official CBSE / NEP 2020 Holistic Progress Card (HPC)"
+                            >
+                              <Printer className="w-3.5 h-3.5" /> Report Card
                             </button>
                             <button
                               onClick={() => setSelectedStudent(st)}
@@ -1004,6 +1130,259 @@ export default function ClassTeacherDashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB: HOMEWORK & CLASSWORK DIGITAL DIARY */}
+      {activeSubtab === 'homework' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Banner */}
+          <div className="card-clean p-6 bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/80 border-l-4 border-l-emerald-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-600" /> Daily Homework &amp; Classwork Digital Diary
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                Assign and broadcast daily homework, reading goals, and classwork exercises directly to student and parent portals. Instant push notification to parent mobile devices.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowHomeworkModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-2 shrink-0 self-start sm:self-auto"
+            >
+              <PlusCircle className="w-4 h-4" /> Post Daily Homework
+            </button>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="card-clean p-4 border-l-4 border-l-emerald-500">
+              <span className="text-xs font-bold uppercase text-slate-500">Active Tasks</span>
+              <p className="text-2xl font-black text-emerald-600 mt-1">{homeworkList.length}</p>
+              <span className="text-xs text-slate-400">Broadcasted to Class</span>
+            </div>
+            <div className="card-clean p-4 border-l-4 border-l-indigo-500">
+              <span className="text-xs font-bold uppercase text-slate-500">Target Homeroom</span>
+              <p className="text-2xl font-black text-indigo-600 mt-1">
+                {user?.homeroomGrade || 'Grade 5'} - {user?.homeroomSection || 'B'}
+              </p>
+              <span className="text-xs text-slate-400">{students.length} Enrolled Students</span>
+            </div>
+            <div className="card-clean p-4 border-l-4 border-l-teal-500">
+              <span className="text-xs font-bold uppercase text-slate-500">Parent Access</span>
+              <p className="text-2xl font-black text-teal-600 mt-1">100% Synced</p>
+              <span className="text-xs text-slate-400">Real-time mobile delivery</span>
+            </div>
+          </div>
+
+          {/* Homework Assignments Grid / List */}
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-600" /> Active Assignment Log
+              </h4>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                {homeworkList.length} Total Entries
+              </span>
+            </div>
+
+            {homeworkList.length === 0 ? (
+              <div className="p-12 text-center">
+                <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h4 className="font-bold text-slate-800 text-sm">No Homework Assigned Yet</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                  Keep students and parents engaged by publishing today's lesson objectives and homework tasks.
+                </p>
+                <button
+                  onClick={() => setShowHomeworkModal(true)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-500 inline-flex items-center gap-1.5"
+                >
+                  <PlusCircle className="w-4 h-4" /> Create First Task
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {homeworkList.map((hw) => {
+                  const subjectColors = {
+                    Mathematics: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                    Science: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    English: 'bg-violet-50 text-violet-700 border-violet-200',
+                    'Social Studies': 'bg-amber-50 text-amber-700 border-amber-200',
+                    'Regional Language': 'bg-rose-50 text-rose-700 border-rose-200',
+                    'Computer Science': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                  };
+                  const colorClass = subjectColors[hw.subject] || 'bg-slate-100 text-slate-700 border-slate-200';
+
+                  return (
+                    <div key={hw.id} className="p-5 hover:bg-slate-50/60 transition flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${colorClass}`}>
+                            {hw.subject}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            {hw.grade} - {hw.section}
+                          </span>
+                          <span className="text-xs text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" /> Due: <strong className="text-slate-700">{hw.due_date || 'Tomorrow'}</strong>
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900">{hw.title}</h4>
+                        <p className="text-xs text-slate-600 leading-relaxed max-w-3xl whitespace-pre-line">
+                          {hw.description}
+                        </p>
+                        <div className="text-[11px] text-slate-400 pt-1">
+                          Posted: {new Date(hw.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end md:self-start">
+                        <button
+                          onClick={() => handleDeleteHomework(hw.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition"
+                          title="Delete Assignment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB: SAFE PARENT-TEACHER INQUIRIES DESK */}
+      {activeSubtab === 'queries' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Banner */}
+          <div className="card-clean p-6 bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80 border-l-4 border-l-indigo-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-indigo-600" /> Safe Parent–Teacher Query Desk
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                Confidential, official communication desk. Parents send inquiries regarding academic progress, health observations, or class logistics directly through the portal without exposing your personal phone number.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold">
+              <ShieldCheck className="w-4 h-4 text-indigo-600" /> Privacy Protected
+            </div>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="card-clean p-4 border-l-4 border-l-amber-500">
+              <span className="text-xs font-bold uppercase text-slate-500">Pending Parent Responses</span>
+              <p className="text-2xl font-black text-amber-600 mt-1">
+                {queriesList.filter(q => q.status === 'PENDING').length}
+              </p>
+              <span className="text-xs text-slate-400">Requires Teacher Attention</span>
+            </div>
+            <div className="card-clean p-4 border-l-4 border-l-emerald-500">
+              <span className="text-xs font-bold uppercase text-slate-500">Answered Inquiries</span>
+              <p className="text-2xl font-black text-emerald-600 mt-1">
+                {queriesList.filter(q => q.status === 'ANSWERED').length}
+              </p>
+              <span className="text-xs text-slate-400">Resolved &amp; Delivered</span>
+            </div>
+            <div className="card-clean p-4 border-l-4 border-l-indigo-500">
+              <span className="text-xs font-bold uppercase text-slate-500">Total Correspondence</span>
+              <p className="text-2xl font-black text-indigo-600 mt-1">{queriesList.length}</p>
+              <span className="text-xs text-slate-400">100% In-App Traceable</span>
+            </div>
+          </div>
+
+          {/* Queries List */}
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-indigo-600" /> Parent Inquiry Log
+              </h4>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                {queriesList.length} Messages
+              </span>
+            </div>
+
+            {queriesList.length === 0 ? (
+              <div className="p-12 text-center">
+                <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h4 className="font-bold text-slate-800 text-sm">No Parent Inquiries At This Time</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  When parents have questions regarding homework, attendance, or student wellbeing, their confidential messages will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {queriesList.map((q) => (
+                  <div key={q.id} className="p-5 space-y-3 hover:bg-slate-50/50 transition">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                          {q.student?.name?.[0] || 'S'}
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">
+                            Student: {q.student?.name || 'Class Student'} ({q.student?.roll_no || q.student?.admission_number || 'Enrolled'})
+                          </h4>
+                          <p className="text-[11px] text-slate-500">
+                            Guardian: {q.parent?.email || 'Registered Guardian'} &bull; {new Date(q.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
+                        q.status === 'ANSWERED'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {q.status === 'ANSWERED' ? '✓ ANSWERED' : '● AWAITING REPLY'}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                      <p className="text-xs font-bold text-slate-800 mb-1">Subject: {q.subject}</p>
+                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{q.message}</p>
+                    </div>
+
+                    {q.status === 'ANSWERED' ? (
+                      <div className="bg-emerald-50/60 rounded-xl p-3 border border-emerald-200 space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Official Faculty Response</span>
+                          <span className="text-[10px] text-emerald-700 font-normal">
+                            ({new Date(q.updated_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})
+                          </span>
+                        </div>
+                        <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-line">{q.teacher_reply}</p>
+                      </div>
+                    ) : (
+                      <div className="pt-2 space-y-2">
+                        <textarea
+                          rows="2"
+                          placeholder="Type your official confidential reply to the parent..."
+                          value={replyTextMap[q.id] || ''}
+                          onChange={(e) => setReplyTextMap(prev => ({ ...prev, [q.id]: e.target.value }))}
+                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleReplyQuery(q.id)}
+                            disabled={submittingReplyId === q.id || !replyTextMap[q.id]?.trim()}
+                            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            {submittingReplyId === q.id ? 'Sending...' : 'Send Official Reply'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1878,6 +2257,118 @@ export default function ClassTeacherDashboard() {
           </div>
         </div>
       )}
+
+      {/* Post Homework Modal */}
+      {showHomeworkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-5 sm:p-6 border border-slate-200 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Post Daily Homework &amp; Diary</h3>
+                  <p className="text-xs text-slate-500">Publish task to {user?.homeroomGrade || 'Grade 5'} - {user?.homeroomSection || 'B'}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHomeworkModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateHomework} className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subject *</label>
+                  <select
+                    value={homeworkForm.subject}
+                    onChange={(e) => setHomeworkForm({ ...homeworkForm, subject: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                  >
+                    <option>Mathematics</option>
+                    <option>Science</option>
+                    <option>English</option>
+                    <option>Social Studies</option>
+                    <option>Regional Language</option>
+                    <option>Computer Science</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={homeworkForm.dueDate}
+                    onChange={(e) => setHomeworkForm({ ...homeworkForm, dueDate: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Assignment / Topic Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Chapter 4 Fractions Exercise 4.2 (Q1 to Q8)"
+                  value={homeworkForm.title}
+                  onChange={(e) => setHomeworkForm({ ...homeworkForm, title: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Instructions &amp; Guidance</label>
+                <textarea
+                  rows="4"
+                  required
+                  placeholder="Provide detailed instructions, textbook page numbers, key formulas, or reference hints..."
+                  value={homeworkForm.description}
+                  onChange={(e) => setHomeworkForm({ ...homeworkForm, description: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  This assignment will be immediately visible on all parent dashboards in Homeroom {user?.homeroomGrade || 'Grade 5'} - {user?.homeroomSection || 'B'}.
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowHomeworkModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingHomework}
+                  className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {submittingHomework ? 'Publishing...' : 'Publish to Class Diary'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Official CBSE Holistic Report Card Modal */}
+      <PrintableReportCardModal
+        isOpen={!!reportCardStudent}
+        onClose={() => setReportCardStudent(null)}
+        student={reportCardStudent}
+        studentMarks={studentMarks}
+      />
 
       {/* Student Detail Modal */}
       <StudentDetailModal
