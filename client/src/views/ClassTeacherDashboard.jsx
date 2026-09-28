@@ -336,6 +336,14 @@ export default function ClassTeacherDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (activeSubtab === 'queries') {
+      api.getQueries().then(qRes => {
+        setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+      }).catch(() => {});
+    }
+  }, [activeSubtab]);
+
   const handleAttendanceChange = (studentId, status) => {
     setAttendanceState(prev => ({
       ...prev,
@@ -1278,14 +1286,14 @@ export default function ClassTeacherDashboard() {
             <div className="card-clean p-4 border-l-4 border-l-amber-500">
               <span className="text-xs font-bold uppercase text-slate-500">Pending Parent Responses</span>
               <p className="text-2xl font-black text-amber-600 mt-1">
-                {queriesList.filter(q => q.status === 'PENDING').length}
+                {queriesList.filter(q => q.status === 'PENDING' && !q.teacher_reply && !q.teacherReply).length}
               </p>
               <span className="text-xs text-slate-400">Requires Teacher Attention</span>
             </div>
             <div className="card-clean p-4 border-l-4 border-l-emerald-500">
               <span className="text-xs font-bold uppercase text-slate-500">Answered Inquiries</span>
               <p className="text-2xl font-black text-emerald-600 mt-1">
-                {queriesList.filter(q => q.status === 'ANSWERED').length}
+                {queriesList.filter(q => q.status === 'ANSWERED' || q.status === 'RESOLVED' || Boolean(q.teacher_reply || q.teacherReply)).length}
               </p>
               <span className="text-xs text-slate-400">Resolved &amp; Delivered</span>
             </div>
@@ -1317,54 +1325,67 @@ export default function ClassTeacherDashboard() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {queriesList.map((q) => (
-                  <div key={q.id} className="p-5 space-y-3 hover:bg-slate-50/50 transition">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                          {q.student?.name?.[0] || 'S'}
+                {queriesList.map((q) => {
+                  const replyText = q.teacher_reply || q.teacherReply || '';
+                  const isAnswered = q.status === 'ANSWERED' || q.status === 'RESOLVED' || Boolean(replyText);
+                  const studentName = q.student?.name || q.studentName || 'Class Student';
+                  const studentRoll = q.student?.roll_no || q.student?.admission_number || q.studentId || 'Enrolled';
+                  const guardianName = q.parent?.email || q.parent?.name || q.parentName || 'Registered Guardian';
+                  const dateStr = q.created_at || q.createdAt || q.date || Date.now();
+                  const replyDateStr = q.updated_at || dateStr;
+
+                  return (
+                    <div key={q.id} className="p-5 space-y-3 hover:bg-slate-50/50 transition">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                            {studentName[0] || 'S'}
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-900">
+                              Student: {studentName} ({studentRoll})
+                            </h4>
+                            <p className="text-[11px] text-slate-500">
+                              Guardian: {guardianName} &bull; {new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900">
-                            Student: {q.student?.name || 'Class Student'} ({q.student?.roll_no || q.student?.admission_number || 'Enrolled'})
-                          </h4>
-                          <p className="text-[11px] text-slate-500">
-                            Guardian: {q.parent?.email || 'Registered Guardian'} &bull; {new Date(q.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
+                          isAnswered
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {isAnswered ? '✓ ANSWERED' : '● AWAITING REPLY'}
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                        <p className="text-xs font-bold text-slate-800 mb-1">Subject: {q.subject}</p>
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{q.message}</p>
+                      </div>
+
+                      {isAnswered ? (
+                        <div className="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Official Faculty Response</span>
+                            </div>
+                            <span className="text-[10px] text-emerald-700 font-semibold">
+                              {new Date(replyDateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-line font-medium bg-white/70 p-2.5 rounded-lg border border-emerald-200">
+                            {replyText}
                           </p>
                         </div>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
-                        q.status === 'ANSWERED'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {q.status === 'ANSWERED' ? '✓ ANSWERED' : '● AWAITING REPLY'}
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                      <p className="text-xs font-bold text-slate-800 mb-1">Subject: {q.subject}</p>
-                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{q.message}</p>
-                    </div>
-
-                    {q.status === 'ANSWERED' ? (
-                      <div className="bg-emerald-50/60 rounded-xl p-3 border border-emerald-200 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Official Faculty Response</span>
-                          <span className="text-[10px] text-emerald-700 font-normal">
-                            ({new Date(q.updated_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})
-                          </span>
-                        </div>
-                        <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-line">{q.teacher_reply}</p>
-                      </div>
-                    ) : (
-                      <div className="pt-2 space-y-2">
-                        <textarea
-                          rows="2"
-                          placeholder="Type your official confidential reply to the parent..."
-                          value={replyTextMap[q.id] || ''}
-                          onChange={(e) => setReplyTextMap(prev => ({ ...prev, [q.id]: e.target.value }))}
+                      ) : (
+                        <div className="pt-2 space-y-2">
+                          <textarea
+                            rows="2"
+                            placeholder="Type your official confidential reply to the parent..."
+                            value={replyTextMap[q.id] || ''}
+                            onChange={(e) => setReplyTextMap(prev => ({ ...prev, [q.id]: e.target.value }))}
                           className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                         />
                         <div className="flex justify-end">
@@ -1380,7 +1401,8 @@ export default function ClassTeacherDashboard() {
                       </div>
                     )}
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
           </div>

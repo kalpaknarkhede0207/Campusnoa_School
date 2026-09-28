@@ -163,13 +163,21 @@ export default function ParentDashboard() {
         'STUDENT_UPDATED', 'STUDENT_ADMITTED', 'ATTENDANCE_MARKED',
         'FEE_COLLECTED', 'REPORT_PUBLISHED', 'BUS_TELEMETRY_UPDATE',
         'HOMEWORK_PUBLISHED', 'HOMEWORK_DELETED',
-        'PARENT_QUERY_REPLIED', 'GATE_PASS_GENERATED', 'GATE_PASS_VERIFIED'
+        'PARENT_QUERY_REPLIED', 'PARENT_QUERY_SUBMITTED', 'GATE_PASS_GENERATED', 'GATE_PASS_VERIFIED'
       ].includes(event.type)) {
         loadWardData();
       }
     });
     return () => { if (unsub) unsub(); };
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'inquiry') {
+      api.getQueries().then((qRes) => {
+        setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+      }).catch(() => {});
+    }
+  }, [activeTab]);
 
   const handleSelectWard = (index) => {
     setSelectedWardIndex(index);
@@ -399,6 +407,9 @@ export default function ParentDashboard() {
         >
           <MessageSquare className="w-4 h-4" />
           <span>Teacher Inquiries Desk {queriesList.length > 0 ? `(${queriesList.length})` : ''}</span>
+          {queriesList.some(q => q.status === 'ANSWERED' || q.status === 'RESOLVED' || Boolean(q.teacher_reply || q.teacherReply)) && (
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Faculty Response Available"></span>
+          )}
         </button>
 
         <button
@@ -684,44 +695,63 @@ export default function ParentDashboard() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {queriesList.map((q) => (
-                  <div key={q.id} className="p-5 space-y-3 hover:bg-slate-50/50 transition">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">
-                          Subject: {q.subject}
-                        </h4>
-                        <p className="text-[11px] text-slate-500">
-                          Submitted on: {new Date(q.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
-                        q.status === 'ANSWERED'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}>
-                        {q.status === 'ANSWERED' ? '✓ ANSWERED BY FACULTY' : '● AWAITING FACULTY RESPONSE'}
-                      </span>
-                    </div>
+                {queriesList.map((q) => {
+                  const replyText = q.teacher_reply || q.teacherReply || '';
+                  const isAnswered = q.status === 'ANSWERED' || q.status === 'RESOLVED' || Boolean(replyText);
+                  const dateStr = q.created_at || q.createdAt || q.date || Date.now();
+                  const replyDateStr = q.updated_at || dateStr;
+                  const teacherDisplay = q.teacherName || q.teacher?.name || 'Class Faculty';
 
-                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{q.message}</p>
-                    </div>
-
-                    {q.status === 'ANSWERED' && (
-                      <div className="bg-emerald-50/70 rounded-xl p-3.5 border border-emerald-200 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Official Teacher Response</span>
-                          <span className="text-[10px] text-emerald-700 font-normal">
-                            ({new Date(q.updated_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})
-                          </span>
+                  return (
+                    <div key={q.id} className="p-5 space-y-3 hover:bg-slate-50/50 transition">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-slate-900">
+                              Subject: {q.subject}
+                            </h4>
+                            {isAnswered && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                NEW REPLY
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Submitted on: {new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} &bull; Assigned: {teacherDisplay}
+                          </p>
                         </div>
-                        <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-line">{q.teacher_reply}</p>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
+                          isAnswered
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {isAnswered ? '✓ ANSWERED BY FACULTY' : '● AWAITING FACULTY RESPONSE'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{q.message}</p>
+                      </div>
+
+                      {isAnswered && (
+                        <div className="bg-emerald-50/80 rounded-xl p-4 border border-emerald-300 space-y-2 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Official Teacher Response ({teacherDisplay})</span>
+                            </div>
+                            <span className="text-[10px] text-emerald-700 font-semibold">
+                              {new Date(replyDateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-emerald-900 leading-relaxed whitespace-pre-line font-medium bg-white/70 p-3 rounded-lg border border-emerald-200">
+                            {replyText}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
