@@ -3,11 +3,13 @@ import {
   Users, UserCheck, GraduationCap, DollarSign, 
   TrendingUp, AlertCircle, Search, Filter, 
   Grid, List as ListIcon, CheckCircle2, ChevronRight, Eye, RefreshCw,
-  Megaphone, Clock, Send, Trash2, FileCheck, Calendar, BookOpen, Check, X, Shield
+  Megaphone, Clock, Send, Trash2, FileCheck, Calendar, BookOpen, Check, X, Shield,
+  Download, Archive
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
+import { exportToCSV } from '../utils/exportUtils';
 import StudentDetailModal from '../components/StudentDetailModal';
 import FacultyDetailModal from '../components/FacultyDetailModal';
 import UrgentBanner from '../components/UrgentBanner';
@@ -43,6 +45,9 @@ export default function PrincipalDashboard() {
   const { user, showToast } = useAuth();
   const { 
     broadcastTargetedAnnouncement, 
+    deleteAnnouncement,
+    archiveLeave,
+    archivedLeaves = [],
     examApprovals, 
     actionExamApproval, 
     eventApprovals, 
@@ -58,6 +63,7 @@ export default function PrincipalDashboard() {
   const [students, setStudents] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [leaveFilter, setLeaveFilter] = useState('ACTIVE'); // 'ACTIVE' | 'ARCHIVED' | 'ALL'
   const [actingLeaveId, setActingLeaveId] = useState(null);
   const [financeSummary, setFinanceSummary] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
@@ -89,6 +95,40 @@ export default function PrincipalDashboard() {
       loadData();
     } catch (err) {
       showToast(err.message || 'Failed to remove student', 'error');
+    }
+  };
+
+  const handleExportStudentsCSV = () => {
+    if (!students || students.length === 0) {
+      showToast('No student records available to export', 'error');
+      return;
+    }
+    const headers = [
+      { key: 'name', label: 'Student Name' },
+      { key: 'rollNo', label: 'Roll Number' },
+      { key: 'admissionNumber', label: 'Admission Number' },
+      { key: 'grade', label: 'Grade & Section' },
+      { key: 'attendanceRate', label: 'Attendance Rate (%)' },
+      { key: 'feeStatus', label: 'Fee Status' },
+      { key: 'parentName', label: 'Parent / Guardian' },
+      { key: 'parentPhone', label: 'Contact Phone' },
+      { key: 'address', label: 'Address' },
+      { key: 'bloodGroup', label: 'Blood Group' }
+    ];
+    exportToCSV('CampusNoa_Students_Register_2026', students, headers);
+    showToast('Student register exported to CSV successfully', 'success');
+  };
+
+  const handleDeleteAnnouncement = async (a) => {
+    if (!window.confirm(`Are you sure you want to retract / delete announcement "${a.title}"?`)) {
+      return;
+    }
+    try {
+      await deleteAnnouncement(a.id);
+      setAnnouncements(prev => prev.filter(x => x.id !== a.id));
+      showToast('Announcement retracted and removed from live feeds', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to delete announcement', 'error');
     }
   };
 
@@ -469,9 +509,18 @@ export default function PrincipalDashboard() {
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               />
             </div>
-            <span className="text-xs font-semibold text-slate-500">
-              Showing {filteredStudents.length} of {students.length} students
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold text-slate-500">
+                Showing {filteredStudents.length} of {students.length} students
+              </span>
+              <button
+                onClick={handleExportStudentsCSV}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 flex items-center gap-1.5 transition shadow-2xs"
+                title="Export student register to CSV"
+              >
+                <Download className="w-3.5 h-3.5" /> Export Register (CSV)
+              </button>
+            </div>
           </div>
 
           {filteredStudents.length === 0 ? (
@@ -670,26 +719,50 @@ export default function PrincipalDashboard() {
               </div>
 
               <div className="card-clean overflow-hidden">
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-rose-600" /> Faculty Leave Applications & Workload Delegations
+                      <Clock className="w-4 h-4 text-rose-600" /> Faculty Leave Applications &amp; Workload Delegations
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Review proposed staff leaves, nominated peer substitute agreements, and grant administrative sanction
                     </p>
                   </div>
-                  <span className="text-xs text-slate-500 font-mono">
-                    Total: {leaves.length} records
-                  </span>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white">
+                      <button
+                        onClick={() => setLeaveFilter('ACTIVE')}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${leaveFilter === 'ACTIVE' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        Active ({leaves.filter(l => !archivedLeaves.includes(l.id || l._id)).length})
+                      </button>
+                      <button
+                        onClick={() => setLeaveFilter('ARCHIVED')}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${leaveFilter === 'ARCHIVED' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        Archived ({leaves.filter(l => archivedLeaves.includes(l.id || l._id)).length})
+                      </button>
+                      <button
+                        onClick={() => setLeaveFilter('ALL')}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${leaveFilter === 'ALL' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        All ({leaves.length})
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {leaves.length === 0 ? (
+                {leaves.filter(l => {
+                  const isArchived = archivedLeaves.includes(l.id || l._id);
+                  if (leaveFilter === 'ACTIVE') return !isArchived;
+                  if (leaveFilter === 'ARCHIVED') return isArchived;
+                  return true;
+                }).length === 0 ? (
                   <div className="p-12 text-center">
                     <CheckCircle2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <h4 className="font-bold text-slate-800 text-sm">No Leave Applications on File</h4>
+                    <h4 className="font-bold text-slate-800 text-sm">No Leave Applications in this view</h4>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                      All teaching and non-teaching personnel are on active institutional duty.
+                      {leaveFilter === 'ARCHIVED' ? 'No archived leave applications found.' : 'All teaching and non-teaching personnel are on active institutional duty.'}
                     </p>
                   </div>
                 ) : (
@@ -708,7 +781,12 @@ export default function PrincipalDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs">
-                        {leaves.map((l) => {
+                        {leaves.filter(l => {
+                          const isArchived = archivedLeaves.includes(l.id || l._id);
+                          if (leaveFilter === 'ACTIVE') return !isArchived;
+                          if (leaveFilter === 'ARCHIVED') return isArchived;
+                          return true;
+                        }).map((l) => {
                           const isActing = actingLeaveId === (l.id || l._id);
                           return (
                             <tr key={l.id || l._id} className="hover:bg-slate-50/80 transition">
@@ -774,7 +852,25 @@ export default function PrincipalDashboard() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 text-xs italic font-medium">Decided</span>
+                                  <div className="flex items-center justify-end gap-2">
+                                    <span className="text-slate-400 text-xs italic font-medium">Decided</span>
+                                    {!archivedLeaves.includes(l.id || l._id) ? (
+                                      <button
+                                        onClick={() => {
+                                          archiveLeave(l.id || l._id);
+                                          showToast('Leave record moved to archive', 'success');
+                                        }}
+                                        className="px-2 py-0.5 rounded text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition flex items-center gap-1"
+                                        title="Archive completed leave"
+                                      >
+                                        <Archive className="w-3 h-3" /> Archive
+                                      </button>
+                                    ) : (
+                                      <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+                                        <Archive className="w-3 h-3" /> Archived
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </td>
                             </tr>
@@ -1550,9 +1646,19 @@ export default function PrincipalDashboard() {
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.priority === 'HIGH' ? 'bg-rose-200 text-rose-800' : 'bg-slate-200 text-slate-700'}`}>
                           {a.priority === 'HIGH' ? 'High Priority' : 'Normal'}
                         </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          {a.createdAt ? new Date(a.createdAt).toLocaleDateString() : 'Just now'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500 font-medium">
+                            {a.createdAt ? new Date(a.createdAt).toLocaleDateString() : 'Just now'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAnnouncement(a)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-100/60 transition"
+                            title="Retract / Delete Announcement"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                       <h4 className="font-bold text-slate-900 text-sm">{a.title}</h4>
                       <p className="text-xs text-slate-600 mt-1">{a.message}</p>

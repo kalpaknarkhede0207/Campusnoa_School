@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, Bus, Calendar, Award, DollarSign, 
   MapPin, Phone, ShieldCheck, CheckCircle2, Clock, ChevronRight, Navigation, AlertCircle,
-  BookOpen, MessageSquare, KeyRound, Printer, PlusCircle, Send, Check, Users, Sparkles, XCircle
+  BookOpen, MessageSquare, KeyRound, Printer, PlusCircle, Send, Check, Users, Sparkles, XCircle,
+  Archive, Trash2, CheckCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -19,9 +20,11 @@ export default function ParentDashboard() {
   // Homework Diary state
   const [homeworkList, setHomeworkList] = useState([]);
   const [completedHomework, setCompletedHomework] = useState({});
+  const [homeworkFilter, setHomeworkFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'COMPLETED'
 
   // Safe Teacher Query Desk state
   const [queriesList, setQueriesList] = useState([]);
+  const [queryFilter, setQueryFilter] = useState('ACTIVE'); // 'ACTIVE' | 'ARCHIVED' | 'ALL'
   const [showQueryModal, setShowQueryModal] = useState(false);
   const [queryForm, setQueryForm] = useState({ subject: 'Academic Progress Inquiry', message: '' });
   const [submittingQuery, setSubmittingQuery] = useState(false);
@@ -247,6 +250,40 @@ export default function ParentDashboard() {
     }
   };
 
+  const handleCancelPass = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel and revoke this Gate Pass? The OTP will be invalidated immediately.')) return;
+    try {
+      await api.cancelGatePass(id);
+      showToast('Gate Pass cancelled and revoked', 'success');
+      const gpRes = await api.getActiveGatePasses().catch(() => ({ passes: [] }));
+      setGatePasses(Array.isArray(gpRes?.passes) ? gpRes.passes : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to cancel gate pass', 'error');
+    }
+  };
+
+  const handleCompletePass = async (id) => {
+    try {
+      await api.completeGatePass(id);
+      showToast('Child marked as safely picked up! Gate record closed.', 'success');
+      const gpRes = await api.getActiveGatePasses().catch(() => ({ passes: [] }));
+      setGatePasses(Array.isArray(gpRes?.passes) ? gpRes.passes : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to complete gate pass', 'error');
+    }
+  };
+
+  const handleArchiveQuery = async (queryId) => {
+    try {
+      await api.archiveQuery(queryId);
+      showToast('Inquiry moved to archive', 'success');
+      const qRes = await api.getQueries().catch(() => ({ queries: [] }));
+      setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to archive inquiry', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500">
@@ -287,8 +324,9 @@ export default function ParentDashboard() {
     );
   }
 
-  // Active gate pass for current student
-  const activeGatePass = gatePasses.find(gp => gp.student_id === student.id || !gp.student_id);
+  // Active gate pass for current student (only ISSUED status is active)
+  const activeGatePass = gatePasses.find(gp => (gp.student_id === student.id || !gp.student_id) && gp.status === 'ISSUED');
+  const pastGatePasses = gatePasses.filter(gp => gp.id !== activeGatePass?.id);
 
   // Sibling discount calculations
   const hasSiblingDiscount = student.siblingDiscountPercent > 0;
@@ -564,26 +602,63 @@ export default function ParentDashboard() {
 
           {/* Homework List */}
           <div className="card-clean overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-600" /> Task Checklist &amp; Lesson Notes
-              </h4>
-              <span className="text-xs text-slate-500">
-                {Object.values(completedHomework).filter(Boolean).length} / {homeworkList.length} Completed
-              </span>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" /> Task Checklist &amp; Lesson Notes
+                </h4>
+                <span className="text-xs text-slate-500 font-medium">
+                  {Object.values(completedHomework).filter(Boolean).length} / {homeworkList.length} Completed
+                </span>
+              </div>
+              <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setHomeworkFilter('ALL')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${homeworkFilter === 'ALL' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  All ({homeworkList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeworkFilter('PENDING')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${homeworkFilter === 'PENDING' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Due / Pending ({homeworkList.filter(hw => !completedHomework[hw.id]).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeworkFilter('COMPLETED')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${homeworkFilter === 'COMPLETED' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Completed ({homeworkList.filter(hw => completedHomework[hw.id]).length})
+                </button>
+              </div>
             </div>
 
-            {homeworkList.length === 0 ? (
+            {homeworkList.filter(hw => {
+              const isDone = !!completedHomework[hw.id];
+              if (homeworkFilter === 'PENDING') return !isDone;
+              if (homeworkFilter === 'COMPLETED') return isDone;
+              return true;
+            }).length === 0 ? (
               <div className="p-12 text-center">
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                <h4 className="font-bold text-slate-800 text-sm">All Homework Caught Up!</h4>
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {homeworkFilter === 'PENDING' ? 'All Caught Up! No Pending Tasks' : 'No Homework in this View'}
+                </h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                  There are no pending homework assignments published for {student.gradeDisplay} today.
+                  {homeworkFilter === 'PENDING' ? 'All published homework assignments have been completed.' : 'Check back later for newly published tasks.'}
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {homeworkList.map((hw) => {
+                {homeworkList.filter(hw => {
+                  const isDone = !!completedHomework[hw.id];
+                  if (homeworkFilter === 'PENDING') return !isDone;
+                  if (homeworkFilter === 'COMPLETED') return isDone;
+                  return true;
+                }).map((hw) => {
                   const isDone = !!completedHomework[hw.id];
                   const subjectColors = {
                     Mathematics: 'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -670,32 +745,69 @@ export default function ParentDashboard() {
 
           {/* Queries List */}
           <div className="card-clean overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-600" /> My Correspondence History
-              </h4>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                {queriesList.length} Messages
-              </span>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-indigo-600" /> My Correspondence History
+                </h4>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                  {queriesList.length} Messages
+                </span>
+              </div>
+              <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setQueryFilter('ACTIVE')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${queryFilter === 'ACTIVE' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Active ({queriesList.filter(q => q.status !== 'ARCHIVED').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueryFilter('ARCHIVED')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${queryFilter === 'ARCHIVED' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Archived ({queriesList.filter(q => q.status === 'ARCHIVED').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueryFilter('ALL')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${queryFilter === 'ALL' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  All ({queriesList.length})
+                </button>
+              </div>
             </div>
 
-            {queriesList.length === 0 ? (
+            {queriesList.filter(q => {
+              if (queryFilter === 'ACTIVE') return q.status !== 'ARCHIVED';
+              if (queryFilter === 'ARCHIVED') return q.status === 'ARCHIVED';
+              return true;
+            }).length === 0 ? (
               <div className="p-12 text-center">
                 <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h4 className="font-bold text-slate-800 text-sm">No Active Queries</h4>
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {queryFilter === 'ARCHIVED' ? 'No Archived Inquiries' : 'No Active Queries'}
+                </h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                  Have a question regarding homework, attendance, or exam preparation? Send an in-app inquiry to {student.name}'s class teacher.
+                  {queryFilter === 'ARCHIVED' ? 'Inquiries that you have archived will appear here.' : `Have a question regarding homework, attendance, or exam preparation? Send an in-app inquiry to ${student.name}'s class teacher.`}
                 </p>
-                <button
-                  onClick={() => setShowQueryModal(true)}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-xs hover:bg-indigo-500 inline-flex items-center gap-1.5"
-                >
-                  <PlusCircle className="w-4 h-4" /> Ask a Question
-                </button>
+                {queryFilter !== 'ARCHIVED' && (
+                  <button
+                    onClick={() => setShowQueryModal(true)}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-xs hover:bg-indigo-500 inline-flex items-center gap-1.5"
+                  >
+                    <PlusCircle className="w-4 h-4" /> Ask a Question
+                  </button>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {queriesList.map((q) => {
+                {queriesList.filter(q => {
+                  if (queryFilter === 'ACTIVE') return q.status !== 'ARCHIVED';
+                  if (queryFilter === 'ARCHIVED') return q.status === 'ARCHIVED';
+                  return true;
+                }).map((q) => {
                   const replyText = q.teacher_reply || q.teacherReply || '';
                   const isAnswered = q.status === 'ANSWERED' || q.status === 'RESOLVED' || Boolean(replyText);
                   const dateStr = q.created_at || q.createdAt || q.date || Date.now();
@@ -740,9 +852,21 @@ export default function ParentDashboard() {
                               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                               <span>Official Teacher Response ({teacherDisplay})</span>
                             </div>
-                            <span className="text-[10px] text-emerald-700 font-semibold">
-                              {new Date(replyDateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-emerald-700 font-semibold">
+                                {new Date(replyDateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {q.status !== 'ARCHIVED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleArchiveQuery(q.id)}
+                                  className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-600 hover:text-slate-900 border border-emerald-300 hover:bg-emerald-100 transition flex items-center gap-1 shadow-2xs"
+                                  title="Archive resolved inquiry"
+                                >
+                                  <Archive className="w-3 h-3" /> Archive
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <p className="text-xs text-emerald-900 leading-relaxed whitespace-pre-line font-medium bg-white/70 p-3 rounded-lg border border-emerald-200">
                             {replyText}
@@ -814,6 +938,26 @@ export default function ParentDashboard() {
                   <span className="text-[10px] text-slate-400 mt-1">Show to Gate Guard</span>
                 </div>
               </div>
+
+              {/* Pass Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-emerald-200/80">
+                <button
+                  type="button"
+                  onClick={() => handleCompletePass(activeGatePass.id)}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                  title="Mark child as safely released and picked up"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Mark as Picked Up
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCancelPass(activeGatePass.id)}
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 font-bold text-xs border border-rose-200 transition flex items-center gap-1.5 shadow-2xs"
+                  title="Revoke / Cancel this active pass"
+                >
+                  <XCircle className="w-4 h-4" /> Cancel / Revoke Pass
+                </button>
+              </div>
             </div>
           ) : (
             <div className="card-clean p-12 text-center">
@@ -828,6 +972,47 @@ export default function ParentDashboard() {
               >
                 <PlusCircle className="w-4 h-4" /> Request Pick-up Pass
               </button>
+            </div>
+          )}
+
+          {/* Past Gate Passes History & Verification Logs */}
+          {pastGatePasses.length > 0 && (
+            <div className="card-clean overflow-hidden">
+              <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-slate-500" /> Recent Gate Passes &amp; Release History
+                </h4>
+                <span className="text-xs text-slate-500 font-medium">
+                  {pastGatePasses.length} Recorded Passes
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {pastGatePasses.map(gp => {
+                  const isPickedUp = gp.status === 'PICKED_UP' || gp.status === 'VERIFIED';
+                  const isCancelled = gp.status === 'CANCELLED';
+                  return (
+                    <div key={gp.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-slate-900">{gp.escort_name}</span>
+                          <span className="text-slate-400 font-mono">({gp.escort_phone})</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isPickedUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            isCancelled ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                            'bg-slate-100 text-slate-700'
+                          }`}>
+                            {gp.status}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 text-[11px]">Reason: {gp.reason}</p>
+                      </div>
+                      <div className="text-right text-[11px] text-slate-400 font-mono">
+                        OTP: <span className="font-bold text-slate-700">{gp.otp_code}</span> &bull; {new Date(gp.created_at || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

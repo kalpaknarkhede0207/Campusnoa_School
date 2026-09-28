@@ -511,6 +511,19 @@ export const api = {
     });
   },
 
+  async updateHomework(id, data) {
+    return request(`/homework/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async archiveHomework(id) {
+    return request(`/homework/${id}/archive`, {
+      method: 'POST',
+    });
+  },
+
   // Safe Parent-Teacher Queries
   async getQueries(params = {}) {
     const qs = new URLSearchParams(params).toString();
@@ -531,6 +544,12 @@ export const api = {
     });
   },
 
+  async archiveQuery(id) {
+    return request(`/queries/${id}/archive`, {
+      method: 'POST',
+    });
+  },
+
   // Gate Security & Child Pick-up Passes
   async getActiveGatePasses() {
     return request('/gate-pass/active');
@@ -545,6 +564,51 @@ export const api = {
 
   async verifyGatePass(data) {
     return request('/gate-pass/verify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async cancelGatePass(id) {
+    return request(`/gate-pass/${id}/cancel`, {
+      method: 'POST',
+    });
+  },
+
+  async completeGatePass(id) {
+    return request(`/gate-pass/${id}/pickup`, {
+      method: 'POST',
+    });
+  },
+
+  // Entity Updates
+  async updateStudent(id, data) {
+    return request(`/students/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateFaculty(id, data) {
+    return request(`/faculty/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Announcements & Settings
+  async deleteAnnouncement(id) {
+    return request(`/announcements/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getSettings() {
+    return request('/settings');
+  },
+
+  async updateSettings(data) {
+    return request('/settings', {
       method: 'POST',
       body: JSON.stringify(data),
     });

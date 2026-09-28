@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, CreditCard, Clock, CheckCircle2, 
   Search, ArrowDownToLine, Receipt, AlertCircle, RefreshCw, PlusCircle,
-  Users, Check, X, ShieldCheck, ChevronRight
+  Users, Check, X, ShieldCheck, ChevronRight, Trash2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { exportToCSV } from '../utils/exportUtils';
 
 const ALL_STANDARD_GRADES = [
   'Grade 1-A', 'Grade 1-B', 'Grade 1-C',
@@ -180,6 +181,30 @@ export default function AccountantDashboard() {
     setShowAddModal(true);
   };
 
+  const handleExportLedgerCSV = () => {
+    if (!transactions || transactions.length === 0) {
+      showToast('No ledger transactions available to export', 'error');
+      return;
+    }
+    const headers = [
+      { key: 'refNo', label: 'Receipt / Ref No' },
+      { key: 'studentName', label: 'Student Name' },
+      { key: 'grade', label: 'Grade & Section' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'method', label: 'Payment Channel' },
+      { key: 'date', label: 'Transaction Date' },
+      { key: 'status', label: 'Status' }
+    ];
+    exportToCSV('CampusNoa_Fee_Ledger_2026', transactions, headers);
+    showToast('Fee ledger exported to CSV successfully', 'success');
+  };
+
+  const handleVoidTransaction = (tx) => {
+    if (!window.confirm(`Are you sure you want to void / cancel transaction ${tx.refNo || tx.id}?`)) return;
+    setTransactions(prev => prev.filter(t => (t.id || t.refNo) !== (tx.id || tx.refNo)));
+    showToast(`Transaction ${tx.refNo || tx.id} voided successfully`, 'success');
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -211,10 +236,10 @@ export default function AccountantDashboard() {
             <PlusCircle className="w-4 h-4" /> Record Fee Receipt
           </button>
           <button
-            onClick={() => showToast('Exported daily ledger to Excel / CSV', 'info')}
+            onClick={handleExportLedgerCSV}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5 shadow-xs"
           >
-            <ArrowDownToLine className="w-4 h-4" /> Export Report
+            <ArrowDownToLine className="w-4 h-4" /> Export Report (CSV)
           </button>
         </div>
       </div>
@@ -497,21 +522,30 @@ export default function AccountantDashboard() {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            {!isCompleted ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              {!isCompleted ? (
+                                <button
+                                  onClick={() => handleReconcile(tx)}
+                                  className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs border border-indigo-200 transition"
+                                >
+                                  Reconcile Fee
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => showToast(`Receipt generated for ${tx.refNo}`, 'info')}
+                                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"
+                                >
+                                  Print Receipt
+                                </button>
+                              )}
                               <button
-                                onClick={() => handleReconcile(tx)}
-                                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs border border-indigo-200 transition"
+                                onClick={() => handleVoidTransaction(tx)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                title="Void / Cancel Transaction Record"
                               >
-                                Reconcile Fee
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            ) : (
-                              <button
-                                onClick={() => showToast(`Receipt generated for ${tx.refNo}`, 'info')}
-                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"
-                              >
-                                Print Receipt
-                              </button>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       );

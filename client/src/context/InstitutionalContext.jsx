@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 const InstitutionalContext = createContext(null);
 
@@ -12,7 +13,47 @@ const STORAGE_KEYS = {
   REMOVED_ISSUES: 'campusnoa_removed_issues',
   REMOVED_BORROWERS: 'campusnoa_removed_borrowers',
   REMOVED_TRACKS: 'campusnoa_removed_tracks',
-  READ_NOTIFICATIONS: 'campusnoa_read_notifications'
+  READ_NOTIFICATIONS: 'campusnoa_read_notifications',
+  SETTINGS: 'campusnoa_institutional_settings',
+  DISMISSED_NOTIFICATIONS: 'campusnoa_dismissed_notifications',
+  ARCHIVED_POLICIES: 'campusnoa_archived_policies',
+  ARCHIVED_LEAVES: 'campusnoa_archived_leaves'
+};
+
+const DEFAULT_SETTINGS = {
+  institutionName: 'CAMPUSNOA PUBLIC SCHOOL',
+  trustName: 'CampusNoa Education Foundation',
+  affiliationCode: 'CBSE/AFF/113089',
+  registrationNumber: 'REG-MH-2018-9921',
+  schoolAddress: 'Survey No. 42, Knowledge Park Highway, Pune, Maharashtra 411045',
+  contactEmail: 'administration@campusnoa.edu.in',
+  contactPhone: '+91 20 2845 9900',
+  principalSignatureName: 'Dr. Eleanor Vance, Ph.D.',
+  academicYear: '2026–2027',
+  term1Start: '2026-04-01',
+  term1End: '2026-09-30',
+  term2Start: '2026-10-01',
+  term2End: '2027-03-31',
+  dailyStartHour: '08:00 AM',
+  dailyEndHour: '02:30 PM',
+  passingMarksPercent: 33,
+  currency: 'INR',
+  notificationChannels: {
+    sms: true,
+    whatsapp: true,
+    email: true,
+    inApp: true
+  },
+  gradingScale: [
+    { grade: 'A1', min: 91, max: 100, gpa: 10.0, remark: 'Outstanding Performance' },
+    { grade: 'A2', min: 81, max: 90, gpa: 9.0, remark: 'Excellent Grasp' },
+    { grade: 'B1', min: 71, max: 80, gpa: 8.0, remark: 'Very Good' },
+    { grade: 'B2', min: 61, max: 70, gpa: 7.0, remark: 'Good Proficiency' },
+    { grade: 'C1', min: 51, max: 60, gpa: 6.0, remark: 'Satisfactory' },
+    { grade: 'C2', min: 41, max: 50, gpa: 5.0, remark: 'Developing Competency' },
+    { grade: 'D', min: 33, max: 40, gpa: 4.0, remark: 'Basic Passing Threshold' },
+    { grade: 'E', min: 0, max: 32, gpa: 0.0, remark: 'Needs Remediated Intervention' }
+  ]
 };
 
 const DEFAULT_POLICIES = [
@@ -231,6 +272,42 @@ export function InstitutionalProvider({ children }) {
     }
   });
 
+  const [institutionalSettings, setInstitutionalSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  });
+
+  const [dismissedNotifications, setDismissedNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.DISMISSED_NOTIFICATIONS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [archivedPolicies, setArchivedPolicies] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ARCHIVED_POLICIES);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [archivedLeaves, setArchivedLeaves] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ARCHIVED_LEAVES);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Cross-tab synchronization via storage event
   useEffect(() => {
     const handleStorage = (e) => {
@@ -246,6 +323,10 @@ export function InstitutionalProvider({ children }) {
         if (e.key === STORAGE_KEYS.REMOVED_BORROWERS && e.newValue) setRemovedBorrowers(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.REMOVED_TRACKS && e.newValue) setRemovedTracks(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.READ_NOTIFICATIONS && e.newValue) setReadNotifications(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.SETTINGS && e.newValue) setInstitutionalSettings(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.DISMISSED_NOTIFICATIONS && e.newValue) setDismissedNotifications(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.ARCHIVED_POLICIES && e.newValue) setArchivedPolicies(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.ARCHIVED_LEAVES && e.newValue) setArchivedLeaves(JSON.parse(e.newValue));
       } catch (err) {
         console.error('Storage sync error:', err);
       }
@@ -253,6 +334,16 @@ export function InstitutionalProvider({ children }) {
 
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // Fetch settings on initial load from API
+  useEffect(() => {
+    api.getSettings().then(res => {
+      if (res?.settings) {
+        setInstitutionalSettings(res.settings);
+        persistState(STORAGE_KEYS.SETTINGS, res.settings);
+      }
+    }).catch(() => null);
   }, []);
 
   // Save changes to localStorage
@@ -616,16 +707,68 @@ export function InstitutionalProvider({ children }) {
         });
     }
 
-    return notifs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return notifs
+      .filter(n => !dismissedNotifications.includes(n.id))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   };
+
+  const updateInstitutionalSettings = async (newSettings) => {
+    setInstitutionalSettings(newSettings);
+    persistState(STORAGE_KEYS.SETTINGS, newSettings);
+    try {
+      await api.updateSettings(newSettings);
+    } catch (e) {
+      console.warn('Backend settings update warning:', e);
+    }
+  };
+
+  const dismissNotification = (notifId) => {
+    const updated = Array.from(new Set([...dismissedNotifications, notifId]));
+    setDismissedNotifications(updated);
+    persistState(STORAGE_KEYS.DISMISSED_NOTIFICATIONS, updated);
+  };
+
+  const clearAllReadNotifications = (ids) => {
+    const updated = Array.from(new Set([...dismissedNotifications, ...ids]));
+    setDismissedNotifications(updated);
+    persistState(STORAGE_KEYS.DISMISSED_NOTIFICATIONS, updated);
+  };
+
+  const archivePolicy = (policyId) => {
+    const updated = Array.from(new Set([...archivedPolicies, policyId]));
+    setArchivedPolicies(updated);
+    persistState(STORAGE_KEYS.ARCHIVED_POLICIES, updated);
+  };
+
+  const archiveLeave = (leaveId) => {
+    const updated = Array.from(new Set([...archivedLeaves, leaveId]));
+    setArchivedLeaves(updated);
+    persistState(STORAGE_KEYS.ARCHIVED_LEAVES, updated);
+  };
+
+  const deleteAnnouncement = async (annId) => {
+    const updated = targetedAnnouncements.filter(a => a.id !== annId);
+    setTargetedAnnouncements(updated);
+    persistState(STORAGE_KEYS.ANNOUNCEMENTS, updated);
+    try {
+      await api.deleteAnnouncement(annId);
+    } catch (e) {
+      console.warn('Backend announcement delete warning:', e);
+    }
+  };
+
+  const visiblePolicies = policies.filter(p => !archivedPolicies.includes(p.id));
 
   return (
     <InstitutionalContext.Provider
       value={{
-        policies,
+        policies: visiblePolicies,
+        allPolicies: policies,
         publishPolicy,
+        archivePolicy,
         targetedAnnouncements,
         broadcastTargetedAnnouncement,
+        deleteAnnouncement,
         examApprovals,
         submitExamForApproval,
         actionExamApproval,
@@ -646,7 +789,13 @@ export function InstitutionalProvider({ children }) {
         readNotifications,
         markNotificationRead,
         markAllNotificationsRead,
-        getNotificationsForUser
+        dismissNotification,
+        clearAllReadNotifications,
+        getNotificationsForUser,
+        institutionalSettings,
+        updateInstitutionalSettings,
+        archivedLeaves,
+        archiveLeave
       }}
     >
       {children}

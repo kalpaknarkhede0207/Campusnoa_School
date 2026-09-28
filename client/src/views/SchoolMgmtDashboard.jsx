@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, TrendingUp, Users, DollarSign, ShieldCheck, Award, RefreshCw, 
   ClipboardList, BarChart2, Calendar, CheckCircle2, AlertTriangle, FileText,
-  Sparkles, Plus, Send, Check, Shield, BookOpen, UserPlus, Sliders, ChevronRight
+  Sparkles, Plus, Send, Check, Shield, BookOpen, UserPlus, Sliders, ChevronRight, Trash2
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -37,7 +37,7 @@ ChartJS.register(
 
 export default function SchoolMgmtDashboard() {
   const { showToast } = useAuth();
-  const { policies, publishPolicy } = useInstitutional();
+  const { policies, publishPolicy, archivePolicy } = useInstitutional();
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'policies', 'staff', 'leaves', 'compliance'
   const [stats, setStats] = useState(null);
   const [leaves, setLeaves] = useState([]);
@@ -726,9 +726,24 @@ export default function SchoolMgmtDashboard() {
                       {pol.summary}
                     </p>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400 pt-3 border-t border-slate-100">
                       <span>Published by: <strong className="text-slate-700">{pol.publishedBy}</strong></span>
-                      <span className="font-mono">Broadcasting to all authority dashboards (Parent excluded)</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono hidden sm:inline">Broadcasting to all authority dashboards</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to retract and archive policy "${pol.title}"?`)) {
+                              archivePolicy(pol.id);
+                              showToast('Policy retracted and moved to archive', 'success');
+                            }
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 flex items-center gap-1 transition shadow-2xs"
+                          title="Retract / Archive Policy"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Retract Policy
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

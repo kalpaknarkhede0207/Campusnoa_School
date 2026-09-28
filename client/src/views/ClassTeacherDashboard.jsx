@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, CheckCircle2, XCircle, Clock, Save, 
   DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap,
-  Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck, ShieldCheck
+  Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck, ShieldCheck,
+  Edit2, Archive, CheckCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,8 @@ export default function ClassTeacherDashboard() {
 
   // Homework & Digital Diary State
   const [homeworkList, setHomeworkList] = useState([]);
+  const [hwFilter, setHwFilter] = useState('ACTIVE'); // 'ACTIVE' | 'ARCHIVED' | 'ALL'
+  const [editingHomework, setEditingHomework] = useState(null);
   const [showHomeworkModal, setShowHomeworkModal] = useState(false);
   const [homeworkForm, setHomeworkForm] = useState({
     subject: 'Mathematics',
@@ -35,6 +38,7 @@ export default function ClassTeacherDashboard() {
 
   // Safe Parent-Teacher Query Desk State
   const [queriesList, setQueriesList] = useState([]);
+  const [queryFilter, setQueryFilter] = useState('ACTIVE'); // 'ACTIVE' | 'ARCHIVED' | 'ALL'
   const [replyTextMap, setReplyTextMap] = useState({});
   const [submittingReplyId, setSubmittingReplyId] = useState(null);
 
@@ -313,6 +317,53 @@ export default function ClassTeacherDashboard() {
       setHomeworkList(prev => prev.filter(h => h.id !== id));
     } catch (err) {
       showToast(err.message || 'Failed to remove homework', 'error');
+    }
+  };
+
+  const handleArchiveHomework = async (id) => {
+    try {
+      await api.archiveHomework(id);
+      showToast('Homework assignment moved to archive', 'success');
+      const hwRes = await api.getHomework({
+        grade: user?.homeroomGrade || 'Grade 5',
+        section: user?.homeroomSection || 'B'
+      }).catch(() => ({ homework: [] }));
+      setHomeworkList(Array.isArray(hwRes?.homework) ? hwRes.homework : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to archive homework', 'error');
+    }
+  };
+
+  const handleUpdateHomework = async (e) => {
+    e.preventDefault();
+    if (!editingHomework) return;
+    try {
+      await api.updateHomework(editingHomework.id, {
+        title: editingHomework.title,
+        description: editingHomework.description,
+        due_date: editingHomework.dueDate || editingHomework.due_date,
+        subject: editingHomework.subject
+      });
+      showToast('Homework assignment updated successfully', 'success');
+      setEditingHomework(null);
+      const hwRes = await api.getHomework({
+        grade: user?.homeroomGrade || 'Grade 5',
+        section: user?.homeroomSection || 'B'
+      }).catch(() => ({ homework: [] }));
+      setHomeworkList(Array.isArray(hwRes?.homework) ? hwRes.homework : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to update homework', 'error');
+    }
+  };
+
+  const handleArchiveQuery = async (queryId) => {
+    try {
+      await api.archiveQuery(queryId);
+      showToast('Inquiry moved to archive', 'success');
+      const qRes = await api.getQueries().catch(() => ({ queries: [] }));
+      setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+    } catch (err) {
+      showToast(err.message || 'Failed to archive inquiry', 'error');
     }
   };
 
@@ -1186,32 +1237,69 @@ export default function ClassTeacherDashboard() {
 
           {/* Homework Assignments Grid / List */}
           <div className="card-clean overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-600" /> Active Assignment Log
-              </h4>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                {homeworkList.length} Total Entries
-              </span>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" /> Active Assignment Log
+                </h4>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  {homeworkList.length} Total Entries
+                </span>
+              </div>
+              <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setHwFilter('ACTIVE')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${hwFilter === 'ACTIVE' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Active ({homeworkList.filter(h => h.status !== 'ARCHIVED').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHwFilter('ARCHIVED')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${hwFilter === 'ARCHIVED' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Archived ({homeworkList.filter(h => h.status === 'ARCHIVED').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHwFilter('ALL')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${hwFilter === 'ALL' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  All ({homeworkList.length})
+                </button>
+              </div>
             </div>
 
-            {homeworkList.length === 0 ? (
+            {homeworkList.filter(h => {
+              if (hwFilter === 'ACTIVE') return h.status !== 'ARCHIVED';
+              if (hwFilter === 'ARCHIVED') return h.status === 'ARCHIVED';
+              return true;
+            }).length === 0 ? (
               <div className="p-12 text-center">
                 <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h4 className="font-bold text-slate-800 text-sm">No Homework Assigned Yet</h4>
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {hwFilter === 'ARCHIVED' ? 'No Archived Assignments' : 'No Homework Assigned Yet'}
+                </h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                  Keep students and parents engaged by publishing today's lesson objectives and homework tasks.
+                  {hwFilter === 'ARCHIVED' ? 'Archived homework items will be stored here.' : 'Keep students and parents engaged by publishing today\'s lesson objectives and homework tasks.'}
                 </p>
-                <button
-                  onClick={() => setShowHomeworkModal(true)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-500 inline-flex items-center gap-1.5"
-                >
-                  <PlusCircle className="w-4 h-4" /> Create First Task
-                </button>
+                {hwFilter !== 'ARCHIVED' && (
+                  <button
+                    onClick={() => setShowHomeworkModal(true)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-500 inline-flex items-center gap-1.5"
+                  >
+                    <PlusCircle className="w-4 h-4" /> Create First Task
+                  </button>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {homeworkList.map((hw) => {
+                {homeworkList.filter(h => {
+                  if (hwFilter === 'ACTIVE') return h.status !== 'ARCHIVED';
+                  if (hwFilter === 'ARCHIVED') return h.status === 'ARCHIVED';
+                  return true;
+                }).map((hw) => {
                   const subjectColors = {
                     Mathematics: 'bg-indigo-50 text-indigo-700 border-indigo-200',
                     Science: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -1235,6 +1323,11 @@ export default function ClassTeacherDashboard() {
                           <span className="text-xs text-slate-400 flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" /> Due: <strong className="text-slate-700">{hw.due_date || 'Tomorrow'}</strong>
                           </span>
+                          {hw.status === 'ARCHIVED' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300">
+                              ARCHIVED
+                            </span>
+                          )}
                         </div>
                         <h4 className="text-sm font-bold text-slate-900">{hw.title}</h4>
                         <p className="text-xs text-slate-600 leading-relaxed max-w-3xl whitespace-pre-line">
@@ -1247,6 +1340,31 @@ export default function ClassTeacherDashboard() {
 
                       <div className="flex items-center gap-2 shrink-0 self-end md:self-start">
                         <button
+                          type="button"
+                          onClick={() => setEditingHomework({
+                            id: hw.id,
+                            title: hw.title,
+                            description: hw.description,
+                            dueDate: hw.due_date || new Date().toISOString().split('T')[0],
+                            subject: hw.subject
+                          })}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 transition"
+                          title="Edit Assignment"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        {hw.status !== 'ARCHIVED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleArchiveHomework(hw.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-slate-200 transition"
+                            title="Archive Assignment"
+                          >
+                            <Archive className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
                           onClick={() => handleDeleteHomework(hw.id)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition"
                           title="Delete Assignment"
@@ -1306,26 +1424,61 @@ export default function ClassTeacherDashboard() {
 
           {/* Queries List */}
           <div className="card-clean overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-600" /> Parent Inquiry Log
-              </h4>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                {queriesList.length} Messages
-              </span>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-indigo-600" /> Parent Inquiry Log
+                </h4>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                  {queriesList.length} Messages
+                </span>
+              </div>
+              <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setQueryFilter('ACTIVE')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${queryFilter === 'ACTIVE' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Active ({queriesList.filter(q => q.status !== 'ARCHIVED').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueryFilter('ARCHIVED')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${queryFilter === 'ARCHIVED' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Archived ({queriesList.filter(q => q.status === 'ARCHIVED').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQueryFilter('ALL')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${queryFilter === 'ALL' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  All ({queriesList.length})
+                </button>
+              </div>
             </div>
 
-            {queriesList.length === 0 ? (
+            {queriesList.filter(q => {
+              if (queryFilter === 'ACTIVE') return q.status !== 'ARCHIVED';
+              if (queryFilter === 'ARCHIVED') return q.status === 'ARCHIVED';
+              return true;
+            }).length === 0 ? (
               <div className="p-12 text-center">
                 <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h4 className="font-bold text-slate-800 text-sm">No Parent Inquiries At This Time</h4>
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {queryFilter === 'ARCHIVED' ? 'No Archived Inquiries' : 'No Parent Inquiries At This Time'}
+                </h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                  When parents have questions regarding homework, attendance, or student wellbeing, their confidential messages will appear here.
+                  {queryFilter === 'ARCHIVED' ? 'Inquiries archived by the teacher will appear here.' : 'When parents have questions regarding homework, attendance, or student wellbeing, their confidential messages will appear here.'}
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {queriesList.map((q) => {
+                {queriesList.filter(q => {
+                  if (queryFilter === 'ACTIVE') return q.status !== 'ARCHIVED';
+                  if (queryFilter === 'ARCHIVED') return q.status === 'ARCHIVED';
+                  return true;
+                }).map((q) => {
                   const replyText = q.teacher_reply || q.teacherReply || '';
                   const isAnswered = q.status === 'ANSWERED' || q.status === 'RESOLVED' || Boolean(replyText);
                   const studentName = q.student?.name || q.studentName || 'Class Student';
@@ -1371,9 +1524,21 @@ export default function ClassTeacherDashboard() {
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                               <span>Official Faculty Response</span>
                             </div>
-                            <span className="text-[10px] text-emerald-700 font-semibold">
-                              {new Date(replyDateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-emerald-700 font-semibold">
+                                {new Date(replyDateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {q.status !== 'ARCHIVED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleArchiveQuery(q.id)}
+                                  className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-600 hover:text-slate-900 border border-emerald-300 hover:bg-emerald-100 transition flex items-center gap-1 shadow-2xs"
+                                  title="Archive resolved inquiry"
+                                >
+                                  <Archive className="w-3 h-3" /> Archive
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-line font-medium bg-white/70 p-2.5 rounded-lg border border-emerald-200">
                             {replyText}
@@ -1386,23 +1551,23 @@ export default function ClassTeacherDashboard() {
                             placeholder="Type your official confidential reply to the parent..."
                             value={replyTextMap[q.id] || ''}
                             onChange={(e) => setReplyTextMap(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        />
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() => handleReplyQuery(q.id)}
-                            disabled={submittingReplyId === q.id || !replyTextMap[q.id]?.trim()}
-                            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            {submittingReplyId === q.id ? 'Sending...' : 'Send Official Reply'}
-                          </button>
+                            className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                          />
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleReplyQuery(q.id)}
+                              disabled={submittingReplyId === q.id || !replyTextMap[q.id]?.trim()}
+                              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              {submittingReplyId === q.id ? 'Sending...' : 'Send Official Reply'}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2377,6 +2542,94 @@ export default function ClassTeacherDashboard() {
                 >
                   <Send className="w-3.5 h-3.5" />
                   {submittingHomework ? 'Publishing...' : 'Publish to Class Diary'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT HOMEWORK MODAL */}
+      {editingHomework && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-indigo-600" /> Edit Homework Assignment
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingHomework(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateHomework} className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subject *</label>
+                  <select
+                    value={editingHomework.subject}
+                    onChange={(e) => setEditingHomework({ ...editingHomework, subject: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  >
+                    <option>Mathematics</option>
+                    <option>Science</option>
+                    <option>English</option>
+                    <option>Social Studies</option>
+                    <option>Regional Language</option>
+                    <option>Computer Science</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editingHomework.dueDate || editingHomework.due_date}
+                    onChange={(e) => setEditingHomework({ ...editingHomework, dueDate: e.target.value, due_date: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Assignment Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingHomework.title}
+                  onChange={(e) => setEditingHomework({ ...editingHomework, title: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description &amp; Guidance *</label>
+                <textarea
+                  rows="4"
+                  required
+                  value={editingHomework.description}
+                  onChange={(e) => setEditingHomework({ ...editingHomework, description: e.target.value })}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingHomework(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
