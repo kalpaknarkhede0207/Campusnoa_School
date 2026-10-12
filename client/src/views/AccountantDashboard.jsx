@@ -199,10 +199,18 @@ export default function AccountantDashboard() {
     showToast('Fee ledger exported to CSV successfully', 'success');
   };
 
-  const handleVoidTransaction = (tx) => {
-    if (!window.confirm(`Are you sure you want to void / cancel transaction ${tx.refNo || tx.id}?`)) return;
-    setTransactions(prev => prev.filter(t => (t.id || t.refNo) !== (tx.id || tx.refNo)));
-    showToast(`Transaction ${tx.refNo || tx.id} voided successfully`, 'success');
+  const handleVoidTransaction = async (tx) => {
+    if (!window.confirm(`Are you sure you want to void / remove transaction ${tx.refNo || tx.id}?`)) return;
+    try {
+      if (tx.id) {
+        await api.deleteTransaction(tx.id).catch(() => {});
+      }
+      setTransactions(prev => prev.filter(t => (t.id || t.refNo) !== (tx.id || tx.refNo)));
+      showToast(`Transaction ${tx.refNo || tx.id} removed from ledger successfully`, 'success');
+      await fetchTx();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove transaction', 'error');
+    }
   };
 
   return (

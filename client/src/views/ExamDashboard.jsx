@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileCheck, Calendar, Clock, Plus, RefreshCw, CheckCircle, Award, ShieldCheck, AlertCircle } from 'lucide-react';
+import { FileCheck, Calendar, Clock, Plus, RefreshCw, CheckCircle, Award, ShieldCheck, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
@@ -17,6 +17,20 @@ export default function ExamDashboard() {
   const [subject, setSubject] = useState('');
   const [examDate, setExamDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const handleDeleteSchedule = async (item) => {
+    if (!window.confirm(`Are you sure you want to remove exam schedule "${item.title || item.subject}"?`)) return;
+    try {
+      if (item.id) {
+        await api.deleteExamSchedule(item.id).catch(() => {});
+      }
+      setSchedules(prev => prev.filter(s => s.id !== item.id));
+      showToast('Exam timetable record removed', 'success');
+      fetchSchedules();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove exam schedule', 'error');
+    }
+  };
 
   useEffect(() => {
     fetchSchedules();
@@ -285,9 +299,19 @@ export default function ExamDashboard() {
 
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200">
                     <span className="font-mono">Exam Date: {item.exam_date || '2026-10-15'}</span>
-                    <span className="text-emerald-700 font-bold flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" /> Promulgated
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-700 font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" /> Promulgated
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSchedule(item)}
+                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                        title="Remove exam schedule"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

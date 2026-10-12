@@ -76,6 +76,21 @@ export default function AdmissionsHrDashboard() {
     }
   };
 
+  const handleDeleteFaculty = async (facultyMember) => {
+    const facultyName = facultyMember.name || 'this faculty member';
+    const employeeCode = facultyMember.employee_code || facultyMember.employeeCode || '';
+    if (!window.confirm(`Are you sure you want to offboard ${facultyName} (${employeeCode}) from the institutional faculty register? This will permanently delete their records.`)) {
+      return;
+    }
+    try {
+      await api.deleteFaculty(facultyMember.id || facultyMember._id || employeeCode);
+      showToast(`Faculty member ${facultyName} offboarded successfully`, 'success');
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Failed to offboard faculty member', 'error');
+    }
+  };
+
   // New Faculty Appointment Modal Form
   const [isAppointModalOpen, setIsAppointModalOpen] = useState(false);
   const [appointForm, setAppointForm] = useState({
@@ -545,23 +560,33 @@ export default function AdmissionsHrDashboard() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setEditingFaculty({
-                              id: f._id || f.id,
-                              name: f.name || '',
-                              designation: f.designation || f.subject || 'TGT',
-                              department: f.department || 'Academics',
-                              qualification: f.qualification || 'M.Sc., B.Ed',
-                              type: f.type || 'teaching',
-                              phone: f.phone || '',
-                              email: f.email || ''
-                            })}
-                            className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition"
-                            title="Edit Faculty Record"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setEditingFaculty({
+                                id: f._id || f.id,
+                                name: f.name || '',
+                                designation: f.designation || f.subject || 'TGT',
+                                department: f.department || 'Academics',
+                                qualification: f.qualification || 'M.Sc., B.Ed',
+                                type: f.type || 'teaching',
+                                phone: f.phone || '',
+                                email: f.email || ''
+                              })}
+                              className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition"
+                              title="Edit Faculty Record"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFaculty(f)}
+                              className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                              title="Offboard / Remove Faculty"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

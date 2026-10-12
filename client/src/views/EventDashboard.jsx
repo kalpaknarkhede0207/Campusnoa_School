@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Plus, RefreshCw, CheckCircle, Star, ShieldCheck, Clock, Check, X, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, RefreshCw, CheckCircle, Star, ShieldCheck, Clock, Check, X, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
@@ -18,6 +18,20 @@ export default function EventDashboard() {
   const [desc, setDesc] = useState('');
   const [estimatedBudget, setEstimatedBudget] = useState('₹35,000');
   const [submitting, setSubmitting] = useState(false);
+
+  const handleDeleteEvent = async (evt) => {
+    if (!window.confirm(`Are you sure you want to remove event "${evt.title}"?`)) return;
+    try {
+      if (evt.id) {
+        await api.deleteEvent(evt.id).catch(() => {});
+      }
+      setEvents(prev => prev.filter(e => e.id !== evt.id));
+      showToast('Event removed from institutional calendar', 'success');
+      fetchEvents();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove event', 'error');
+    }
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -296,9 +310,19 @@ export default function EventDashboard() {
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-800 uppercase">
                       {evt.event_date || '2026-11-05'}
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      Promulgated
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Promulgated
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(evt)}
+                        className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                        title="Remove event"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 mt-1">{evt.title}</h3>
                   <p className="text-xs text-slate-600">{evt.description || 'Annual celebration and student showcase.'}</p>

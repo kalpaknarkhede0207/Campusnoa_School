@@ -1,10 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { api } from './services/api';
 
 // Components
 import Navbar from './components/Navbar';
 import Toast from './components/Toast';
+import CommandPalette from './components/CommandPalette';
+import MobileBottomNav from './components/MobileBottomNav';
+import OfflineReconnectionBanner from './components/OfflineReconnectionBanner';
+import InstitutionalSettingsModal from './components/InstitutionalSettingsModal';
 
 // Views
 import LoginView from './views/LoginView';
@@ -25,6 +29,20 @@ import EventDashboard from './views/EventDashboard';
 
 export default function App() {
   const { user, isAuthenticated, loading, showToast } = useAuth();
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Global Command Palette Shortcut (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Listen to Server-Sent Events for real-time institutional notifications
   useEffect(() => {
@@ -108,14 +126,34 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <Navbar />
-      <main className="flex-1">
+      <OfflineReconnectionBanner />
+      <Navbar onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
+      <main className="flex-1 pb-20 md:pb-6">
         {renderDashboard()}
       </main>
-      <footer className="py-6 border-t border-slate-200 text-center text-xs text-slate-400 bg-white">
+      <footer className="py-6 border-t border-slate-200 text-center text-xs text-slate-400 bg-white hidden md:block">
         <p>© 2026 CampusNoa. One Institution. One Intelligent Ecosystem. All rights reserved.</p>
       </footer>
       <Toast />
+
+      {/* Global Command Palette (Cmd+K) */}
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
+
+      {/* Institutional Settings Modal */}
+      <InstitutionalSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Touch-Friendly Native Bottom Navigation for Mobile Devices */}
+      <MobileBottomNav 
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+      />
     </div>
   );
 }

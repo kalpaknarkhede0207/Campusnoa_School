@@ -85,11 +85,19 @@ async function request(url, options = {}, isRetry = false) {
     ...options.headers,
   };
 
-  const res = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    credentials: 'include',
-    headers,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${url}`, {
+      ...options,
+      credentials: 'include',
+      headers,
+    });
+  } catch (netErr) {
+    const friendlyErr = new Error('Unable to connect to the school server. Please verify your connection or retry in a moment.');
+    friendlyErr.status = 0;
+    friendlyErr.isNetworkError = true;
+    throw friendlyErr;
+  }
 
   const contentType = res.headers.get('content-type');
   let data;
@@ -100,10 +108,26 @@ async function request(url, options = {}, isRetry = false) {
   }
 
   if (!res.ok) {
-    const errorMsg = (typeof data === 'object' && data.error) ? data.error : (typeof data === 'string' ? data : res.statusText);
-    
+    let rawError = '';
+    if (typeof data === 'object' && data !== null) {
+      if (data.error) rawError = data.error;
+      else if (data.message) rawError = data.message;
+      else if (data.errors && typeof data.errors === 'object') {
+        rawError = Object.values(data.errors).flat().join(', ');
+      }
+    } else if (typeof data === 'string' && data.trim()) {
+      rawError = data.length > 200 ? res.statusText : data;
+    } else {
+      rawError = res.statusText;
+    }
+
     // Check if error is due to expired access token and we can refresh
-    const isTokenExpired = res.status === 401 && (errorMsg === 'TOKEN_EXPIRED' || (typeof data === 'object' && data.error === 'TOKEN_EXPIRED'));
+    const isTokenExpired = res.status === 401 && (
+      rawError === 'TOKEN_EXPIRED' ||
+      rawError === 'UNAUTHENTICATED' ||
+      rawError === 'Unauthenticated.' ||
+      (typeof data === 'object' && (data.error === 'TOKEN_EXPIRED' || data.error === 'UNAUTHENTICATED'))
+    );
     const isAuthRoute = url.startsWith('/auth/login') || url.startsWith('/auth/refresh-token') || url.startsWith('/auth/logout');
 
     if (isTokenExpired && !isRetry && !isAuthRoute && (getRefreshToken() || document.cookie.includes('campusnoa_refresh_token'))) {
@@ -118,7 +142,7 @@ async function request(url, options = {}, isRetry = false) {
           isRefreshing = false;
           onRefreshFailed(refreshErr);
           setAuthToken(null);
-          const err = new Error(refreshErr.message || 'SESSION_EXPIRED');
+          const err = new Error(refreshErr.message || 'Session expired. Please sign in again.');
           err.status = 401;
           throw err;
         }
@@ -127,7 +151,7 @@ async function request(url, options = {}, isRetry = false) {
         return new Promise((resolve, reject) => {
           subscribeTokenRefresh((newToken, refreshErr) => {
             if (refreshErr || !newToken) {
-              const err = new Error('SESSION_EXPIRED');
+              const err = new Error('Session expired. Please sign in again.');
               err.status = 401;
               return reject(err);
             }
@@ -137,7 +161,17 @@ async function request(url, options = {}, isRetry = false) {
       }
     }
 
-    const err = new Error(errorMsg || 'Request failed');
+    // Friendly human-readable message mapping
+    let friendlyMessage = rawError;
+    if (!friendlyMessage || friendlyMessage === 'Request failed') {
+      if (res.status === 401) friendlyMessage = 'Your session has timed out. Please sign in again.';
+      else if (res.status === 403) friendlyMessage = 'Access restricted: You do not have permission for this institutional action.';
+      else if (res.status === 404) friendlyMessage = 'The requested school record was not found.';
+      else if (res.status === 500) friendlyMessage = 'School server encountered an internal error. Automatic recovery in progress.';
+      else friendlyMessage = `Server responded with status ${res.status}.`;
+    }
+
+    const err = new Error(friendlyMessage);
     err.status = res.status;
     err.data = data;
     throw err;
@@ -335,6 +369,18 @@ export const api = {
     });
   },
 
+  async voidTransaction(txId) {
+    return request(`/finance/transactions/${txId}/void`, {
+      method: 'POST',
+    });
+  },
+
+  async deleteTransaction(txId) {
+    return request(`/finance/transactions/${txId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async createFeeReceipt(data) {
     return request('/finance/receipt', {
       method: 'POST',
@@ -456,6 +502,12 @@ export const api = {
     });
   },
 
+  async deleteExamSchedule(id) {
+    return request(`/exams/schedule/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Sports Management
   async getSportsInventory() {
     return request('/sports/inventory');
@@ -489,6 +541,12 @@ export const api = {
     return request('/events/calendar', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  async deleteEvent(id) {
+    return request(`/events/calendar/${id}`, {
+      method: 'DELETE',
     });
   },
 
@@ -593,6 +651,12 @@ export const api = {
     return request(`/faculty/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  },
+
+  async deleteFaculty(id) {
+    return request(`/faculty/${id}`, {
+      method: 'DELETE',
     });
   },
 

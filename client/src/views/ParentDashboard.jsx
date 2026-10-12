@@ -3,11 +3,13 @@ import {
   User, Bus, Calendar, Award, DollarSign, 
   MapPin, Phone, ShieldCheck, CheckCircle2, Clock, ChevronRight, Navigation, AlertCircle,
   BookOpen, MessageSquare, KeyRound, Printer, PlusCircle, Send, Check, Users, Sparkles, XCircle,
-  Archive, Trash2, CheckCheck
+  Archive, Trash2, CheckCheck, Share2, QrCode, CreditCard, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import PrintableReportCardModal from '../components/PrintableReportCardModal';
+import UpiPaymentModal from '../components/UpiPaymentModal';
+import { formatINR } from '../utils/formatUtils';
 
 export default function ParentDashboard() {
   const { user, showToast } = useAuth();
@@ -38,8 +40,22 @@ export default function ParentDashboard() {
   // Official Report Card Modal state
   const [showReportCardModal, setShowReportCardModal] = useState(false);
 
+  // 1-Click Instant UPI Payment Modal state
+  const [showUpiModal, setShowUpiModal] = useState(false);
+
   // Bus state (active only when student has transport)
   const [busData, setBusData] = useState(null);
+
+  const handleShareWhatsApp = (pass) => {
+    if (!pass) return;
+    const text = `*CampusNoa School Gate Pass*\n` +
+      `Student: ${student?.name} (${student?.gradeDisplay})\n` +
+      `Authorized Escort: ${pass.escort_name} (${pass.escort_phone})\n` +
+      `Pickup Reason: ${pass.reason}\n` +
+      `Gate Pass OTP: *${pass.otp_code}*\n` +
+      `Valid today. Present this 4-digit code to Campus Gate Security.`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   const loadWardDetails = async (ward) => {
     if (!ward) return;
@@ -166,9 +182,14 @@ export default function ParentDashboard() {
         'STUDENT_UPDATED', 'STUDENT_ADMITTED', 'ATTENDANCE_MARKED',
         'FEE_COLLECTED', 'REPORT_PUBLISHED', 'BUS_TELEMETRY_UPDATE',
         'HOMEWORK_PUBLISHED', 'HOMEWORK_DELETED',
-        'PARENT_QUERY_REPLIED', 'PARENT_QUERY_SUBMITTED', 'GATE_PASS_GENERATED', 'GATE_PASS_VERIFIED'
+        'PARENT_QUERY_REPLIED', 'PARENT_QUERY_SUBMITTED', 'PARENT_QUERY_ARCHIVED', 'GATE_PASS_GENERATED', 'GATE_PASS_VERIFIED'
       ].includes(event.type)) {
         loadWardData();
+        if (event.type === 'PARENT_QUERY_REPLIED' || event.type === 'PARENT_QUERY_SUBMITTED' || event.type === 'PARENT_QUERY_ARCHIVED') {
+          api.getQueries().then((qRes) => {
+            setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+          }).catch(() => {});
+        }
       }
     });
     return () => { if (unsub) unsub(); };
@@ -492,20 +513,30 @@ export default function ParentDashboard() {
               <span className="text-xs text-slate-400">{student.classRank}</span>
             </div>
 
-            <div className="card-clean p-5 border-l-4 border-l-teal-500">
-              <span className="text-xs font-bold uppercase text-slate-500">Tuition Fee Ledger</span>
-              <p className="text-2xl font-black text-teal-600 mt-1">
-                {hasSiblingDiscount ? `₹${netPayable.toLocaleString('en-IN')}` : student.feeAmount}
-              </p>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                {hasSiblingDiscount ? (
-                  <span className="text-amber-700 font-bold">
-                    ✨ 15% Sibling Concession Applied (-₹{discountAmount.toLocaleString('en-IN')})
-                  </span>
-                ) : (
-                  <span>Receipt Status: {student.receiptNo}</span>
-                )}
+            <div className="card-clean p-5 border-l-4 border-l-teal-500 flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold uppercase text-slate-500">Tuition Fee Ledger</span>
+                <p className="text-2xl font-black text-teal-600 mt-1">
+                  {hasSiblingDiscount ? formatINR(netPayable) : student.feeAmount}
+                </p>
+                <div className="text-[11px] text-slate-500 mt-0.5">
+                  {hasSiblingDiscount ? (
+                    <span className="text-amber-700 font-bold">
+                      ✨ 15% Sibling Concession Applied (-{formatINR(discountAmount)})
+                    </span>
+                  ) : (
+                    <span>Receipt Status: {student.receiptNo}</span>
+                  )}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowUpiModal(true)}
+                className="mt-3 w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Pay Dues via UPI / QR</span>
+              </button>
             </div>
 
             <button
@@ -750,9 +781,23 @@ export default function ParentDashboard() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-indigo-600" /> My Correspondence History
                 </h4>
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                  {queriesList.length} Messages
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                    {queriesList.length} Messages
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const qRes = await api.getQueries().catch(() => ({ queries: [] }));
+                      setQueriesList(Array.isArray(qRes?.queries) ? qRes.queries : []);
+                      showToast('Inquiry correspondence updated', 'info');
+                    }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 transition"
+                    title="Check for faculty replies"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-white">
                 <button
@@ -905,16 +950,16 @@ export default function ParentDashboard() {
 
           {/* ACTIVE PASS OTP DISPLAY CARD */}
           {activeGatePass ? (
-            <div className="card-clean p-6 border-2 border-emerald-400 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/50 relative overflow-hidden shadow-sm">
+            <div className="card-clean p-6 border-2 border-emerald-500 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/70 relative overflow-hidden shadow-md">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
+                <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
                       Active Authorized Release Pass
                     </span>
                   </div>
-                  <h4 className="text-lg font-black text-slate-900">
+                  <h4 className="text-xl font-black text-slate-900">
                     Child: {student.name} ({student.gradeDisplay})
                   </h4>
                   <p className="text-xs text-slate-600">
@@ -923,39 +968,68 @@ export default function ParentDashboard() {
                   <p className="text-xs text-slate-600">
                     Reason: <span className="font-semibold text-slate-800">{activeGatePass.reason}</span>
                   </p>
-                  <div className="text-[11px] text-emerald-700 flex items-center gap-1 font-semibold pt-1">
-                    <Clock className="w-3.5 h-3.5" /> Valid for campus release until 04:30 PM today
+                  
+                  {/* Expiration Progress Bar */}
+                  <div className="pt-2 max-w-sm">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-emerald-800 mb-1">
+                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Valid for Campus Release</span>
+                      <span className="font-mono text-emerald-700">Expires 4:30 PM Today</span>
+                    </div>
+                    <div className="w-full bg-emerald-200/80 rounded-full h-2 overflow-hidden">
+                      <div className="bg-emerald-600 h-2 rounded-full w-4/5 animate-pulse"></div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center p-5 bg-white border-2 border-dashed border-emerald-300 rounded-2xl shadow-inner text-center shrink-0 min-w-[200px]">
-                  <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider mb-1">
+                {/* High-Contrast OTP & Guard QR Code Box */}
+                <div className="flex flex-col items-center justify-center p-5 bg-white border-2 border-emerald-500 rounded-2xl shadow-sm text-center shrink-0 min-w-[220px]">
+                  <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider mb-1 bg-emerald-100 px-2 py-0.5 rounded-full">
                     Gate Security OTP
                   </span>
-                  <span className="font-mono text-4xl font-black tracking-widest text-emerald-600">
-                    {activeGatePass.otp_code || '4821'}
+                  <span className="font-mono text-5xl font-black tracking-widest text-slate-950 my-1 select-all">
+                    {activeGatePass.otp_code ? activeGatePass.otp_code.split('').join(' ') : '4 8 2 1'}
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-1">Show to Gate Guard</span>
+                  <span className="text-[10px] font-semibold text-slate-500">Show to School Guard</span>
+
+                  {/* QR Mini Code SVG */}
+                  <div className="mt-3 p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-slate-800 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-700">Auto-Scannable at Gate</span>
+                  </div>
                 </div>
               </div>
 
               {/* Pass Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-4 mt-4 border-t border-emerald-200/80">
-                <button
-                  type="button"
-                  onClick={() => handleCompletePass(activeGatePass.id)}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
-                  title="Mark child as safely released and picked up"
-                >
-                  <CheckCircle2 className="w-4 h-4" /> Mark as Picked Up
-                </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 mt-4 border-t border-emerald-200/80">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleShareWhatsApp(activeGatePass)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    title="Share gate pass with escort or driver via WhatsApp"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Share with Escort on WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCompletePass(activeGatePass.id)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    title="Mark child as safely released and picked up"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Mark as Picked Up</span>
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => handleCancelPass(activeGatePass.id)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 font-bold text-xs border border-rose-200 transition flex items-center gap-1.5 shadow-2xs"
+                  className="px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 font-bold text-xs border border-rose-200 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
                   title="Revoke / Cancel this active pass"
                 >
-                  <XCircle className="w-4 h-4" /> Cancel / Revoke Pass
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Cancel Pass</span>
                 </button>
               </div>
             </div>
@@ -1307,6 +1381,17 @@ export default function ParentDashboard() {
         isOpen={showReportCardModal}
         onClose={() => setShowReportCardModal(false)}
         student={student?.raw || student}
+      />
+
+      {/* 1-Click Instant UPI Payment Modal */}
+      <UpiPaymentModal
+        isOpen={showUpiModal}
+        onClose={() => setShowUpiModal(false)}
+        student={student}
+        onPaymentSuccess={({ receiptNo }) => {
+          showToast(`Fee receipt #${receiptNo} successfully posted!`, 'success');
+          setStudent(prev => prev ? ({ ...prev, feeStatus: 'PAID', receiptNo: 'VERIFIED' }) : prev);
+        }}
       />
     </div>
   );

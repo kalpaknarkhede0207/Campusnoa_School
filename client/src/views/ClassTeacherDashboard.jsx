@@ -3,13 +3,14 @@ import {
   Users, CheckCircle2, XCircle, Clock, Save, 
   DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap,
   Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck, ShieldCheck,
-  Edit2, Archive, CheckCheck
+  Edit2, Archive, CheckCheck, Mic, MicOff
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
 import StudentDetailModal from '../components/StudentDetailModal';
 import PrintableReportCardModal from '../components/PrintableReportCardModal';
+import { getNextSchoolDay } from '../utils/formatUtils';
 
 export default function ClassTeacherDashboard() {
   const { user, showToast } = useAuth();
@@ -35,6 +36,65 @@ export default function ClassTeacherDashboard() {
     section: user?.homeroomSection || 'B'
   });
   const [submittingHomework, setSubmittingHomework] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+
+  const HOMEWORK_PRESETS = [
+    { label: 'Read & Q1–Q5', title: 'Chapter Reading & Exercise Questions', desc: 'Read Chapter thoroughly and solve questions 1 to 5 in your homework notebook.' },
+    { label: 'Test Revision', title: 'Revision for Upcoming Assessment', desc: 'Revise all concepts, key formulas, and textbook summary points for tomorrow\'s class test.' },
+    { label: 'Notebook Exercise', title: 'Complete Practice Problems', desc: 'Complete remaining numerical problems and diagram drawings in fair class notebook.' },
+    { label: 'Project / Chart', title: 'Holistic Activity & Chart Work', desc: 'Prepare a 1-page chart or diagram representation on the discussed topic.' },
+  ];
+
+  const toggleVoiceDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('Voice dictation is not supported by your current browser. Try Chrome or Edge.', 'error');
+      return;
+    }
+
+    if (isListeningVoice) {
+      setIsListeningVoice(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListeningVoice(true);
+        showToast('Listening... Speak homework instructions clearly', 'info');
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setHomeworkForm(prev => ({
+          ...prev,
+          description: prev.description ? `${prev.description} ${transcript}` : transcript
+        }));
+        showToast(`Dictated: "${transcript}"`, 'success');
+      };
+
+      recognition.onerror = () => {
+        setIsListeningVoice(false);
+      };
+
+      recognition.onend = () => {
+        setIsListeningVoice(false);
+      };
+
+      recognition.start();
+    } catch (_) {
+      setIsListeningVoice(false);
+      showToast('Unable to access microphone for voice dictation', 'error');
+    }
+  };
+
+  const presentCount = useMemo(() => Object.values(attendanceState).filter(st => st === 'PRESENT').length, [attendanceState]);
+  const absentCount = useMemo(() => Object.values(attendanceState).filter(st => st === 'ABSENT').length, [attendanceState]);
+  const lateCount = useMemo(() => Object.values(attendanceState).filter(st => st === 'LATE').length, [attendanceState]);
 
   // Safe Parent-Teacher Query Desk State
   const [queriesList, setQueriesList] = useState([]);
@@ -722,40 +782,56 @@ export default function ClassTeacherDashboard() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Mark Daily Homeroom Attendance</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900">Mark Daily Homeroom Attendance</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                    The 15-Second Routine
+                  </span>
+                </div>
                 <p className="text-xs text-slate-500">
-                  Select status for enrolled students and click Save Attendance to record into database.
+                  Default: All students Present. Tap exceptions (Absent/Late) &amp; click Save to notify parents.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Live Attendance Counter Badge */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs">
+                <span className="text-emerald-700 font-extrabold">{presentCount} Present</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-rose-600 font-extrabold">{absentCount} Absent</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-amber-600 font-extrabold">{lateCount} Late</span>
+              </div>
+
               <button
+                type="button"
                 onClick={() => {
                   const allPresent = {};
                   students.forEach(s => { allPresent[s.id || s._id] = 'PRESENT'; });
                   setAttendanceState(allPresent);
-                  showToast('Marked all students Present', 'info');
+                  showToast('Batch reset: All students marked Present', 'info');
                 }}
                 disabled={students.length === 0}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition disabled:opacity-50"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition disabled:opacity-50 cursor-pointer"
               >
                 Mark All Present
               </button>
 
               <button
+                type="button"
                 onClick={handleSaveAttendance}
                 disabled={savingAttendance || students.length === 0}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                {savingAttendance ? 'Saving to Database...' : 'Save Attendance Record'}
+                {savingAttendance ? 'Saving...' : 'Save & Notify Parents'}
               </button>
             </div>
           </div>
@@ -2468,6 +2544,30 @@ export default function ClassTeacherDashboard() {
             </div>
 
             <form onSubmit={handleCreateHomework} className="space-y-4 pt-4">
+              {/* Quick Homework Presets */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  Quick Templates
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {HOMEWORK_PRESETS.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setHomeworkForm(prev => ({
+                        ...prev,
+                        title: preset.title,
+                        description: preset.desc
+                      }))}
+                      className="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 border border-slate-200 text-slate-700 rounded-lg transition"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Subject *</label>
@@ -2485,7 +2585,26 @@ export default function ClassTeacherDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Date *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">Due Date *</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setHomeworkForm(prev => ({ ...prev, dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0] }))}
+                        className="text-[10px] text-emerald-600 hover:underline font-bold"
+                      >
+                        Tomorrow
+                      </button>
+                      <span className="text-[10px] text-slate-300">·</span>
+                      <button
+                        type="button"
+                        onClick={() => setHomeworkForm(prev => ({ ...prev, dueDate: getNextSchoolDay() }))}
+                        className="text-[10px] text-emerald-600 hover:underline font-bold"
+                      >
+                        Next School Day
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="date"
                     required
@@ -2509,7 +2628,31 @@ export default function ClassTeacherDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Instructions &amp; Guidance</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">Detailed Instructions &amp; Guidance</label>
+                  <button
+                    type="button"
+                    onClick={toggleVoiceDictation}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-medium transition ${
+                      isListeningVoice
+                        ? 'bg-rose-500 text-white animate-pulse shadow-xs'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                    }`}
+                    title={isListeningVoice ? 'Listening... click to stop' : 'Click to dictate instructions'}
+                  >
+                    {isListeningVoice ? (
+                      <>
+                        <MicOff className="w-3.5 h-3.5" />
+                        <span>Listening... (Tap to stop)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3.5 h-3.5" />
+                        <span>Voice Dictate</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   rows="4"
                   required

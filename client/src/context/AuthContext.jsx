@@ -29,15 +29,19 @@ export function AuthProvider({ children }) {
       try {
         session = await api.getSession();
       } catch (err) {
-        if ((err.status === 401 || err.message === 'TOKEN_EXPIRED') && refToken) {
-          const refreshRes = await api.refreshToken();
-          if (refreshRes && refreshRes.user) {
-            session = { user: refreshRes.user };
-          } else {
-            session = await api.getSession();
+        if ((err.status === 401 || err.message?.includes('session') || err.message === 'TOKEN_EXPIRED') && refToken) {
+          try {
+            const refreshRes = await api.refreshToken();
+            if (refreshRes && refreshRes.user) {
+              session = { user: refreshRes.user };
+            } else {
+              session = await api.getSession();
+            }
+          } catch (_) {
+            session = null;
           }
         } else {
-          throw err;
+          session = null;
         }
       }
 
@@ -50,8 +54,7 @@ export function AuthProvider({ children }) {
         setUser(null);
         setAuthToken(null);
       }
-    } catch (err) {
-      console.warn('Failed to load session:', err.message || err);
+    } catch (_) {
       setUser(null);
       setAuthToken(null);
     } finally {
