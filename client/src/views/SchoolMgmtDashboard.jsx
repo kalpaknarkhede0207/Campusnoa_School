@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, TrendingUp, Users, DollarSign, ShieldCheck, Award, RefreshCw, 
   ClipboardList, BarChart2, Calendar, CheckCircle2, AlertTriangle, FileText,
-  Sparkles, Plus, Send, Check, Shield, BookOpen, UserPlus, Sliders, ChevronRight, Trash2
+  Sparkles, Plus, Send, Check, X, Shield, BookOpen, UserPlus, Sliders, ChevronRight, Trash2
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -948,10 +948,12 @@ export default function SchoolMgmtDashboard() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowPolicyModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

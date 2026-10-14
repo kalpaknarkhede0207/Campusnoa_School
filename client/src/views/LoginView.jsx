@@ -146,11 +146,11 @@ export default function LoginView() {
             </button>
           </form>
 
-          {/* Quick-Fill Persona Helper */}
+          {/* Institutional Role Quick Access */}
           <div className="mt-6 pt-5 border-t border-white/10">
-            <p className="text-xs font-medium text-slate-400 mb-2.5 flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-slate-300 mb-2.5 flex items-center gap-1.5 uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              Quick-Fill Demo Roles:
+              Institutional Role Quick Access:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {quickLogins.map((item) => (
@@ -174,8 +174,8 @@ export default function LoginView() {
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Protected by Auth0 & MongoDB Institutional Infrastructure
+          <p className="text-xs text-slate-400 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Enterprise Role-Based Access Control (RBAC) &bull; AES-256 Encrypted
           </p>
         </div>
       </div>

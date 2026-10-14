@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileCheck, Calendar, Clock, Plus, RefreshCw, CheckCircle, Award, ShieldCheck, AlertCircle, Trash2 } from 'lucide-react';
+import { FileCheck, Calendar, Clock, Plus, RefreshCw, CheckCircle, CheckCircle2, XCircle, Award, ShieldCheck, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
@@ -238,24 +238,59 @@ export default function ExamDashboard() {
                       <h4 className="font-bold text-slate-900 text-sm mt-1">{ex.title}</h4>
                       <p className="text-xs text-purple-700 font-semibold">{ex.subject}</p>
                     </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
                       ex.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ex.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}>
-                      {ex.status === 'APPROVED' ? 'Fully Approved ✓' : ex.status === 'REJECTED' ? 'Rejected ✕' : 'Pending Dual Review ⏳'}
+                      {ex.status === 'APPROVED' ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span>Fully Approved</span>
+                        </>
+                      ) : ex.status === 'REJECTED' ? (
+                        <>
+                          <XCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                          <span>Rejected</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                          <span>Pending Dual Review</span>
+                        </>
+                      )}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-100">
                     <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                       <span className="text-[10px] text-slate-400 font-bold uppercase block">Principal Desk</span>
-                      <span className={`font-bold ${ex.principalApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {ex.principalApproved ? 'Sanctioned ✓' : 'Awaiting Review ⏳'}
+                      <span className={`font-bold inline-flex items-center gap-1 text-[10px] mt-0.5 ${ex.principalApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {ex.principalApproved ? (
+                          <>
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                            <span>Sanctioned</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                            <span>Awaiting Review</span>
+                          </>
+                        )}
                       </span>
                     </div>
                     <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
                       <span className="text-[10px] text-slate-400 font-bold uppercase block">Vice Principal Desk</span>
-                      <span className={`font-bold ${ex.vpApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {ex.vpApproved ? 'Sanctioned ✓' : 'Awaiting Review ⏳'}
+                      <span className={`font-bold inline-flex items-center gap-1 text-[10px] mt-0.5 ${ex.vpApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {ex.vpApproved ? (
+                          <>
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                            <span>Sanctioned</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                            <span>Awaiting Review</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   </div>

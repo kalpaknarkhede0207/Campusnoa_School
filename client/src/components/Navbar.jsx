@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Building2, ChevronDown, LogOut, UserCheck, Shield, GraduationCap, 
-  Repeat, School, Sparkles, Bell, Check, X, Megaphone, FileCheck, Calendar, BookOpen, Settings, Trash2, Search
+  Repeat, School, Sparkles, Bell, Check, X, Megaphone, FileCheck, Calendar, BookOpen, Settings, Trash2, Search, Command
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
@@ -96,12 +96,13 @@ export default function Navbar({ onOpenCommandPalette }) {
           <button
             onClick={() => onOpenCommandPalette && onOpenCommandPalette()}
             className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/90 text-slate-500 hover:text-slate-800 text-xs font-medium border border-slate-200/80 transition-all shadow-2xs max-w-xs cursor-pointer"
-            title="Global Quick Action Search (Press ⌘K or Ctrl+K)"
+            title="Global Quick Action Search (Press Cmd+K or Ctrl+K)"
           >
             <Search className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
             <span className="truncate">Search modules, students or switch role...</span>
-            <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 bg-white rounded-md border border-slate-200 shadow-2xs">
-              ⌘K
+            <kbd className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-500 bg-white rounded-md border border-slate-200 shadow-2xs">
+              <Command className="w-2.5 h-2.5" />
+              <span>K</span>
             </kbd>
           </button>
 

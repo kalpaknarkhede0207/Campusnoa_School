@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  BookOpen, Search, Plus, CheckCircle, AlertCircle, Bookmark, 
+  BookOpen, Search, Plus, CheckCircle, CheckCircle2, XCircle, AlertCircle, Bookmark, 
   RefreshCw, UserCheck, Clock, ArrowLeftRight, Trash2, Send, Check, X, ShieldCheck, Users
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -661,14 +661,29 @@ export default function LibraryDashboard() {
                           {bk.estimatedCost}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
                             bk.status === 'APPROVED' 
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                               : bk.status === 'REJECTED' 
                               ? 'bg-rose-50 text-rose-700 border border-rose-200' 
-                              : 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
                           }`}>
-                            {bk.status === 'APPROVED' ? 'Approved & Cataloged ✓' : bk.status === 'REJECTED' ? 'Declined ✕' : 'Pending Principal Review ⏳'}
+                            {bk.status === 'APPROVED' ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span>Approved &amp; Cataloged</span>
+                              </>
+                            ) : bk.status === 'REJECTED' ? (
+                              <>
+                                <XCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                                <span>Declined</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                                <span>Pending Principal Review</span>
+                              </>
+                            )}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-[11px] text-slate-500">
@@ -723,10 +738,12 @@ export default function LibraryDashboard() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowAddBookModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                aria-label="Close modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

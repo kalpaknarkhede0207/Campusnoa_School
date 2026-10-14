@@ -417,10 +417,11 @@ export default function ParentDashboard() {
                   </span>
                   <span>{w.name} ({w.grade || 'Grade 5'})</span>
                   {isSibling && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-wide ${
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide inline-flex items-center gap-1 ${
                       isSelected ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800 border border-amber-300'
                     }`}>
-                      ✨ {w.sibling_discount_percent}% Concession
+                      <Sparkles className="w-2.5 h-2.5 shrink-0" />
+                      <span>{w.sibling_discount_percent}% Concession</span>
                     </span>
                   )}
                 </button>
@@ -521,8 +522,9 @@ export default function ParentDashboard() {
                 </p>
                 <div className="text-[11px] text-slate-500 mt-0.5">
                   {hasSiblingDiscount ? (
-                    <span className="text-amber-700 font-bold">
-                      ✨ 15% Sibling Concession Applied (-{formatINR(discountAmount)})
+                    <span className="text-amber-700 font-bold inline-flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                      <span>15% Sibling Concession Applied (-{formatINR(discountAmount)})</span>
                     </span>
                   ) : (
                     <span>Receipt Status: {student.receiptNo}</span>
@@ -712,8 +714,9 @@ export default function ParentDashboard() {
                             <Clock className="w-3.5 h-3.5 text-slate-400" /> Due Date: <strong className="text-slate-800">{hw.due_date || 'Tomorrow'}</strong>
                           </span>
                           {isDone && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              ✓ Completed by Ward
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
+                              <span>Completed by Ward</span>
                             </span>
                           )}
                         </div>
@@ -877,12 +880,22 @@ export default function ParentDashboard() {
                             Submitted on: {new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} &bull; Assigned: {teacherDisplay}
                           </p>
                         </div>
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto inline-flex items-center gap-1.5 ${
                           isAnswered
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}>
-                          {isAnswered ? '✓ ANSWERED BY FACULTY' : '● AWAITING FACULTY RESPONSE'}
+                          {isAnswered ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span>ANSWERED BY FACULTY</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                              <span>AWAITING FACULTY RESPONSE</span>
+                            </>
+                          )}
                         </span>
                       </div>
 

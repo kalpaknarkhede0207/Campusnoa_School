@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Briefcase, FileCheck, CheckCircle2, 
-  Clock, Search, Plus, Filter, ChevronRight, Eye, Send, Trash2, Edit2
+  Clock, Search, Plus, Filter, ChevronRight, Eye, Send, Trash2, Edit2, FileText, X
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -658,8 +658,9 @@ export default function AdmissionsHrDashboard() {
                           </td>
                           <td className="py-3 px-4 font-medium text-slate-700">{st.grade || 'Grade 1-A'}</td>
                           <td className="py-3 px-4">
-                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200">
-                              📄 {docCount} Digital Files
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200 inline-flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span>{docCount} Digital Files</span>
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -1020,10 +1021,12 @@ export default function AdmissionsHrDashboard() {
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setUploadModalStudent(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded-lg hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                aria-label="Close modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1095,9 +1098,10 @@ export default function AdmissionsHrDashboard() {
               <button
                 type="button"
                 onClick={() => setEditingStudent(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                aria-label="Close modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -1227,9 +1231,10 @@ export default function AdmissionsHrDashboard() {
               <button
                 type="button"
                 onClick={() => setEditingFaculty(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                aria-label="Close modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

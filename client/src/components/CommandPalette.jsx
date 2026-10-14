@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, Command, ArrowRight, UserCheck, Shield, GraduationCap, 
   CreditCard, BookOpen, Clock, Settings, FileSpreadsheet, KeyRound,
-  FileText, Users, X, Sparkles, CheckCircle2
+  FileText, Users, X, Sparkles, CheckCircle2, ArrowUpDown, CornerDownLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -164,8 +164,18 @@ export default function CommandPalette({ isOpen, onClose, onOpenSettings }) {
         {/* Keyboard Hint Footer */}
         <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center gap-3">
-            <span><kbd className="font-sans font-semibold text-slate-500">↑↓</kbd> to navigate</span>
-            <span><kbd className="font-sans font-semibold text-slate-500">↵</kbd> to select</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-sans font-semibold text-[10px] inline-flex items-center gap-0.5">
+                <ArrowUpDown className="w-2.5 h-2.5" />
+              </kbd>
+              <span>to navigate</span>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-sans font-semibold text-[10px] inline-flex items-center gap-0.5">
+                <CornerDownLeft className="w-2.5 h-2.5" />
+              </kbd>
+              <span>to select</span>
+            </span>
           </div>
           <span className="font-mono text-[10px] text-indigo-600 font-bold flex items-center gap-1">
             <Sparkles className="w-3 h-3" /> CampusNoa FastAction

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Plus, RefreshCw, CheckCircle, Star, ShieldCheck, Clock, Check, X, AlertCircle, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, RefreshCw, CheckCircle, CheckCircle2, XCircle, Star, ShieldCheck, Clock, Check, X, AlertCircle, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useInstitutional } from '../context/InstitutionalContext';
@@ -242,14 +242,27 @@ export default function EventDashboard() {
                       <h4 className="font-bold text-slate-900 text-sm mt-1">{evt.title}</h4>
                       <p className="text-xs text-slate-600 line-clamp-2 mt-0.5">{evt.description}</p>
                     </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap inline-flex items-center gap-1 ${
                       evt.status === 'SANCTIONED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                       evt.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
                       'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}>
-                      {evt.status === 'SANCTIONED' ? 'Fully Sanctioned ✓' :
-                       evt.status === 'REJECTED' ? 'Sanction Rejected ✕' :
-                       'Awaiting Concurrence ⏳'}
+                      {evt.status === 'SANCTIONED' ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          <span>Fully Sanctioned</span>
+                        </>
+                      ) : evt.status === 'REJECTED' ? (
+                        <>
+                          <XCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                          <span>Sanction Rejected</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                          <span>Awaiting Concurrence</span>
+                        </>
+                      )}
                     </span>
                   </div>
 
@@ -257,20 +270,50 @@ export default function EventDashboard() {
                   <div className="grid grid-cols-3 gap-2 text-[11px] pt-2 border-t border-slate-100">
                     <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-center">
                       <span className="text-[9px] text-slate-400 font-bold uppercase block">Principal Desk</span>
-                      <span className={`font-bold block text-[10px] mt-0.5 ${evt.principalApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {evt.principalApproved ? 'Sanctioned ✓' : 'Pending ⏳'}
+                      <span className={`font-bold inline-flex items-center justify-center gap-1 text-[10px] mt-0.5 ${evt.principalApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {evt.principalApproved ? (
+                          <>
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                            <span>Sanctioned</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                            <span>Pending</span>
+                          </>
+                        )}
                       </span>
                     </div>
                     <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-center">
                       <span className="text-[9px] text-slate-400 font-bold uppercase block">Vice Principal</span>
-                      <span className={`font-bold block text-[10px] mt-0.5 ${evt.vpApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {evt.vpApproved ? 'Sanctioned ✓' : 'Pending ⏳'}
+                      <span className={`font-bold inline-flex items-center justify-center gap-1 text-[10px] mt-0.5 ${evt.vpApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {evt.vpApproved ? (
+                          <>
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                            <span>Sanctioned</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                            <span>Pending</span>
+                          </>
+                        )}
                       </span>
                     </div>
                     <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-center">
                       <span className="text-[9px] text-slate-400 font-bold uppercase block">HOD Desk</span>
-                      <span className={`font-bold block text-[10px] mt-0.5 ${evt.hodApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
-                        {evt.hodApproved ? 'Sanctioned ✓' : 'Pending ⏳'}
+                      <span className={`font-bold inline-flex items-center justify-center gap-1 text-[10px] mt-0.5 ${evt.hodApproved ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {evt.hodApproved ? (
+                          <>
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                            <span>Sanctioned</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                            <span>Pending</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   </div>
