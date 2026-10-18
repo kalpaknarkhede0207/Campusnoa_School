@@ -9,6 +9,7 @@ import CommandPalette from './components/CommandPalette';
 import MobileBottomNav from './components/MobileBottomNav';
 import OfflineReconnectionBanner from './components/OfflineReconnectionBanner';
 import InstitutionalSettingsModal from './components/InstitutionalSettingsModal';
+import RoleSwitcherModal from './components/RoleSwitcherModal';
 
 // Views
 import LoginView from './views/LoginView';
@@ -31,6 +32,7 @@ export default function App() {
   const { user, isAuthenticated, loading, showToast } = useAuth();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
 
   // Global Command Palette Shortcut (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -149,10 +151,17 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
       />
 
+      {/* Institutional Role Switcher Modal */}
+      <RoleSwitcherModal
+        isOpen={isRoleSwitcherOpen}
+        onClose={() => setIsRoleSwitcherOpen(false)}
+      />
+
       {/* Touch-Friendly Native Bottom Navigation for Mobile Devices */}
       <MobileBottomNav 
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenRoleSwitcher={() => setIsRoleSwitcherOpen(true)}
       />
     </div>
   );

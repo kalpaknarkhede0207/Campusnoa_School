@@ -165,6 +165,25 @@ export default function VicePrincipalDashboard() {
     };
   }, []);
 
+  // Listen for navigation switch requests from mobile bottom nav
+  useEffect(() => {
+    const handleSwitch = (e) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('campusnoa:switchTab', handleSwitch);
+    return () => window.removeEventListener('campusnoa:switchTab', handleSwitch);
+  }, []);
+
+  // Broadcast current active tab to MobileBottomNav
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('campusnoa:tabChanged', {
+      detail: { tab: activeTab }
+    }));
+  }, [activeTab]);
+
   // Handle Proxy Allocation
   const handleAssignProxy = async (id) => {
     const sub = substitutes.find(s => s.id === id);

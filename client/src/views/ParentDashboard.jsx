@@ -203,6 +203,25 @@ export default function ParentDashboard() {
     }
   }, [activeTab]);
 
+  // Mobile Bottom Navigation Integration
+  useEffect(() => {
+    const handleSwitch = (e) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+        if (e.detail.openFeeModal) {
+          setShowUpiModal(true);
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('campusnoa:switchTab', handleSwitch);
+    return () => window.removeEventListener('campusnoa:switchTab', handleSwitch);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('campusnoa:tabChanged', { detail: { tab: activeTab, role: 'parent' } }));
+  }, [activeTab]);
+
   const handleSelectWard = (index) => {
     setSelectedWardIndex(index);
     const target = wards[index];

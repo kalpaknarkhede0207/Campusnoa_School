@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, UserPlus, Briefcase, FileCheck, CheckCircle2, 
   Clock, Search, Plus, Filter, ChevronRight, Eye, Send, Trash2, Edit2, FileText, X
@@ -9,13 +9,54 @@ import StudentDetailModal from '../components/StudentDetailModal';
 
 export default function AdmissionsHrDashboard() {
   const { user, showToast } = useAuth();
-  const [activeTab, setActiveTab] = useState('admissions'); // 'admissions' or 'appointments'
+  const [activeTab, setActiveTab] = useState('admissions'); // 'admissions', 'appointments', 'doc_locker'
   const [students, setStudents] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   const [editingFaculty, setEditingFaculty] = useState(null);
+
+  // Instant Search & Filter State
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [studentGradeFilter, setStudentGradeFilter] = useState('ALL');
+  const [facultySearchQuery, setFacultySearchQuery] = useState('');
+  const [facultyDeptFilter, setFacultyDeptFilter] = useState('ALL');
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(st => {
+      const grade = st.grade || st.class;
+      if (studentGradeFilter !== 'ALL' && grade !== studentGradeFilter) {
+        return false;
+      }
+      if (!studentSearchQuery.trim()) return true;
+      const q = studentSearchQuery.toLowerCase();
+      return (
+        st.name?.toLowerCase().includes(q) ||
+        st.admissionNumber?.toLowerCase().includes(q) ||
+        String(st.rollNo || '').includes(q) ||
+        st.parentName?.toLowerCase().includes(q) ||
+        st.parentPhone?.toLowerCase().includes(q)
+      );
+    });
+  }, [students, studentSearchQuery, studentGradeFilter]);
+
+  const filteredFaculty = useMemo(() => {
+    return faculty.filter(f => {
+      if (facultyDeptFilter !== 'ALL' && f.department !== facultyDeptFilter) {
+        return false;
+      }
+      if (!facultySearchQuery.trim()) return true;
+      const q = facultySearchQuery.toLowerCase();
+      return (
+        f.name?.toLowerCase().includes(q) ||
+        f.email?.toLowerCase().includes(q) ||
+        f.phone?.toLowerCase().includes(q) ||
+        f.designation?.toLowerCase().includes(q) ||
+        f.department?.toLowerCase().includes(q)
+      );
+    });
+  }, [faculty, facultySearchQuery, facultyDeptFilter]);
 
   const handleUpdateStudentSubmit = async (e) => {
     e.preventDefault();
@@ -189,6 +230,25 @@ export default function AdmissionsHrDashboard() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  // Listen for navigation switch requests from mobile bottom nav
+  useEffect(() => {
+    const handleSwitch = (e) => {
+      if (e.detail?.tab) {
+        setActiveTab(e.detail.tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('campusnoa:switchTab', handleSwitch);
+    return () => window.removeEventListener('campusnoa:switchTab', handleSwitch);
+  }, []);
+
+  // Broadcast current active tab to MobileBottomNav
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('campusnoa:tabChanged', {
+      detail: { tab: activeTab }
+    }));
+  }, [activeTab]);
 
   const handleCreateAppointment = async (e) => {
     e.preventDefault();
@@ -396,91 +456,168 @@ export default function AdmissionsHrDashboard() {
               </button>
             </div>
           ) : (
-            <div className="card-clean overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse whitespace-nowrap">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-4">Applicant / Student</th>
-                    <th className="py-3 px-4">Application No.</th>
-                    <th className="py-3 px-4">Applied Grade</th>
-                    <th className="py-3 px-4">Admission Category</th>
-                    <th className="py-3 px-4">Document Status</th>
-                    <th className="py-3 px-4">Admission Status</th>
-                    <th className="py-3 px-4 text-right">Inspect Application</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {students.map((st) => (
-                    <tr 
-                      key={st._id || st.id}
-                      onClick={() => setSelectedStudent(st)}
-                      className="hover:bg-slate-50/80 cursor-pointer transition"
+            <div className="space-y-3">
+              {/* Search & Filter Toolbar */}
+              <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="relative w-full md:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={studentSearchQuery}
+                    onChange={(e) => setStudentSearchQuery(e.target.value)}
+                    placeholder="Search by name, adm no, roll, parent..."
+                    className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition"
+                  />
+                  {studentSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setStudentSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                     >
-                      <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-xs">
-                          {st.name ? st.name[0] : 'S'}
-                        </div>
-                        {st.name}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-slate-600">
-                        {st.admissionNumber || `ADM-${st.rollNo || '001'}`}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 1'}</td>
-                      <td className="py-3 px-4 text-slate-600">{st.category || 'General Merit'}</td>
-                      <td className="py-3 px-4">
-                        <span className="flex items-center gap-1 font-semibold text-emerald-700 text-[11px]">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Verified
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {st.status || 'ACTIVE'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            type="button"
-                            onClick={() => setSelectedStudent(st)}
-                            className="px-2.5 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-800 text-xs font-semibold border border-violet-200"
-                          >
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingStudent({
-                              id: st._id || st.id,
-                              name: st.name || '',
-                              rollNo: st.rollNo || '',
-                              grade: st.grade || st.class || 'Grade 1',
-                              section: st.section || 'A',
-                              category: st.category || 'General Merit',
-                              parentName: st.parentName || '',
-                              parentPhone: st.parentPhone || '',
-                              address: st.address || '',
-                              bloodGroup: st.bloodGroup || 'B+'
-                            })}
-                            className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition"
-                            title="Edit Student Profile"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteStudent(st)}
-                            className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
-                            title="Remove Student"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="hidden sm:inline">Grade:</span>
+                    <select
+                      value={studentGradeFilter}
+                      onChange={(e) => setStudentGradeFilter(e.target.value)}
+                      className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                    >
+                      <option value="ALL">All Grades</option>
+                      {Array.from(new Set(students.map(s => s.grade || s.class).filter(Boolean))).sort().map(gr => (
+                        <option key={gr} value={gr}>{gr}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    {filteredStudents.length} of {students.length}
+                  </span>
+
+                  {(studentSearchQuery || studentGradeFilter !== 'ALL') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStudentSearchQuery('');
+                        setStudentGradeFilter('ALL');
+                      }}
+                      className="text-xs text-violet-600 hover:text-violet-700 font-semibold px-2 py-1 rounded-lg hover:bg-violet-50 transition"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {filteredStudents.length === 0 ? (
+                <div className="card-clean p-8 text-center bg-slate-50/50">
+                  <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-700">No students matched your search criteria</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 mb-3">Try adjusting your search terms or clearing the grade filter.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudentSearchQuery('');
+                      setStudentGradeFilter('ALL');
+                    }}
+                    className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-sm transition"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="card-clean overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          <th className="py-3 px-4">Applicant / Student</th>
+                          <th className="py-3 px-4">Application No.</th>
+                          <th className="py-3 px-4">Applied Grade</th>
+                          <th className="py-3 px-4">Admission Category</th>
+                          <th className="py-3 px-4">Document Status</th>
+                          <th className="py-3 px-4">Admission Status</th>
+                          <th className="py-3 px-4 text-right">Inspect Application</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {filteredStudents.map((st) => (
+                          <tr 
+                            key={st._id || st.id}
+                            onClick={() => setSelectedStudent(st)}
+                            className="hover:bg-slate-50/80 cursor-pointer transition"
+                          >
+                            <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-xs">
+                                {st.name ? st.name[0] : 'S'}
+                              </div>
+                              {st.name}
+                            </td>
+                            <td className="py-3 px-4 font-mono text-slate-600">
+                              {st.admissionNumber || `ADM-${st.rollNo || '001'}`}
+                            </td>
+                            <td className="py-3 px-4 font-medium text-slate-700">{st.grade || st.class || 'Grade 1'}</td>
+                            <td className="py-3 px-4 text-slate-600">{st.category || 'General Merit'}</td>
+                            <td className="py-3 px-4">
+                              <span className="flex items-center gap-1 font-semibold text-emerald-700 text-[11px]">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {st.status || 'ACTIVE'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                  type="button"
+                                  onClick={() => setSelectedStudent(st)}
+                                  className="px-2.5 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-800 text-xs font-semibold border border-violet-200"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingStudent({
+                                    id: st._id || st.id,
+                                    name: st.name || '',
+                                    rollNo: st.rollNo || '',
+                                    grade: st.grade || st.class || 'Grade 1',
+                                    section: st.section || 'A',
+                                    category: st.category || 'General Merit',
+                                    parentName: st.parentName || '',
+                                    parentPhone: st.parentPhone || '',
+                                    address: st.address || '',
+                                    bloodGroup: st.bloodGroup || 'B+'
+                                  })}
+                                  className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition"
+                                  title="Edit Student Profile"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStudent(st)}
+                                  className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                                  title="Remove Student"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -519,80 +656,157 @@ export default function AdmissionsHrDashboard() {
               </button>
             </div>
           ) : (
-            <div className="card-clean overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse whitespace-nowrap">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      <th className="py-3 px-4">Teacher / Employee</th>
-                      <th className="py-3 px-4">Appointment Title</th>
-                      <th className="py-3 px-4">Department / Subject</th>
-                      <th className="py-3 px-4">Staff Category</th>
-                      <th className="py-3 px-4">Qualification</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
-                    {faculty.map((f) => (
-                      <tr key={f._id || f.id} className="hover:bg-slate-50/80 transition">
-                        <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                            {f.name ? f.name[0] : 'T'}
-                          </div>
-                          {f.name}
-                        </td>
-                        <td className="py-3 px-4 font-medium text-slate-800">{f.designation || f.subject}</td>
-                        <td className="py-3 px-4 text-slate-600">{f.department || 'Academics'}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase ${
-                            f.type === 'teaching'
-                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                            {f.type === 'teaching' ? 'Teaching' : 'Non-Teaching'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">{f.qualification || 'M.Sc., B.Ed'}</td>
-                        <td className="py-3 px-4">
-                          <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            CONFIRMED
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button
-                              type="button"
-                              onClick={() => setEditingFaculty({
-                                id: f._id || f.id,
-                                name: f.name || '',
-                                designation: f.designation || f.subject || 'TGT',
-                                department: f.department || 'Academics',
-                                qualification: f.qualification || 'M.Sc., B.Ed',
-                                type: f.type || 'teaching',
-                                phone: f.phone || '',
-                                email: f.email || ''
-                              })}
-                              className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition"
-                              title="Edit Faculty Record"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteFaculty(f)}
-                              className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
-                              title="Offboard / Remove Faculty"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="space-y-3">
+              {/* Search & Department Filter Toolbar */}
+              <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="relative w-full md:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={facultySearchQuery}
+                    onChange={(e) => setFacultySearchQuery(e.target.value)}
+                    placeholder="Search by name, designation, email..."
+                    className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                  />
+                  {facultySearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setFacultySearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="hidden sm:inline">Department:</span>
+                    <select
+                      value={facultyDeptFilter}
+                      onChange={(e) => setFacultyDeptFilter(e.target.value)}
+                      className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    >
+                      <option value="ALL">All Departments</option>
+                      {Array.from(new Set(faculty.map(f => f.department).filter(Boolean))).sort().map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    {filteredFaculty.length} of {faculty.length}
+                  </span>
+
+                  {(facultySearchQuery || facultyDeptFilter !== 'ALL') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFacultySearchQuery('');
+                        setFacultyDeptFilter('ALL');
+                      }}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold px-2 py-1 rounded-lg hover:bg-indigo-50 transition"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {filteredFaculty.length === 0 ? (
+                <div className="card-clean p-8 text-center bg-slate-50/50">
+                  <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-700">No faculty members matched your search criteria</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 mb-3">Try adjusting your search terms or clearing the department filter.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFacultySearchQuery('');
+                      setFacultyDeptFilter('ALL');
+                    }}
+                    className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-sm transition"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="card-clean overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                          <th className="py-3 px-4">Teacher / Employee</th>
+                          <th className="py-3 px-4">Appointment Title</th>
+                          <th className="py-3 px-4">Department / Subject</th>
+                          <th className="py-3 px-4">Staff Category</th>
+                          <th className="py-3 px-4">Qualification</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {filteredFaculty.map((f) => (
+                          <tr key={f._id || f.id} className="hover:bg-slate-50/80 transition">
+                            <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                                {f.name ? f.name[0] : 'T'}
+                              </div>
+                              {f.name}
+                            </td>
+                            <td className="py-3 px-4 font-medium text-slate-800">{f.designation || f.subject}</td>
+                            <td className="py-3 px-4 text-slate-600">{f.department || 'Academics'}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase ${
+                                f.type === 'teaching'
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                                {f.type === 'teaching' ? 'Teaching' : 'Non-Teaching'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-600">{f.qualification || 'M.Sc., B.Ed'}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                CONFIRMED
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center gap-1 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingFaculty({
+                                    id: f._id || f.id,
+                                    name: f.name || '',
+                                    designation: f.designation || f.subject || 'TGT',
+                                    department: f.department || 'Academics',
+                                    qualification: f.qualification || 'M.Sc., B.Ed',
+                                    type: f.type || 'teaching',
+                                    phone: f.phone || '',
+                                    email: f.email || ''
+                                  })}
+                                  className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition"
+                                  title="Edit Faculty Record"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteFaculty(f)}
+                                  className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+                                  title="Offboard / Remove Faculty"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

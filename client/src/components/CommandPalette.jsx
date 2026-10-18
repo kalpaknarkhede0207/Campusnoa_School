@@ -33,19 +33,39 @@ export default function CommandPalette({ isOpen, onClose, onOpenSettings }) {
     { id: 'act-settings', title: 'Institutional Settings & CBSE Scale', category: 'Actions', icon: Settings, action: () => { if (onOpenSettings) onOpenSettings(); } },
     { id: 'act-attendance', title: '1-Tap Homeroom Attendance ("The 15-Second Routine")', category: 'Actions', icon: UserCheck, action: async () => {
       await switchRole('class_teacher');
-      showToast('Switched to Class Teacher: Navigate to Attendance Tab', 'info');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { subtab: 'students' } }));
+      }, 100);
     }},
     { id: 'act-homework', title: 'Assign Daily Homework Diary', category: 'Actions', icon: BookOpen, action: async () => {
       await switchRole('class_teacher');
-      showToast('Switched to Class Teacher: Homework Module Ready', 'info');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { subtab: 'homework' } }));
+      }, 100);
     }},
     { id: 'act-gatepass', title: 'Generate Child Pick-up Gate Pass (OTP)', category: 'Actions', icon: KeyRound, action: async () => {
       await switchRole('parent');
-      showToast('Switched to Parent Portal: Ready to issue gate pass', 'info');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'gatepass' } }));
+      }, 100);
     }},
-    { id: 'act-fee-ledger', title: 'View Tuition Fee Ledger & Challans', category: 'Actions', icon: FileSpreadsheet, action: async () => {
-      await switchRole('accountant');
-      showToast('Switched to Accounts: Ready to review collections', 'info');
+    { id: 'act-fee-ledger', title: 'Pay Dues / Tuition Fee Ledger', category: 'Actions', icon: CreditCard, action: async () => {
+      await switchRole('parent');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'student', openFeeModal: true } }));
+      }, 100);
+    }},
+    { id: 'act-approvals', title: 'Principal Approvals Desk (Sanctions & Events)', category: 'Actions', icon: Shield, action: async () => {
+      await switchRole('principal');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'approvals' } }));
+      }, 100);
+    }},
+    { id: 'act-admissions', title: 'Student Admissions Register', category: 'Actions', icon: UserCheck, action: async () => {
+      await switchRole('admissions_officer');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'admissions' } }));
+      }, 100);
     }},
   ];
 

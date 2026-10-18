@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Users, CheckCircle2, XCircle, Clock, Save, X,
+  Users, CheckCircle2, XCircle, Clock, Save, X, Search,
   DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap,
   Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck, ShieldCheck,
   Edit2, Archive, CheckCheck, Mic, MicOff
@@ -21,6 +21,8 @@ export default function ClassTeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentFilterQuery, setStudentFilterQuery] = useState('');
+  const [attendanceFilterStatus, setAttendanceFilterStatus] = useState('ALL'); // 'ALL' | 'PRESENT' | 'ABSENT' | 'LATE'
 
   // Homework & Digital Diary State
   const [homeworkList, setHomeworkList] = useState([]);
@@ -95,6 +97,23 @@ export default function ClassTeacherDashboard() {
   const presentCount = useMemo(() => Object.values(attendanceState).filter(st => st === 'PRESENT').length, [attendanceState]);
   const absentCount = useMemo(() => Object.values(attendanceState).filter(st => st === 'ABSENT').length, [attendanceState]);
   const lateCount = useMemo(() => Object.values(attendanceState).filter(st => st === 'LATE').length, [attendanceState]);
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(st => {
+      const sId = st.id || st._id;
+      const status = attendanceState[sId] || 'PRESENT';
+      if (attendanceFilterStatus !== 'ALL' && status !== attendanceFilterStatus) {
+        return false;
+      }
+      if (!studentFilterQuery.trim()) return true;
+      const q = studentFilterQuery.toLowerCase();
+      return (
+        st.name?.toLowerCase().includes(q) ||
+        String(st.rollNo || '').includes(q) ||
+        st.admissionNumber?.toLowerCase().includes(q)
+      );
+    });
+  }, [students, attendanceState, studentFilterQuery, attendanceFilterStatus]);
 
   // Safe Parent-Teacher Query Desk State
   const [queriesList, setQueriesList] = useState([]);
@@ -336,6 +355,22 @@ export default function ClassTeacherDashboard() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  // Mobile Bottom Navigation Integration
+  useEffect(() => {
+    const handleSwitch = (e) => {
+      if (e.detail?.subtab) {
+        setActiveSubtab(e.detail.subtab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('campusnoa:switchTab', handleSwitch);
+    return () => window.removeEventListener('campusnoa:switchTab', handleSwitch);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('campusnoa:tabChanged', { detail: { subtab: activeSubtab, role: 'class_teacher' } }));
+  }, [activeSubtab]);
 
   const handleCreateHomework = async (e) => {
     e.preventDefault();
@@ -846,6 +881,76 @@ export default function ClassTeacherDashboard() {
             </div>
           ) : (
             <div className="card-clean overflow-hidden">
+              {/* Quick Search & Attendance Filter Bar */}
+              <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search by student name or roll number..."
+                    value={studentFilterQuery}
+                    onChange={(e) => setStudentFilterQuery(e.target.value)}
+                    className="w-full text-xs pl-8.5 pr-8 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                  />
+                  {studentFilterQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setStudentFilterQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 text-xs shadow-2xs overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceFilterStatus('ALL')}
+                    className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap cursor-pointer ${
+                      attendanceFilterStatus === 'ALL'
+                        ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All ({students.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceFilterStatus('PRESENT')}
+                    className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap cursor-pointer ${
+                      attendanceFilterStatus === 'PRESENT'
+                        ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                        : 'text-emerald-700 hover:bg-emerald-50'
+                    }`}
+                  >
+                    Present ({presentCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceFilterStatus('ABSENT')}
+                    className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap cursor-pointer ${
+                      attendanceFilterStatus === 'ABSENT'
+                        ? 'bg-rose-600 text-white font-bold shadow-2xs'
+                        : 'text-rose-700 hover:bg-rose-50'
+                    }`}
+                  >
+                    Absent ({absentCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceFilterStatus('LATE')}
+                    className={`px-2.5 py-1 rounded-lg transition whitespace-nowrap cursor-pointer ${
+                      attendanceFilterStatus === 'LATE'
+                        ? 'bg-amber-600 text-white font-bold shadow-2xs'
+                        : 'text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    Late ({lateCount})
+                  </button>
+                </div>
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
@@ -859,9 +964,27 @@ export default function ClassTeacherDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
-                  {students.map((st) => {
-                    const sId = st.id || st._id;
-                    const currentStatus = attendanceState[sId] || 'PRESENT';
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="py-8 text-center text-slate-500">
+                        <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                        <p className="font-bold text-slate-700">No students match your filter criteria</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Try clearing your search query or switching status tabs</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStudentFilterQuery('');
+                            setAttendanceFilterStatus('ALL');
+                          }}
+                          className="mt-3 px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                        >
+                          Reset Filters
+                        </button>
+                      </td>
+                    </tr>
+                  ) : filteredStudents.map((st) => {
+                      const sId = st.id || st._id;
+                      const currentStatus = attendanceState[sId] || 'PRESENT';
 
                     return (
                       <tr key={sId} className="hover:bg-slate-50/80 transition">
