@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Home, BookOpen, CreditCard, MessageSquare, 
   CalendarCheck, Award, Users, Settings, PlusCircle, CheckCircle2,
-  User, KeyRound, Bus, Search, Repeat
+  User, KeyRound, Bus, Search, Repeat, FileCheck, GraduationCap, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
