@@ -1,32 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from './context/AuthContext';
 import { api } from './services/api';
 
-// Components
-import Navbar from './components/Navbar';
+// Core SaaS Shell & Stability Components
+import ErrorBoundary from './components/ErrorBoundary';
+import AppShell from './components/layout/AppShell';
+import DashboardSkeleton from './components/layout/DashboardSkeleton';
 import Toast from './components/Toast';
 import CommandPalette from './components/CommandPalette';
-import MobileBottomNav from './components/MobileBottomNav';
-import OfflineReconnectionBanner from './components/OfflineReconnectionBanner';
 import InstitutionalSettingsModal from './components/InstitutionalSettingsModal';
 import RoleSwitcherModal from './components/RoleSwitcherModal';
-
-// Views
 import LoginView from './views/LoginView';
-import PrincipalDashboard from './views/PrincipalDashboard';
-import ClassTeacherDashboard from './views/ClassTeacherDashboard';
-import AdmissionsHrDashboard from './views/AdmissionsHrDashboard';
-import AccountantDashboard from './views/AccountantDashboard';
-import CounsellorDashboard from './views/CounsellorDashboard';
-import ParentDashboard from './views/ParentDashboard';
-import VicePrincipalDashboard from './views/VicePrincipalDashboard';
-import HodDashboard from './views/HodDashboard';
-import SchoolMgmtDashboard from './views/SchoolMgmtDashboard';
-import LibraryDashboard from './views/LibraryDashboard';
-import ExamDashboard from './views/ExamDashboard';
-import SportsDashboard from './views/SportsDashboard';
-import TransportDashboard from './views/TransportDashboard';
-import EventDashboard from './views/EventDashboard';
+
+// Dynamic Code-Split Dashboard Views (Async Chunks)
+const PrincipalDashboard = lazy(() => import('./views/PrincipalDashboard'));
+const ClassTeacherDashboard = lazy(() => import('./views/ClassTeacherDashboard'));
+const AdmissionsHrDashboard = lazy(() => import('./views/AdmissionsHrDashboard'));
+const AccountantDashboard = lazy(() => import('./views/AccountantDashboard'));
+const CounsellorDashboard = lazy(() => import('./views/CounsellorDashboard'));
+const ParentDashboard = lazy(() => import('./views/ParentDashboard'));
+const VicePrincipalDashboard = lazy(() => import('./views/VicePrincipalDashboard'));
+const HodDashboard = lazy(() => import('./views/HodDashboard'));
+const SchoolMgmtDashboard = lazy(() => import('./views/SchoolMgmtDashboard'));
+const LibraryDashboard = lazy(() => import('./views/LibraryDashboard'));
+const ExamDashboard = lazy(() => import('./views/ExamDashboard'));
+const SportsDashboard = lazy(() => import('./views/SportsDashboard'));
+const TransportDashboard = lazy(() => import('./views/TransportDashboard'));
+const EventDashboard = lazy(() => import('./views/EventDashboard'));
 
 export default function App() {
   const { user, isAuthenticated, loading, showToast } = useAuth();
@@ -82,10 +82,10 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <>
+      <ErrorBoundary>
         <LoginView />
         <Toast />
-      </>
+      </ErrorBoundary>
     );
   }
 
@@ -127,15 +127,17 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <OfflineReconnectionBanner />
-      <Navbar onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
-      <main className="flex-1 pb-20 md:pb-6">
-        {renderDashboard()}
-      </main>
-      <footer className="py-6 border-t border-slate-200 text-center text-xs text-slate-400 bg-white hidden md:block">
-        <p>© 2026 CampusNoa. One Institution. One Intelligent Ecosystem. All rights reserved.</p>
-      </footer>
+    <ErrorBoundary>
+      <AppShell
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenRoleSwitcher={() => setIsRoleSwitcherOpen(true)}
+      >
+        <Suspense fallback={<DashboardSkeleton />}>
+          {renderDashboard()}
+        </Suspense>
+      </AppShell>
+
       <Toast />
 
       {/* Global Command Palette (Cmd+K) */}
@@ -156,13 +158,6 @@ export default function App() {
         isOpen={isRoleSwitcherOpen}
         onClose={() => setIsRoleSwitcherOpen(false)}
       />
-
-      {/* Touch-Friendly Native Bottom Navigation for Mobile Devices */}
-      <MobileBottomNav 
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        onOpenRoleSwitcher={() => setIsRoleSwitcherOpen(true)}
-      />
-    </div>
+    </ErrorBoundary>
   );
 }
