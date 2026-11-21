@@ -683,9 +683,58 @@ export const api = {
     return request('/students/linked-wards');
   },
 
+  // Market-Ready Academics & Logistics Additions
+  async getTimetable(params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return request(`/academics/timetable${q ? '?' + q : ''}`);
+  },
+
+  async getCanteenMenu() {
+    return request('/canteen/menu');
+  },
+
+  async getRfidLogs(params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return request(`/attendance/rfid-log${q ? '?' + q : ''}`);
+  },
+
+  async getCertificates(params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return request(`/certificates${q ? '?' + q : ''}`);
+  },
+
+  async applyCertificate(data) {
+    return request('/certificates/apply', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getKioskFeed() {
+    return request('/kiosk/display-feed');
+  },
+
   // AI intelligence endpoints
   async getLeaveAdvice(leaveId) {
     return request(`/ai/leave-advice/${leaveId}`);
+  },
+
+  // User Management & RBAC Provisioning (Principal)
+  async getUsers() {
+    return request('/users');
+  },
+
+  async createUser(data) {
+    return request('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteUser(id) {
+    return request(`/users/${id}`, {
+      method: 'DELETE',
+    });
   },
 
   // Real-time Server Sent Events & Telemetry Sync

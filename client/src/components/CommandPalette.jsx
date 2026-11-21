@@ -22,12 +22,13 @@ export default function CommandPalette({ isOpen, onClose, onOpenSettings }) {
 
   const items = [
     // Navigation & Roles
-    { id: 'role-teacher', title: 'Switch to Class Teacher (Anjali Desai)', category: 'Personas', icon: GraduationCap, action: () => switchRole('class_teacher') },
-    { id: 'role-parent', title: 'Switch to Parent (Vikram Sharma)', category: 'Personas', icon: Users, action: () => switchRole('parent') },
     { id: 'role-principal', title: 'Switch to Principal (Dr. Neha Bhatnagar)', category: 'Personas', icon: Shield, action: () => switchRole('principal') },
-    { id: 'role-accountant', title: 'Switch to Accountant (Ramesh Iyer)', category: 'Personas', icon: CreditCard, action: () => switchRole('accountant') },
-    { id: 'role-admissions', title: 'Switch to Admissions & HR (Priya Menon)', category: 'Personas', icon: UserCheck, action: () => switchRole('admissions_officer') },
-    { id: 'role-exams', title: 'Switch to Exam Controller (Dr. Arvind Saxena)', category: 'Personas', icon: BookOpen, action: () => switchRole('exam_controller') },
+    { id: 'role-student', title: 'Switch to Student (Aarav Sharma)', category: 'Personas', icon: GraduationCap, action: () => switchRole('student') },
+    { id: 'role-parent', title: 'Switch to Parent (Suresh Patil)', category: 'Personas', icon: Users, action: () => switchRole('parent') },
+    { id: 'role-teacher', title: 'Switch to Class Teacher (Anita Verma)', category: 'Personas', icon: GraduationCap, action: () => switchRole('class_teacher') },
+    { id: 'role-accountant', title: 'Switch to Accountant (Sneha Deshmukh)', category: 'Personas', icon: CreditCard, action: () => switchRole('accountant') },
+    { id: 'role-admissions', title: 'Switch to Admissions & Staffing (Vikram Malhotra)', category: 'Personas', icon: UserCheck, action: () => switchRole('admissions_officer') },
+    { id: 'role-exams', title: 'Switch to Exam Controller (Dr. Suresh Joshi)', category: 'Personas', icon: BookOpen, action: () => switchRole('exam_controller') },
 
     // Institutional Actions
     { id: 'act-settings', title: 'Institutional Settings & CBSE Scale', category: 'Actions', icon: Settings, action: () => { if (onOpenSettings) onOpenSettings(); } },
@@ -65,6 +66,27 @@ export default function CommandPalette({ isOpen, onClose, onOpenSettings }) {
       await switchRole('admissions_officer');
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'admissions' } }));
+      }, 100);
+    }},
+    { id: 'act-kiosk', title: 'Open Digital Information Board (Reception Kiosk Display)', category: 'Actions', icon: Sparkles, action: () => {
+      window.dispatchEvent(new CustomEvent('campusnoa:openKiosk'));
+    }},
+    { id: 'act-bank-challan', title: 'Print 3-Copy Bank Challan (Cash Denomination Slip)', category: 'Printables', icon: CreditCard, action: async () => {
+      await switchRole('parent');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'student', openChallan: true } }));
+      }, 100);
+    }},
+    { id: 'act-admit-card', title: 'Print Student Exam Admit Card / Hall Ticket', category: 'Printables', icon: BookOpen, action: async () => {
+      await switchRole('parent');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'student', openAdmitCard: true } }));
+      }, 100);
+    }},
+    { id: 'act-certificates', title: 'Certificates Desk (Bonafide, TC & Merit Awards)', category: 'Printables', icon: FileText, action: async () => {
+      await switchRole('parent');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('campusnoa:switchTab', { detail: { tab: 'certificates' } }));
       }, 100);
     }},
   ];

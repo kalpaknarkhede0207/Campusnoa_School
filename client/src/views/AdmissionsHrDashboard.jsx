@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, UserPlus, Briefcase, FileCheck, CheckCircle2, 
-  Clock, Search, Plus, Filter, ChevronRight, Eye, Send, Trash2, Edit2, FileText, X
+  Clock, Search, Plus, Filter, ChevronRight, Eye, Send, Trash2, Edit2, FileText, X, ShieldCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +9,7 @@ import StudentDetailModal from '../components/StudentDetailModal';
 
 export default function AdmissionsHrDashboard() {
   const { user, showToast } = useAuth();
-  const [activeTab, setActiveTab] = useState('admissions'); // 'admissions', 'appointments', 'doc_locker'
+  const [activeTab, setActiveTab] = useState('admissions'); // 'admissions', 'appointments', 'doc_locker', 'user_access'
   const [students, setStudents] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,11 +17,44 @@ export default function AdmissionsHrDashboard() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [editingFaculty, setEditingFaculty] = useState(null);
 
+  // Portal User Accounts State
+  const [usersList, setUsersList] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('ALL');
+  const [userFormData, setUserFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'class_teacher',
+    phone: '',
+    department: 'Teaching Faculty',
+    grade: 'Grade 5',
+    section: 'B'
+  });
+
   // Instant Search & Filter State
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [studentGradeFilter, setStudentGradeFilter] = useState('ALL');
   const [facultySearchQuery, setFacultySearchQuery] = useState('');
   const [facultyDeptFilter, setFacultyDeptFilter] = useState('ALL');
+
+  const filteredUsersList = useMemo(() => {
+    return usersList.filter(u => {
+      if (userRoleFilter !== 'ALL' && u.role !== userRoleFilter) {
+        return false;
+      }
+      if (!userSearchQuery.trim()) return true;
+      const q = userSearchQuery.toLowerCase();
+      return (
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.employeeCode?.toLowerCase().includes(q) ||
+        u.role?.toLowerCase().includes(q)
+      );
+    });
+  }, [usersList, userSearchQuery, userRoleFilter]);
 
   const filteredStudents = useMemo(() => {
     return students.filter(st => {
@@ -202,11 +235,59 @@ export default function AdmissionsHrDashboard() {
         : (Array.isArray(facRes?.teachers) ? [...facRes.teachers, ...(facRes.nonTeachingStaff || [])] : (Array.isArray(facRes) ? facRes : []));
       setStudents(stuList);
       setFaculty(facList);
+      loadUsers();
     } catch (err) {
       console.error(err);
       showToast('Failed to load admissions and staffing records', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const res = await api.getUsers();
+      if (res?.users) {
+        setUsersList(res.users);
+      }
+    } catch (err) {
+      console.error('Failed to load users', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    try {
+      await api.createUser(userFormData);
+      showToast(`User account created for ${userFormData.name} (${userFormData.role})!`, 'success');
+      setIsAddUserModalOpen(false);
+      setUserFormData({
+        name: '',
+        email: '',
+        password: '',
+        role: 'class_teacher',
+        phone: '',
+        department: 'Teaching Faculty',
+        grade: 'Grade 5',
+        section: 'B'
+      });
+      loadUsers();
+    } catch (err) {
+      showToast(err.message || 'Failed to create user account', 'error');
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to revoke portal access for ${userName}?`)) return;
+    try {
+      await api.deleteUser(userId);
+      showToast(`Portal access revoked for ${userName}`, 'info');
+      loadUsers();
+    } catch (err) {
+      showToast(err.message || 'Failed to revoke user', 'error');
     }
   };
 
@@ -348,6 +429,21 @@ export default function AdmissionsHrDashboard() {
           >
             <FileCheck className="w-4 h-4" />
             <span>Digital Document Locker ({students.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('user_access');
+              loadUsers();
+            }}
+            className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition whitespace-nowrap shrink-0 ${
+              activeTab === 'user_access'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Portal User Accounts ({usersList.length || 'RBAC'})</span>
           </button>
         </div>
       </div>
@@ -906,6 +1002,296 @@ export default function AdmissionsHrDashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* SUBTAB 4: PORTAL USER ACCOUNTS & RBAC ACCESS DELEGATION */}
+      {activeTab === 'user_access' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Portal User Accounts & Access Delegation</h3>
+              <p className="text-xs text-slate-500">
+                Grant portal credentials to faculty, class teachers, students, and parents with role-based permissions.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsAddUserModalOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+            >
+              <UserPlus className="w-4 h-4" /> Provision New User Account
+            </button>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search users by name, email or employee code..."
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value)}
+                className="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                <option value="ALL">All Roles ({usersList.length})</option>
+                <option value="principal">Principal</option>
+                <option value="vice_principal">Vice Principal</option>
+                <option value="class_teacher">Class Teacher / Faculty</option>
+                <option value="student">Student / Scholar</option>
+                <option value="parent">Parent / Guardian</option>
+                <option value="accountant">Accountant / Finance</option>
+                <option value="librarian">Librarian</option>
+                <option value="exam_controller">Exam Controller</option>
+                <option value="sports_coordinator">Sports Coordinator</option>
+                <option value="transport_coordinator">Transport Coordinator</option>
+                <option value="event_coordinator">Event Coordinator</option>
+              </select>
+            </div>
+          </div>
+
+          {/* User Table */}
+          {loadingUsers ? (
+            <div className="card-clean p-12 text-center text-slate-400 text-xs">
+              Loading registered user accounts...
+            </div>
+          ) : filteredUsersList.length === 0 ? (
+            <div className="card-clean p-12 text-center">
+              <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <h4 className="font-bold text-slate-800 text-sm">No Matching User Accounts Found</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                Provision a user account to grant portal access to faculty, parents, or students.
+              </p>
+              <button
+                onClick={() => setIsAddUserModalOpen(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition"
+              >
+                + Provision New Account
+              </button>
+            </div>
+          ) : (
+            <div className="card-clean overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 font-bold uppercase tracking-wider">
+                      <th className="py-3 px-4">User Identity</th>
+                      <th className="py-3 px-4">Assigned Role</th>
+                      <th className="py-3 px-4">Department / Division</th>
+                      <th className="py-3 px-4">Employee / User Code</th>
+                      <th className="py-3 px-4">Portal Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredUsersList.map((u) => {
+                      const roleBadgeStyles = {
+                        principal: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                        vice_principal: 'bg-sky-50 text-sky-700 border-sky-200',
+                        class_teacher: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        faculty: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        student: 'bg-purple-50 text-purple-700 border-purple-200',
+                        parent: 'bg-amber-50 text-amber-700 border-amber-200',
+                        accountant: 'bg-teal-50 text-teal-700 border-teal-200',
+                        librarian: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                        exam_controller: 'bg-rose-50 text-rose-700 border-rose-200',
+                        sports_coordinator: 'bg-orange-50 text-orange-700 border-orange-200',
+                        transport_coordinator: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                        event_coordinator: 'bg-pink-50 text-pink-700 border-pink-200',
+                      };
+
+                      const badgeStyle = roleBadgeStyles[u.role] || 'bg-slate-50 text-slate-700 border-slate-200';
+
+                      return (
+                        <tr key={u.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center shrink-0 text-xs">
+                                {u.name ? u.name[0] : 'U'}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900">{u.name}</p>
+                                <p className="text-[11px] text-slate-500 font-mono">{u.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] uppercase border ${badgeStyle}`}>
+                              {(u.role || '').replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-600 font-medium">
+                            {u.grade && u.section ? `${u.grade}-${u.section}` : (u.department || 'General')}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
+                            {u.employeeCode || `ID-${u.id}`}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              Active Access
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {u.email !== 'nehabhatnagar@gmail.com' && (
+                              <button
+                                onClick={() => handleDeleteUser(u.id, u.name)}
+                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                                title="Revoke Portal Access"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PROVISION NEW USER ACCOUNT MODAL */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Provision Portal User Account</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Grant authenticated access to faculty, staff, parents, or students.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-3.5 text-xs mt-4">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Rahul Deshmukh"
+                  value={userFormData.name}
+                  onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Institutional Email</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@campusnoa.edu"
+                    value={userFormData.email}
+                    onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Temporary Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Min 6 characters"
+                    value={userFormData.password}
+                    onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Portal Role</label>
+                  <select
+                    value={userFormData.role}
+                    onChange={(e) => setUserFormData({ ...userFormData, role: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="class_teacher">Faculty / Class Teacher</option>
+                    <option value="student">Student / Scholar</option>
+                    <option value="parent">Parent / Guardian</option>
+                    <option value="vice_principal">Vice Principal</option>
+                    <option value="accountant">Accountant / Bursar</option>
+                    <option value="librarian">Librarian</option>
+                    <option value="exam_controller">Exam Controller</option>
+                    <option value="sports_coordinator">Sports Coordinator</option>
+                    <option value="transport_coordinator">Transport Coordinator</option>
+                    <option value="event_coordinator">Event Coordinator</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Contact Phone</label>
+                  <input
+                    type="text"
+                    placeholder="+91 98200 12345"
+                    value={userFormData.phone}
+                    onChange={(e) => setUserFormData({ ...userFormData, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Grade Division / Class</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Grade 5-B"
+                    value={userFormData.grade}
+                    onChange={(e) => setUserFormData({ ...userFormData, grade: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Department</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Mathematics"
+                    value={userFormData.department}
+                    onChange={(e) => setUserFormData({ ...userFormData, department: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition cursor-pointer"
+                >
+                  Create & Grant Access
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

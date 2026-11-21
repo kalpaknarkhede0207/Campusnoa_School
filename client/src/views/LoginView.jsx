@@ -24,13 +24,10 @@ export default function LoginView() {
   };
 
   const quickLogins = [
-    { role: 'Principal (Dr. Neha Bhatnagar)', email: 'nehabhatnagar@gmail.com', desc: 'Full institutional governance' },
-    { role: 'Vice Principal', email: 'viceprincipal@campusnoa.edu', desc: 'Appoint teachers & daily proxies' },
-    { role: 'Class Teacher', email: 'teacher@campusnoa.edu', desc: 'Homeroom & fees' },
-    { role: 'Student Counsellor', email: 'counsellor@campusnoa.edu', desc: 'Pastoral & wellbeing cases' },
-    { role: 'Admissions & HR', email: 'admissions@campusnoa.edu', desc: 'Admissions & teacher appointing' },
-    { role: 'Accountant', email: 'accountant@campusnoa.edu', desc: 'Fee collections & dues' },
-    { role: 'Parent', email: 'parent.arav@campusnoa.edu', desc: 'Student progress & live bus GPS' },
+    { role: 'Principal (Dr. Neha Bhatnagar)', email: 'nehabhatnagar@gmail.com', desc: 'Unified 9-module institutional governance' },
+    { role: 'Student (Aarav Sharma)', email: 'student@campusnoa.edu', desc: 'Class timetable, diary, RFID gate logs & admit card' },
+    { role: 'Parent (Suresh Patil)', email: 'parent@campusnoa.edu', desc: 'Ward progress, fee payment, live bus GPS & pick-up OTP' },
+    { role: 'Class Teacher (Faculty)', email: 'teacher@campusnoa.edu', desc: 'Homeroom attendance, homework diary & marks' },
   ];
 
   return (

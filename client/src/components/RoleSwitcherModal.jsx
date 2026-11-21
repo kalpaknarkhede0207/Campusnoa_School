@@ -7,13 +7,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const ROLES = [
-  { id: 'principal', name: 'Principal / Head of School', desc: 'Overall academic & administrative authority', icon: Shield, color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+  { id: 'principal', name: 'Principal / Head of Institution', desc: 'Unified 9-Department Master Governance Cockpit & Approvals', icon: Shield, color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+  { id: 'student', name: 'Student / Scholar', desc: 'Daily Timetable, Homework Diary, RFID Gate Logs & Admit Cards', icon: GraduationCap, color: 'text-purple-600 bg-purple-50 border-purple-200' },
+  { id: 'parent', name: 'Parent & Guardian', desc: 'Student performance, fee receipts, gate pass OTP & live bus GPS', icon: Users, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
+  { id: 'class_teacher', name: 'Class Teacher / Faculty', desc: 'Homeroom attendance, homework diary & marks entry', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   { id: 'vice_principal', name: 'Vice Principal / Coordinator', desc: 'Academic supervision & substitute allocation', icon: Award, color: 'text-sky-600 bg-sky-50 border-sky-200' },
-  { id: 'class_teacher', name: 'Class Teacher', desc: 'Homeroom attendance, fee status & mentorship', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   { id: 'admissions_officer', name: 'Admissions & Staffing Authority', desc: 'Student enrollment & teacher appointing authority', icon: Briefcase, color: 'text-violet-600 bg-violet-50 border-violet-200' },
   { id: 'accountant', name: 'Accountant / Finance Staff', desc: 'Fee collections, dues & ledger reconciliation', icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-200' },
   { id: 'counsellor', name: 'Student Counsellor', desc: 'Confidential pastoral care & wellness cases', icon: HeartHandshake, color: 'text-rose-600 bg-rose-50 border-rose-200' },
-  { id: 'parent', name: 'Parent & Guardian', desc: 'Student performance, fee receipts & live bus GPS', icon: Users, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
   { id: 'librarian', name: 'Librarian', desc: 'Catalog Management, Issue / Return Tracking & Digital Repository', icon: BookOpen, color: 'text-teal-600 bg-teal-50 border-teal-200' },
   { id: 'exam_controller', name: 'Exam Controller', desc: 'Schedules, Seating Plans, Question Papers & Results', icon: FileCheck, color: 'text-purple-600 bg-purple-50 border-purple-200' },
   { id: 'sports_coordinator', name: 'Sports Coordinator', desc: 'Sports Gear, Tournaments, Team Roster & Athletic Events', icon: Trophy, color: 'text-orange-600 bg-orange-50 border-orange-200' },

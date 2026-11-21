@@ -13,6 +13,8 @@ export default function MobileBottomNav({ onOpenSettings, onOpenCommandPalette, 
   useEffect(() => {
     if (user?.role === 'parent') {
       setActiveTabId('student');
+    } else if (user?.role === 'student') {
+      setActiveTabId('timetable');
     } else if (user?.role === 'class_teacher' || user?.role === 'faculty') {
       setActiveTabId('students');
     } else if (user?.role === 'vice_principal') {
@@ -43,6 +45,16 @@ export default function MobileBottomNav({ onOpenSettings, onOpenCommandPalette, 
 
   // Configure navigation buttons according to role
   const getNavItems = () => {
+    if (role === 'student') {
+      return [
+        { id: 'timetable', label: 'Timetable', icon: CalendarCheck, tab: 'timetable' },
+        { id: 'diary', label: 'Diary', icon: BookOpen, tab: 'diary' },
+        { id: 'attendance', label: 'Attendance', icon: FileCheck, tab: 'attendance' },
+        { id: 'exams', label: 'Exams', icon: Award, tab: 'exams' },
+        { id: 'library', label: 'Library', icon: BookOpen, tab: 'library' },
+      ];
+    }
+
     if (role === 'parent') {
       return [
         { id: 'student', label: 'Academics', icon: User, tab: 'student' },
@@ -65,10 +77,10 @@ export default function MobileBottomNav({ onOpenSettings, onOpenCommandPalette, 
 
     if (role === 'principal') {
       return [
-        { id: 'overview', label: 'Overview', icon: Home, tab: 'overview' },
-        { id: 'approvals', label: 'Approvals', icon: FileCheck, tab: 'approvals' },
-        { id: 'staff', label: 'Staff', icon: GraduationCap, tab: 'staff' },
-        { id: 'finance', label: 'Finance', icon: CreditCard, tab: 'finance' },
+        { id: 'executive', label: 'Executive', icon: Home, onClick: () => window.dispatchEvent(new CustomEvent('campusnoa:switchModule', { detail: { module: 'executive' } })) },
+        { id: 'academics', label: 'Academics', icon: GraduationCap, onClick: () => window.dispatchEvent(new CustomEvent('campusnoa:switchModule', { detail: { module: 'academics' } })) },
+        { id: 'admissions_staffing', label: 'Staff & Users', icon: Users, onClick: () => window.dispatchEvent(new CustomEvent('campusnoa:switchModule', { detail: { module: 'admissions_staffing' } })) },
+        { id: 'finance', label: 'Finance', icon: CreditCard, onClick: () => window.dispatchEvent(new CustomEvent('campusnoa:switchModule', { detail: { module: 'finance' } })) },
         { id: 'search', label: 'Search', icon: Search, onClick: onOpenCommandPalette },
       ];
     }

@@ -3,7 +3,7 @@ import {
   Users, CheckCircle2, XCircle, Clock, Save, X, Search,
   DollarSign, AlertCircle, FileText, Check, Send, ChevronRight, Share2, PlusCircle, Trash2, Award, BookOpen, GraduationCap,
   Calendar, MessageSquare, Printer, Sparkles, HelpCircle, FileCheck, ShieldCheck,
-  Edit2, Archive, CheckCheck, Mic, MicOff
+  Edit2, Archive, CheckCheck, Mic, MicOff, Utensils
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -746,6 +746,30 @@ export default function ClassTeacherDashboard() {
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Workload Delegation</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubtab('timetable')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
+              activeSubtab === 'timetable'
+                ? 'bg-white text-emerald-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Weekly Schedule</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubtab('food_menu')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap shrink-0 ${
+              activeSubtab === 'food_menu'
+                ? 'bg-white text-emerald-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Utensils className="w-3.5 h-3.5" />
+            <span>Cafeteria Menu</span>
           </button>
         </div>
       </div>
@@ -2314,6 +2338,236 @@ export default function ClassTeacherDashboard() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB: TEACHER WEEKLY SCHEDULE & TIMETABLE */}
+      {activeSubtab === 'timetable' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="card-clean p-6 bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/80 border-l-4 border-l-emerald-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Faculty Teaching Timetable &amp; Schedule</h3>
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {user?.name || 'Anjali Desai'} (EMP-T014)
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                Weekly lecture allocation, assigned grade divisions, lab sessions, and scheduled planning periods.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-mono font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                24 Lectures / Week
+              </span>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Roster</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="card-clean overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                <span>Weekly Lecture Distribution Matrix</span>
+              </h4>
+              <span className="text-xs text-slate-500 font-medium">
+                Academic Session 2026–2027
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                    <th className="py-3 px-4">Period &amp; Time</th>
+                    <th className="py-3 px-4">Monday</th>
+                    <th className="py-3 px-4">Tuesday</th>
+                    <th className="py-3 px-4">Wednesday</th>
+                    <th className="py-3 px-4">Thursday</th>
+                    <th className="py-3 px-4">Friday</th>
+                    <th className="py-3 px-4">Saturday</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tr className="hover:bg-slate-50/50">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 bg-slate-50/30">
+                      P1 (08:30–09:15)
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Math • Gr 5-B
+                        <div className="text-[10px] font-normal text-emerald-700">Room 104</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-slate-100 text-slate-500 italic">Planning Hour</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Math Drill • Gr 5-B
+                        <div className="text-[10px] font-normal text-emerald-700">Room 104</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold">
+                        Algebra • Gr 6-A
+                        <div className="text-[10px] font-normal text-indigo-700">Room 106</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Problem Solving • Gr 5-B
+                        <div className="text-[10px] font-normal text-emerald-700">Room 104</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-bold">
+                        Math Club
+                        <div className="text-[10px] font-normal text-amber-700">Activity Hall</div>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/50">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 bg-slate-50/30">
+                      P2 (09:15–10:00)
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold">
+                        Algebra • Gr 6-A
+                        <div className="text-[10px] font-normal text-indigo-700">Room 106</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Math • Gr 5-B
+                        <div className="text-[10px] font-normal text-emerald-700">Room 104</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-slate-100 text-slate-500 italic">Planning Hour</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Math • Gr 5-B
+                        <div className="text-[10px] font-normal text-emerald-700">Room 104</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-slate-100 text-slate-500 italic">Faculty Meeting</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-900 font-bold">
+                        Vedic Math Drill
+                        <div className="text-[10px] font-normal text-purple-700">Room 104</div>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr className="bg-amber-50/30 font-semibold text-amber-900">
+                    <td className="py-2.5 px-4 font-mono text-[11px] text-amber-800">
+                      Recess (10:45–11:15)
+                    </td>
+                    <td colSpan={6} className="py-2.5 px-4 text-center text-xs tracking-wider uppercase text-amber-800 font-bold">
+                      Mid-Day Nutrition Recess &amp; Dining Hall Supervision
+                    </td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/50">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 bg-slate-50/30">
+                      P7 (12:45–01:30)
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-slate-100 text-slate-500 italic">Remedial Support</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold">
+                        Algebra • Gr 6-A
+                        <div className="text-[10px] font-normal text-indigo-700">Room 106</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Math Lab
+                        <div className="text-[10px] font-normal text-emerald-700">Math Lab</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-slate-100 text-slate-500 italic">Planning Hour</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
+                        Homeroom Review
+                        <div className="text-[10px] font-normal text-emerald-700">Room 104</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="p-2 rounded-lg bg-slate-100 text-slate-500 italic">Dispersal Duty</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB: CAFETERIA & NUTRITION MENU */}
+      {activeSubtab === 'food_menu' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="card-clean p-6 bg-gradient-to-r from-amber-50/80 via-white to-orange-50/80 border-l-4 border-l-amber-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Utensils className="w-5 h-5 text-amber-600" />
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Campus Cafeteria Weekly Menu &amp; Supervision</h3>
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                  FSSAI Verified
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                Daily student nutrition breakdown, allergen safety checklists, and dining hall duty guidelines for teachers.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                Staff Dining Room: Block B (Floor 1)
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="card-clean p-5 border-t-4 border-t-amber-500">
+              <span className="text-xs font-bold uppercase text-amber-700">Morning Session (08:15 AM)</span>
+              <h4 className="text-sm font-bold text-slate-900 mt-1">Breakfast Roster</h4>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                Poha, Upma, Idli Sambhar, and Methi Paratha on rotation with fresh cow milk or jaggery milk.
+              </p>
+            </div>
+
+            <div className="card-clean p-5 border-t-4 border-t-emerald-500">
+              <span className="text-xs font-bold uppercase text-emerald-700">Recess (10:45 AM)</span>
+              <h4 className="text-sm font-bold text-slate-900 mt-1">Mid-day Wholesome Meal</h4>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                Balanced thali with steamed rice, seasonal dal, green vegetable sabzi, whole-wheat rotis &amp; curd.
+              </p>
+            </div>
+
+            <div className="card-clean p-5 border-t-4 border-t-orange-500">
+              <span className="text-xs font-bold uppercase text-orange-700">Afternoon (01:45 PM)</span>
+              <h4 className="text-sm font-bold text-slate-900 mt-1">Energy Snacks</h4>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                Seasonal fresh fruit (Banana / Orange), roasted makhana, chikki, or sweet corn.
+              </p>
+            </div>
           </div>
         </div>
       )}

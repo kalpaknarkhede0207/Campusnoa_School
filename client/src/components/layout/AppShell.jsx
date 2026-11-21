@@ -14,7 +14,8 @@ export default function AppShell({
   children, 
   onOpenCommandPalette, 
   onOpenSettings, 
-  onOpenRoleSwitcher 
+  onOpenRoleSwitcher,
+  activePrincipalModule = 'executive'
 }) {
   const { user, logout } = useAuth();
   const { 
@@ -123,15 +124,44 @@ export default function AppShell({
     setIsMobileMenuOpen(false);
   };
 
+  // Principal Unified Module Switcher
+  const handleModuleClick = (moduleKey, tab = null, subtab = null) => {
+    window.dispatchEvent(new CustomEvent('campusnoa:switchModule', {
+      detail: { module: moduleKey, tab, subtab }
+    }));
+    setIsMobileMenuOpen(false);
+  };
+
   // Dynamic Role-Based Grouped Navigation Items (RBAC)
   const getRoleNavigationGroups = (role) => {
     switch (role) {
+      case 'student':
+        return [
+          {
+            title: 'Scholar Workspace',
+            items: [
+              { label: 'Daily Timetable', icon: CalendarCheck, onClick: () => handleNavClick('timetable', null) },
+              { label: 'Homework & Class Diary', icon: BookOpen, onClick: () => handleNavClick('diary', null) },
+              { label: 'Attendance & Gate Punch', icon: FileCheck, onClick: () => handleNavClick('attendance', null) },
+            ]
+          },
+          {
+            title: 'Assessments & Facilities',
+            items: [
+              { label: 'Exam Hall Ticket & Dates', icon: Award, onClick: () => handleNavClick('exams', null) },
+              { label: 'Library Bookshelf', icon: BookOpen, onClick: () => handleNavClick('library', null) },
+              { label: 'Cafeteria Nutritious Menu', icon: Sparkles, onClick: () => handleNavClick('canteen', null) },
+              { label: 'Merit Awards & Certificates', icon: Trophy, onClick: () => handleNavClick('certificates', null) },
+            ]
+          }
+        ];
+
       case 'parent':
         return [
           {
-            title: 'Workspace',
+            title: 'Ward Workspace',
             items: [
-              { label: 'My Children', icon: Home, onClick: () => handleNavClick('student', null) },
+              { label: 'Children Dossier', icon: Home, onClick: () => handleNavClick('student', null) },
               { label: 'Daily Diary & Homework', icon: BookOpen, onClick: () => handleNavClick('diary', null) },
               { label: 'Exam Report Cards', icon: Award, onClick: () => handleNavClick('student', 'exams') },
               { label: 'Attendance Record', icon: CalendarCheck, onClick: () => handleNavClick('student', 'attendance') },
@@ -146,7 +176,7 @@ export default function AppShell({
           {
             title: 'Logistics & Safety',
             items: [
-              { label: 'Gate Security Pass', icon: KeyRound, onClick: () => handleNavClick('gatepass', null) },
+              { label: 'Gate Security Pass (QR/OTP)', icon: KeyRound, onClick: () => handleNavClick('gatepass', null) },
               { label: 'Bus Live Tracking (GPS)', icon: Bus, onClick: () => handleNavClick('bus', null) },
             ]
           }
@@ -156,11 +186,11 @@ export default function AppShell({
       case 'faculty':
         return [
           {
-            title: 'Workspace',
+            title: 'Homeroom Workspace',
             items: [
               { label: 'Classroom Overview', icon: Home, onClick: () => handleNavClick(null, 'overview') },
               { label: 'Homeroom Attendance', icon: CalendarCheck, onClick: () => handleNavClick(null, 'students') },
-              { label: 'Homework Diary', icon: BookOpen, onClick: () => handleNavClick('diary', 'homework') },
+              { label: 'Homework Diary & Presets', icon: BookOpen, onClick: () => handleNavClick('diary', 'homework') },
               { label: 'Marks & Assessments', icon: Award, onClick: () => handleNavClick(null, 'exams') },
               { label: 'Parent Messages & Inquiries', icon: Megaphone, onClick: () => handleNavClick(null, 'queries') },
             ]
@@ -170,27 +200,93 @@ export default function AppShell({
       case 'principal':
         return [
           {
-            title: 'Workspace',
+            title: 'Executive & Governance',
             items: [
-              { label: 'Executive Overview', icon: Home, onClick: () => handleNavClick('overview', null) },
-              { label: 'Academic Performance', icon: Award, onClick: () => handleNavClick('academics', null) },
-              { label: 'Attendance Intelligence', icon: CalendarCheck, onClick: () => handleNavClick('attendance', null) },
+              { 
+                label: 'Executive Desk & Approvals', 
+                icon: Shield, 
+                module: 'executive',
+                isActive: activePrincipalModule === 'executive',
+                onClick: () => handleModuleClick('executive') 
+              },
+              { 
+                label: 'Academics & Timetables', 
+                icon: GraduationCap, 
+                module: 'academics',
+                isActive: activePrincipalModule === 'academics',
+                onClick: () => handleModuleClick('academics') 
+              },
             ]
           },
           {
-            title: 'Administration',
+            title: 'Administration & Finance',
             items: [
-              { label: 'Governance & Approvals', icon: FileCheck, onClick: () => handleNavClick('approvals', 'sanctions') },
-              { label: 'Staff & Faculty', icon: GraduationCap, onClick: () => handleNavClick('staff', 'appointments') },
-              { label: 'Admissions & Vault', icon: FileText, onClick: () => handleNavClick('admissions', 'doc_locker') },
-              { label: 'Finance & Fee Ledger', icon: CreditCard, onClick: () => handleNavClick('finance', 'fees') },
+              { 
+                label: 'Admissions & Staffing Vault', 
+                icon: Users, 
+                module: 'admissions_staffing',
+                isActive: activePrincipalModule === 'admissions_staffing',
+                onClick: () => handleModuleClick('admissions_staffing') 
+              },
+              { 
+                label: 'Finance & Fee Accounting', 
+                icon: CreditCard, 
+                module: 'finance',
+                isActive: activePrincipalModule === 'finance',
+                onClick: () => handleModuleClick('finance') 
+              },
+              { 
+                label: 'Examinations & Assessments', 
+                icon: Award, 
+                module: 'exams',
+                isActive: activePrincipalModule === 'exams',
+                onClick: () => handleModuleClick('exams') 
+              },
             ]
           },
           {
-            title: 'Logistics & Safety',
+            title: 'Operations & Facilities',
             items: [
-              { label: 'Campus Security & Gate Logs', icon: KeyRound, onClick: () => handleNavClick('security', null) },
-              { label: 'Fleet & Bus Operations', icon: Bus, onClick: () => handleNavClick('transport', null) },
+              { 
+                label: 'Library & Learning Center', 
+                icon: BookOpen, 
+                module: 'library',
+                isActive: activePrincipalModule === 'library',
+                onClick: () => handleModuleClick('library') 
+              },
+              { 
+                label: 'Sports & Physical Education', 
+                icon: Trophy, 
+                module: 'sports',
+                isActive: activePrincipalModule === 'sports',
+                onClick: () => handleModuleClick('sports') 
+              },
+              { 
+                label: 'Fleet & Transport Logistics', 
+                icon: Bus, 
+                module: 'transport',
+                isActive: activePrincipalModule === 'transport',
+                onClick: () => handleModuleClick('transport') 
+              },
+              { 
+                label: 'Events & Campus Calendar', 
+                icon: CalendarCheck, 
+                module: 'events',
+                isActive: activePrincipalModule === 'events',
+                onClick: () => handleModuleClick('events') 
+              },
+            ]
+          },
+          {
+            title: 'Campus Display',
+            items: [
+              { 
+                label: 'Digital Reception Kiosk', 
+                icon: Sparkles, 
+                module: 'digital_board',
+                isActive: activePrincipalModule === 'digital_board',
+                onClick: () => handleModuleClick('digital_board') 
+              },
             ]
           }
         ];
@@ -428,16 +524,23 @@ export default function AppShell({
                 )}
                 {group.items.map((item) => {
                   const Icon = item.icon;
+                  const isActive = Boolean(item.isActive);
                   return (
                     <div key={item.label} className="relative group">
                       <button
                         type="button"
                         onClick={item.onClick}
-                        className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition cursor-pointer ${
+                        className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                          isActive
+                            ? 'bg-indigo-50 text-indigo-700 shadow-2xs font-bold'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                        } ${
                           isCollapsed ? 'justify-center' : 'justify-start'
                         }`}
                       >
-                        <Icon className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 shrink-0" />
+                        <Icon className={`w-4 h-4 shrink-0 ${
+                          isActive ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'
+                        }`} />
                         {!isCollapsed && <span className="truncate">{item.label}</span>}
                       </button>
 
@@ -681,9 +784,11 @@ export default function AppShell({
                         key={item.label}
                         type="button"
                         onClick={item.onClick}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                          item.isActive ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                        }`}
                       >
-                        <Icon className="w-4 h-4 text-indigo-600" />
+                        <Icon className={`w-4 h-4 ${item.isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
                         <span>{item.label}</span>
                       </button>
                     );

@@ -14,6 +14,7 @@ import LoginView from './views/LoginView';
 
 // Dynamic Code-Split Dashboard Views (Async Chunks)
 const PrincipalDashboard = lazy(() => import('./views/PrincipalDashboard'));
+const StudentDashboard = lazy(() => import('./views/StudentDashboard'));
 const ClassTeacherDashboard = lazy(() => import('./views/ClassTeacherDashboard'));
 const AdmissionsHrDashboard = lazy(() => import('./views/AdmissionsHrDashboard'));
 const AccountantDashboard = lazy(() => import('./views/AccountantDashboard'));
@@ -25,12 +26,34 @@ const ExamDashboard = lazy(() => import('./views/ExamDashboard'));
 const SportsDashboard = lazy(() => import('./views/SportsDashboard'));
 const TransportDashboard = lazy(() => import('./views/TransportDashboard'));
 const EventDashboard = lazy(() => import('./views/EventDashboard'));
+const DigitalInformationBoard = lazy(() => import('./views/DigitalInformationBoard'));
 
 export default function App() {
   const { user, isAuthenticated, loading, showToast } = useAuth();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState(false);
+  const [principalModule, setPrincipalModule] = useState('executive'); // executive, academics, admissions_staffing, finance, library, exams, sports, transport, events
+  const [showKiosk, setShowKiosk] = useState(() => {
+    return typeof window !== 'undefined' && window.location.pathname.startsWith('/kiosk');
+  });
+
+  useEffect(() => {
+    const handleSwitchModule = (e) => {
+      if (e.detail?.module) {
+        setPrincipalModule(e.detail.module);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('campusnoa:switchModule', handleSwitchModule);
+    return () => window.removeEventListener('campusnoa:switchModule', handleSwitchModule);
+  }, []);
+
+  useEffect(() => {
+    const handleKiosk = () => setShowKiosk(true);
+    window.addEventListener('campusnoa:openKiosk', handleKiosk);
+    return () => window.removeEventListener('campusnoa:openKiosk', handleKiosk);
+  }, []);
 
   // Global Command Palette Shortcut (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -78,6 +101,17 @@ export default function App() {
     );
   }
 
+  if (showKiosk) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <DigitalInformationBoard onExit={() => setShowKiosk(false)} />
+        </Suspense>
+        <Toast />
+      </ErrorBoundary>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <ErrorBoundary>
@@ -91,7 +125,32 @@ export default function App() {
   const renderDashboard = () => {
     switch (user?.role) {
       case 'principal':
-        return <PrincipalDashboard />;
+        switch (principalModule) {
+          case 'executive':
+            return <PrincipalDashboard />;
+          case 'academics':
+            return <VicePrincipalDashboard />;
+          case 'admissions_staffing':
+            return <AdmissionsHrDashboard />;
+          case 'finance':
+            return <AccountantDashboard />;
+          case 'library':
+            return <LibraryDashboard />;
+          case 'exams':
+            return <ExamDashboard />;
+          case 'sports':
+            return <SportsDashboard />;
+          case 'transport':
+            return <TransportDashboard />;
+          case 'events':
+            return <EventDashboard />;
+          default:
+            return <PrincipalDashboard />;
+        }
+      case 'student':
+        return <StudentDashboard />;
+      case 'parent':
+        return <ParentDashboard />;
       case 'class_teacher':
       case 'faculty':
         return <ClassTeacherDashboard />;
@@ -101,8 +160,6 @@ export default function App() {
         return <AccountantDashboard />;
       case 'counsellor':
         return <CounsellorDashboard />;
-      case 'parent':
-        return <ParentDashboard />;
       case 'vice_principal':
         return <VicePrincipalDashboard />;
       case 'librarian':
@@ -123,6 +180,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AppShell
+        activePrincipalModule={principalModule}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenRoleSwitcher={() => setIsRoleSwitcherOpen(true)}
