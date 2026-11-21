@@ -7,10 +7,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const ROLES = [
-  { id: 'school_mgmt', name: 'Board / School Management', desc: 'Executive governance & institutional analytics', icon: Building, color: 'text-slate-700 bg-slate-100 border-slate-300' },
   { id: 'principal', name: 'Principal / Head of School', desc: 'Overall academic & administrative authority', icon: Shield, color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
   { id: 'vice_principal', name: 'Vice Principal / Coordinator', desc: 'Academic supervision & substitute allocation', icon: Award, color: 'text-sky-600 bg-sky-50 border-sky-200' },
-  { id: 'hod', name: 'Head of Department (HOD)', desc: 'Curriculum syllabus & teacher coordination', icon: Users, color: 'text-blue-600 bg-blue-50 border-blue-200' },
   { id: 'class_teacher', name: 'Class Teacher', desc: 'Homeroom attendance, fee status & mentorship', icon: UserCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   { id: 'admissions_officer', name: 'Admissions & Staffing Authority', desc: 'Student enrollment & teacher appointing authority', icon: Briefcase, color: 'text-violet-600 bg-violet-50 border-violet-200' },
   { id: 'accountant', name: 'Accountant / Finance Staff', desc: 'Fee collections, dues & ledger reconciliation', icon: DollarSign, color: 'text-amber-600 bg-amber-50 border-amber-200' },

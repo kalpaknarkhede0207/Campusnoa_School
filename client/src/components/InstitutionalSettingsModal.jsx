@@ -15,9 +15,9 @@ export default function InstitutionalSettingsModal({ isOpen, onClose }) {
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
-    institutionName: 'CAMPUSNOA PUBLIC SCHOOL',
+    institutionName: 'CampusNoa ERP',
     trustName: 'CampusNoa Education Foundation',
-    affiliationCode: 'CBSE/AFF/113089',
+    affiliationCode: '',
     registrationNumber: 'REG-MH-2018-9921',
     schoolAddress: 'Survey No. 42, Knowledge Park Highway, Pune, Maharashtra 411045',
     contactEmail: 'administration@campusnoa.edu.in',
@@ -203,7 +203,7 @@ export default function InstitutionalSettingsModal({ isOpen, onClose }) {
                     value={formData.institutionName}
                     onChange={(e) => handleChange('institutionName', e.target.value)}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-900"
-                    placeholder="e.g. CAMPUSNOA PUBLIC SCHOOL"
+                    placeholder="e.g. CampusNoa Academy"
                   />
                 </div>
 
@@ -229,7 +229,7 @@ export default function InstitutionalSettingsModal({ isOpen, onClose }) {
                     value={formData.affiliationCode}
                     onChange={(e) => handleChange('affiliationCode', e.target.value)}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-indigo-700"
-                    placeholder="e.g. CBSE/AFF/113089"
+                    placeholder="e.g. AFF-2026-99"
                   />
                 </div>
 

@@ -24,11 +24,9 @@ export default function LoginView() {
   };
 
   const quickLogins = [
-    { role: 'School Management', email: 'board@campusnoa.edu', desc: 'Executive governance' },
     { role: 'Principal (Dr. Neha Bhatnagar)', email: 'nehabhatnagar@gmail.com', desc: 'Full institutional governance' },
     { role: 'Vice Principal', email: 'viceprincipal@campusnoa.edu', desc: 'Appoint teachers & daily proxies' },
     { role: 'Class Teacher', email: 'teacher@campusnoa.edu', desc: 'Homeroom & fees' },
-    { role: 'HOD Academics', email: 'hod@campusnoa.edu', desc: 'Curriculum delivery & audits' },
     { role: 'Student Counsellor', email: 'counsellor@campusnoa.edu', desc: 'Pastoral & wellbeing cases' },
     { role: 'Admissions & HR', email: 'admissions@campusnoa.edu', desc: 'Admissions & teacher appointing' },
     { role: 'Accountant', email: 'accountant@campusnoa.edu', desc: 'Fee collections & dues' },

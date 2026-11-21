@@ -20,8 +20,6 @@ const AccountantDashboard = lazy(() => import('./views/AccountantDashboard'));
 const CounsellorDashboard = lazy(() => import('./views/CounsellorDashboard'));
 const ParentDashboard = lazy(() => import('./views/ParentDashboard'));
 const VicePrincipalDashboard = lazy(() => import('./views/VicePrincipalDashboard'));
-const HodDashboard = lazy(() => import('./views/HodDashboard'));
-const SchoolMgmtDashboard = lazy(() => import('./views/SchoolMgmtDashboard'));
 const LibraryDashboard = lazy(() => import('./views/LibraryDashboard'));
 const ExamDashboard = lazy(() => import('./views/ExamDashboard'));
 const SportsDashboard = lazy(() => import('./views/SportsDashboard'));
@@ -107,10 +105,6 @@ export default function App() {
         return <ParentDashboard />;
       case 'vice_principal':
         return <VicePrincipalDashboard />;
-      case 'hod':
-        return <HodDashboard />;
-      case 'school_mgmt':
-        return <SchoolMgmtDashboard />;
       case 'librarian':
         return <LibraryDashboard />;
       case 'exam_controller':

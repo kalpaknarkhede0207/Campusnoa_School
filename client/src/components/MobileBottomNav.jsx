@@ -93,7 +93,7 @@ export default function MobileBottomNav({ onOpenSettings, onOpenCommandPalette, 
       ];
     }
 
-    // Default for School Management & Administrative Staff
+    // Default for Administrative & Operations Staff
     return [
       { id: 'overview', label: 'Overview', icon: Home, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
       { id: 'search', label: 'Search', icon: Search, onClick: onOpenCommandPalette },

@@ -84,14 +84,12 @@ export default function AppShell({
   const roleNameMap = {
     principal: 'Principal / Head of School',
     vice_principal: 'Vice Principal / Coordinator',
-    hod: 'Head of Department',
     class_teacher: 'Class Teacher',
     admissions_officer: 'Admissions & Staffing',
     accountant: 'Finance & Accounts',
     counsellor: 'Student Counsellor',
     parent: 'Parent & Guardian',
     student: 'Student',
-    school_mgmt: 'Board / Management',
     librarian: 'Librarian',
     exam_controller: 'Exam Controller',
     sports_coordinator: 'Sports Coordinator',
@@ -125,34 +123,262 @@ export default function AppShell({
     setIsMobileMenuOpen(false);
   };
 
-  // Grouped Navigation Items according to SaaS standards
-  const navigationGroups = [
-    {
-      title: 'Workspace',
-      items: [
-        { label: 'Overview', icon: Home, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-        { label: 'Homeroom & Attendance', icon: CalendarCheck, onClick: () => handleNavClick(null, 'students') },
-        { label: 'Homework Diary', icon: BookOpen, onClick: () => handleNavClick('diary', 'homework') },
-        { label: 'Exam Results', icon: Award, onClick: () => handleNavClick(null, 'exams') },
-      ]
-    },
-    {
-      title: 'Administration',
-      items: [
-        { label: 'Approvals & Sanctions', icon: FileCheck, onClick: () => handleNavClick('approvals', 'sanctions') },
-        { label: 'Staff & Faculty', icon: GraduationCap, onClick: () => handleNavClick('staff', 'appointments') },
-        { label: 'Admissions & Vault', icon: FileText, onClick: () => handleNavClick('admissions', 'doc_locker') },
-        { label: 'Fees & Ledger', icon: CreditCard, onClick: () => handleNavClick('finance', 'fees') },
-      ]
-    },
-    {
-      title: 'Logistics & Safety',
-      items: [
-        { label: 'Gate Security Pass', icon: KeyRound, onClick: () => handleNavClick('gatepass', null) },
-        { label: 'Transport GPS', icon: Bus, onClick: () => handleNavClick('bus', null) },
-      ]
+  // Dynamic Role-Based Grouped Navigation Items (RBAC)
+  const getRoleNavigationGroups = (role) => {
+    switch (role) {
+      case 'parent':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'My Children', icon: Home, onClick: () => handleNavClick('student', null) },
+              { label: 'Daily Diary & Homework', icon: BookOpen, onClick: () => handleNavClick('diary', null) },
+              { label: 'Exam Report Cards', icon: Award, onClick: () => handleNavClick('student', 'exams') },
+              { label: 'Attendance Record', icon: CalendarCheck, onClick: () => handleNavClick('student', 'attendance') },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Fee Payment & Receipts', icon: CreditCard, onClick: () => handleNavClick('student', 'fees') },
+            ]
+          },
+          {
+            title: 'Logistics & Safety',
+            items: [
+              { label: 'Gate Security Pass', icon: KeyRound, onClick: () => handleNavClick('gatepass', null) },
+              { label: 'Bus Live Tracking (GPS)', icon: Bus, onClick: () => handleNavClick('bus', null) },
+            ]
+          }
+        ];
+
+      case 'class_teacher':
+      case 'faculty':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Classroom Overview', icon: Home, onClick: () => handleNavClick(null, 'overview') },
+              { label: 'Homeroom Attendance', icon: CalendarCheck, onClick: () => handleNavClick(null, 'students') },
+              { label: 'Homework Diary', icon: BookOpen, onClick: () => handleNavClick('diary', 'homework') },
+              { label: 'Marks & Assessments', icon: Award, onClick: () => handleNavClick(null, 'exams') },
+              { label: 'Parent Messages & Inquiries', icon: Megaphone, onClick: () => handleNavClick(null, 'queries') },
+            ]
+          }
+        ];
+
+      case 'principal':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Executive Overview', icon: Home, onClick: () => handleNavClick('overview', null) },
+              { label: 'Academic Performance', icon: Award, onClick: () => handleNavClick('academics', null) },
+              { label: 'Attendance Intelligence', icon: CalendarCheck, onClick: () => handleNavClick('attendance', null) },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Governance & Approvals', icon: FileCheck, onClick: () => handleNavClick('approvals', 'sanctions') },
+              { label: 'Staff & Faculty', icon: GraduationCap, onClick: () => handleNavClick('staff', 'appointments') },
+              { label: 'Admissions & Vault', icon: FileText, onClick: () => handleNavClick('admissions', 'doc_locker') },
+              { label: 'Finance & Fee Ledger', icon: CreditCard, onClick: () => handleNavClick('finance', 'fees') },
+            ]
+          },
+          {
+            title: 'Logistics & Safety',
+            items: [
+              { label: 'Campus Security & Gate Logs', icon: KeyRound, onClick: () => handleNavClick('security', null) },
+              { label: 'Fleet & Bus Operations', icon: Bus, onClick: () => handleNavClick('transport', null) },
+            ]
+          }
+        ];
+
+      case 'vice_principal':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Academic Supervision', icon: Home, onClick: () => handleNavClick('overview', null) },
+              { label: 'Class Attendance Logs', icon: CalendarCheck, onClick: () => handleNavClick(null, 'attendance') },
+              { label: 'Curriculum & Homework', icon: BookOpen, onClick: () => handleNavClick(null, 'homework') },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Teacher Allocations', icon: GraduationCap, onClick: () => handleNavClick('class_teacher_assign', null) },
+              { label: 'Faculty Proxies / Substitutions', icon: CalendarCheck, onClick: () => handleNavClick('proxies', null) },
+              { label: 'Sanctions & Discipline', icon: FileCheck, onClick: () => handleNavClick('sanctions', null) },
+            ]
+          },
+          {
+            title: 'Logistics & Safety',
+            items: [
+              { label: 'Campus Gate Logs', icon: KeyRound, onClick: () => handleNavClick('gatepass', null) },
+            ]
+          }
+        ];
+
+      case 'accountant':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Financial Overview', icon: Home, onClick: () => handleNavClick('overview', null) },
+              { label: 'Daily Fee Desk', icon: CreditCard, onClick: () => handleNavClick('collections', null) },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Student Fee Invoices', icon: FileText, onClick: () => handleNavClick('invoices', null) },
+              { label: 'Defaulters & Reminders', icon: Megaphone, onClick: () => handleNavClick('defaulters', null) },
+              { label: 'Bank Reconciliation & Ledgers', icon: FileCheck, onClick: () => handleNavClick('reconciliation', null) },
+            ]
+          }
+        ];
+
+      case 'admissions_officer':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Admissions Pipeline', icon: Home, onClick: () => handleNavClick('admissions', null) },
+              { label: 'Inquiries Ledger', icon: Megaphone, onClick: () => handleNavClick('inquiries', null) },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Candidate Verification', icon: FileCheck, onClick: () => handleNavClick('verification', null) },
+              { label: 'Document Locker / Vault', icon: FileText, onClick: () => handleNavClick('doc_locker', null) },
+              { label: 'Faculty Appointing Authority', icon: GraduationCap, onClick: () => handleNavClick('appointments', null) },
+            ]
+          }
+        ];
+
+      case 'counsellor':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Wellness Console', icon: Home, onClick: () => handleNavClick('overview', null) },
+              { label: 'Confidential Student Cases', icon: HeartHandshake, onClick: () => handleNavClick('cases', null) },
+              { label: 'Pastoral Sessions', icon: CalendarCheck, onClick: () => handleNavClick('sessions', null) },
+              { label: 'Behavioral & Attendance Alerts', icon: Shield, onClick: () => handleNavClick('alerts', null) },
+            ]
+          }
+        ];
+
+      case 'librarian':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Book Catalog', icon: BookOpen, onClick: () => handleNavClick('catalog', null) },
+              { label: 'Issue & Return Desk', icon: FileCheck, onClick: () => handleNavClick('circulations', null) },
+              { label: 'Active Borrowers', icon: Users, onClick: () => handleNavClick('borrowers', null) },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Book Procurement & Approvals', icon: FileText, onClick: () => handleNavClick('procurement', null) },
+            ]
+          }
+        ];
+
+      case 'exam_controller':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Timetables & Schedules', icon: CalendarCheck, onClick: () => handleNavClick('schedules', null) },
+              { label: 'Seating Plans & Hall Tickets', icon: FileText, onClick: () => handleNavClick('seating', null) },
+              { label: 'Marks Verification', icon: Award, onClick: () => handleNavClick('marks', null) },
+              { label: 'Grade Transcripts', icon: FileCheck, onClick: () => handleNavClick('transcripts', null) },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Exam Approvals & Moderation', icon: ShieldCheck, onClick: () => handleNavClick('approvals', null) },
+            ]
+          }
+        ];
+
+      case 'sports_coordinator':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Sports Events & Meets', icon: Trophy, onClick: () => handleNavClick('events', null) },
+              { label: 'Athletic Teams & Rosters', icon: Users, onClick: () => handleNavClick('teams', null) },
+              { label: 'Equipment Inventory', icon: Briefcase, onClick: () => handleNavClick('inventory', null) },
+            ]
+          },
+          {
+            title: 'Logistics & Safety',
+            items: [
+              { label: 'Sports Grounds & First Aid', icon: ShieldCheck, onClick: () => handleNavClick('safety', null) },
+            ]
+          }
+        ];
+
+      case 'transport_coordinator':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Fleet & Vehicle Registry', icon: Bus, onClick: () => handleNavClick('fleet', null) },
+              { label: 'Driver & Attendant Directory', icon: Users, onClick: () => handleNavClick('drivers', null) },
+            ]
+          },
+          {
+            title: 'Logistics & Safety',
+            items: [
+              { label: 'Route Dispatch & Live GPS', icon: Bus, onClick: () => handleNavClick('routes', null) },
+              { label: 'Gate Security Pass Logs', icon: KeyRound, onClick: () => handleNavClick('gatepass', null) },
+              { label: 'Emergency Alerts & SOS', icon: Shield, onClick: () => handleNavClick('sos', null) },
+            ]
+          }
+        ];
+
+      case 'event_coordinator':
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Events Calendar', icon: CalendarCheck, onClick: () => handleNavClick('calendar', null) },
+              { label: 'Auditorium Bookings', icon: Home, onClick: () => handleNavClick('venues', null) },
+              { label: 'Task Delegation', icon: Users, onClick: () => handleNavClick('tasks', null) },
+            ]
+          },
+          {
+            title: 'Administration',
+            items: [
+              { label: 'Event Budgets & Sanctions', icon: CreditCard, onClick: () => handleNavClick('sanctions', null) },
+            ]
+          }
+        ];
+
+      default:
+        return [
+          {
+            title: 'Workspace',
+            items: [
+              { label: 'Overview', icon: Home, onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+            ]
+          }
+        ];
     }
-  ];
+  };
+
+  const navigationGroups = getRoleNavigationGroups(user.role).filter(
+    group => group.items && group.items.length > 0
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-indigo-500 selection:text-white">
@@ -174,7 +400,7 @@ export default function AppShell({
               {!isCollapsed && (
                 <div className="truncate">
                   <span className="font-extrabold text-sm tracking-tight text-slate-900">
-                    {institutionalSettings?.institutionName || 'CAMPUSNOA'}
+                    CampusNoa
                   </span>
                   <p className="text-[10px] text-slate-400 font-medium">Enterprise ERP</p>
                 </div>
@@ -274,17 +500,13 @@ export default function AppShell({
               </button>
 
               <div className="flex items-center gap-2">
-                <span className="hidden sm:inline-block text-xs font-bold text-slate-900">
-                  {institutionalSettings?.institutionName || 'CampusNoa Public School'}
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 tracking-tight">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {currentRoleLabel}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
-                  {institutionalSettings?.academicYear || '2026–2027'}
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                  Workspace
                 </span>
-                {institutionalSettings?.affiliationCode && (
-                  <span className="hidden lg:inline-block text-[10px] font-mono font-medium text-slate-400">
-                    ({institutionalSettings.affiliationCode})
-                  </span>
-                )}
               </div>
             </div>
 

@@ -21,15 +21,15 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_SETTINGS = {
-  institutionName: 'CAMPUSNOA PUBLIC SCHOOL',
+  institutionName: 'CampusNoa ERP',
   trustName: 'CampusNoa Education Foundation',
-  affiliationCode: 'CBSE/AFF/113089',
+  affiliationCode: '',
   registrationNumber: 'REG-MH-2018-9921',
   schoolAddress: 'Survey No. 42, Knowledge Park Highway, Pune, Maharashtra 411045',
   contactEmail: 'administration@campusnoa.edu.in',
   contactPhone: '+91 20 2845 9900',
   principalSignatureName: 'Dr. Eleanor Vance, Ph.D.',
-  academicYear: '2026–2027',
+  academicYear: '2026-2027',
   term1Start: '2026-04-01',
   term1End: '2026-09-30',
   term2Start: '2026-10-01',
